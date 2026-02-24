@@ -156,6 +156,7 @@ async def start_task(task_id: str, request: StartTaskRequest):
     if not implementation_plan.exists() or not plan_is_valid:
         # Need to run spec creation first - read title/description from requirements.json
         import json
+        from datetime import datetime
         logger.info(f"[StartTask] No valid implementation plan found, will run spec creation for {task_id}")
         requirements_file = spec_dir / "requirements.json"
         if not requirements_file.exists():
@@ -182,46 +183,110 @@ async def start_task(task_id: str, request: StartTaskRequest):
             if meta_complexity in ("simple", "standard", "complex"):
                 complexity = meta_complexity
 
-        agent_service = get_agent_service()
+        # === FAST PATH: Simple tasks skip spec creation entirely ===
+        if complexity == "simple":
+            logger.info(f"[StartTask] Simple task fast path: generating spec + plan programmatically for {task_id}")
 
-        # Run spec creation first
-        try:
-            await agent_service.start_spec_creation(
-                task_id=task_id,
-                project_path=project_path,
-                title=title,
-                description=description,
-                complexity=complexity,
-                auto_continue=request.auto_continue,
-            )
+            # 1. Generate minimal spec.md
+            spec_file = spec_dir / "spec.md"
+            if not spec_file.exists():
+                spec_content = f"# {title}\n\n{description}\n"
+                spec_file.write_text(spec_content)
 
-            # Persist status to implementation_plan.json for page refresh survival
-            # Create minimal plan file if it doesn't exist
-            import json
-            try:
-                if implementation_plan.exists():
-                    plan = json.loads(implementation_plan.read_text())
-                else:
-                    plan = {}
-                plan["status"] = "in_progress"
-                plan["phase"] = "spec_creation"
-                implementation_plan.write_text(json.dumps(plan, indent=2))
-                logger.info(f"[StartTask] Persisted status=in_progress (spec creation) to {implementation_plan}")
-            except (json.JSONDecodeError, OSError) as e:
-                logger.warning(f"[StartTask] Failed to persist spec creation status: {e}")
-
-            # Emit status to show spec creation in progress
-            await emit_task_status(task_id, "in_progress")
-            return {
-                "success": True,
-                "task_id": task_id,
-                "message": "Spec creation started (no implementation plan found)",
+            # 2. Generate implementation_plan.json with 1 subtask
+            plan_data = {
+                "feature": title,
+                "workflow_type": "feature",
+                "status": "in_progress",
+                "current_phase": "coding",
+                "phases": [
+                    {
+                        "phase": 1,
+                        "name": "Implementation",
+                        "subtasks": [
+                            {
+                                "id": "1.1",
+                                "description": f"{title}: {description}" if description else title,
+                                "status": "pending",
+                            }
+                        ],
+                    }
+                ],
+                "last_updated": datetime.now().isoformat(),
             }
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to start spec creation: {str(e)}",
-            )
+            implementation_plan.write_text(json.dumps(plan_data, indent=2))
+
+            # 3. Pre-approve (skip review gate)
+            review_state_file = spec_dir / "review_state.json"
+            review_state_file.write_text(json.dumps({
+                "approved": True,
+                "approved_by": "auto-simple",
+                "approved_at": datetime.now().isoformat(),
+            }, indent=2))
+
+            # 4. Set task_metadata for quick mode + reduced thinking
+            task_metadata_file = spec_dir / "task_metadata.json"
+            task_metadata = {}
+            if task_metadata_file.exists():
+                try:
+                    task_metadata = json.loads(task_metadata_file.read_text())
+                except (json.JSONDecodeError, OSError):
+                    pass
+            task_metadata["complexity"] = "simple"
+            task_metadata["mode"] = "quick"
+            task_metadata["isAutoProfile"] = True
+            task_metadata["phaseThinking"] = {
+                "spec": "low",
+                "planning": "low",
+                "coding": "medium",
+                "qa": "low",
+            }
+            task_metadata_file.write_text(json.dumps(task_metadata, indent=2))
+
+            # Mark plan as valid so we fall through to the execution path below
+            plan_is_valid = True
+            logger.info(f"[StartTask] Fast path: spec + plan generated, proceeding to execution")
+
+        else:
+            # === STANDARD PATH: Run full spec creation ===
+            agent_service = get_agent_service()
+
+            try:
+                await agent_service.start_spec_creation(
+                    task_id=task_id,
+                    project_path=project_path,
+                    title=title,
+                    description=description,
+                    complexity=complexity,
+                    auto_continue=request.auto_continue,
+                )
+
+                # Persist status to implementation_plan.json for page refresh survival
+                # Create minimal plan file if it doesn't exist
+                try:
+                    if implementation_plan.exists():
+                        plan = json.loads(implementation_plan.read_text())
+                    else:
+                        plan = {}
+                    plan["status"] = "in_progress"
+                    plan["phase"] = "spec_creation"
+                    implementation_plan.write_text(json.dumps(plan, indent=2))
+                    logger.info(f"[StartTask] Persisted status=in_progress (spec creation) to {implementation_plan}")
+                except (json.JSONDecodeError, OSError) as e:
+                    logger.warning(f"[StartTask] Failed to persist spec creation status: {e}")
+
+                # Emit status to show spec creation in progress
+                await emit_task_status(task_id, "in_progress")
+                return {
+                    "success": True,
+                    "task_id": task_id,
+                    "message": "Spec creation started (no implementation plan found)",
+                }
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to start spec creation: {str(e)}",
+                )
 
     # Sync runtime options to task_metadata.json for backend to read
     # This ensures model/thinking/baseBranch overrides are available to run.py
@@ -249,6 +314,13 @@ async def start_task(task_id: str, request: StartTaskRequest):
     if not effective_mode or effective_mode == "full":
         # Check if mode was set during task creation
         effective_mode = task_metadata.get("mode", "full")
+
+    # Auto-derive quick mode from simple complexity
+    if effective_mode == "full":
+        task_complexity = task_metadata.get("complexity")
+        if task_complexity == "simple":
+            effective_mode = "quick"
+            logger.info(f"[StartTask] Auto-derived quick mode from simple complexity")
 
     agent_service = get_agent_service()
 
