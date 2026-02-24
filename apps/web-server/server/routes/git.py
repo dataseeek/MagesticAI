@@ -314,12 +314,13 @@ async def check_claude_code_version():
     Returns data directly (not wrapped in {success, data}) because
     the frontend api-client.ts adds that wrapper automatically.
 
-    Node.js is installed at build time in the Dockerfile; claude CLI
-    goes to ~/.npm-global/bin which is on the PATH via ENV.
+    Uses `bash -l -c` so that login-profile PATH additions (fnm, npm-global)
+    are visible even when Node/Claude were installed at runtime via fnm.
     """
+    # Use login shell for all checks so fnm/npm-global PATH is available
     try:
         result = subprocess.run(
-            ["claude", "--version"],
+            ["bash", "-l", "-c", "claude --version"],
             capture_output=True,
             text=True,
             timeout=10
@@ -327,7 +328,7 @@ async def check_claude_code_version():
         if result.returncode == 0:
             version_str = result.stdout.strip()
             path_result = subprocess.run(
-                ["which", "claude"],
+                ["bash", "-l", "-c", "which claude"],
                 capture_output=True,
                 text=True,
                 timeout=5
@@ -346,7 +347,7 @@ async def check_claude_code_version():
     node_available = False
     try:
         node_result = subprocess.run(
-            ["node", "--version"],
+            ["bash", "-l", "-c", "node --version"],
             capture_output=True, text=True, timeout=5
         )
         node_available = node_result.returncode == 0
@@ -364,93 +365,151 @@ async def check_claude_code_version():
 
 @claude_code_router.post("/install")
 async def install_claude_code():
-    """Install Claude Code CLI via npm.
+    """Install Claude Code CLI, including Node.js via fnm if needed.
 
-    Node.js is pre-installed in the Docker image (copied from build stage).
-    npm global prefix is set to ~/.npm-global (user-writable, on PATH).
-    This endpoint just runs: npm install -g @anthropic-ai/claude-code
+    Installation steps:
+    1. Check if claude is already installed (via login shell)
+    2. Check if node/npm is available (via login shell)
+    3. If no Node.js → install fnm (Fast Node Manager) + Node.js LTS
+       - fnm installs to ~/.local/share/fnm/ and adds PATH to ~/.bashrc
+       - No sudo needed — fully userspace
+    4. Install Claude Code CLI via npm
+    5. Verify installation
+
+    All commands use `bash -l -c` so login profile PATH changes are visible.
     """
+    import logging
+    log = logging.getLogger(__name__)
+
     steps_completed: list[str] = []
+
+    def _run(cmd: str, timeout: int = 30) -> subprocess.CompletedProcess:
+        """Run a command inside a login shell."""
+        return subprocess.run(
+            ["bash", "-l", "-c", cmd],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
 
     # Step 1: Check if claude is already installed
     try:
-        result = subprocess.run(
-            ["claude", "--version"],
-            capture_output=True, text=True, timeout=10
-        )
+        result = _run("claude --version", timeout=10)
         if result.returncode == 0:
             return {
                 "success": True,
                 "data": {
                     "message": "Claude Code CLI is already installed",
                     "version": result.stdout.strip(),
-                    "steps_completed": ["already-installed"]
-                }
+                    "steps_completed": ["already-installed"],
+                },
             }
     except Exception:
         pass
 
-    # Step 2: Verify node/npm is available
+    # Step 2: Check if Node.js is available
+    node_available = False
     try:
-        result = subprocess.run(
-            ["node", "--version"],
-            capture_output=True, text=True, timeout=10
-        )
-        if result.returncode != 0:
-            return {
-                "success": False,
-                "error": "Node.js not found. Container may need rebuilding."
-            }
-        steps_completed.append("node-present")
+        result = _run("node --version", timeout=10)
+        node_available = result.returncode == 0
+        if node_available:
+            steps_completed.append("node-present")
+            log.info(f"Node.js already available: {result.stdout.strip()}")
     except Exception:
-        return {
-            "success": False,
-            "error": "Node.js not found. Container may need rebuilding."
-        }
+        pass
 
-    # Step 3: Install Claude Code CLI
+    # Step 3: Install fnm + Node.js LTS if not available
+    if not node_available:
+        log.info("Node.js not found — installing fnm + Node.js LTS")
+
+        # 3a: Install fnm
+        try:
+            result = _run(
+                "curl -fsSL https://fnm.vercel.app/install | bash",
+                timeout=60,
+            )
+            if result.returncode != 0:
+                return {
+                    "success": False,
+                    "error": f"Failed at step 'Install fnm': {result.stderr.strip()}",
+                }
+            steps_completed.append("fnm")
+            log.info("fnm installed successfully")
+        except subprocess.TimeoutExpired:
+            return {"success": False, "error": "fnm installation timed out (60s)"}
+        except Exception as e:
+            return {"success": False, "error": f"Failed at step 'Install fnm': {e}"}
+
+        # 3b: Install Node.js LTS via fnm
+        try:
+            result = _run("fnm install --lts", timeout=120)
+            if result.returncode != 0:
+                return {
+                    "success": False,
+                    "error": f"Failed at step 'Install Node.js': {result.stderr.strip()}",
+                }
+            steps_completed.append("node")
+            log.info("Node.js LTS installed via fnm")
+        except subprocess.TimeoutExpired:
+            return {"success": False, "error": "Node.js installation timed out (120s)"}
+        except Exception as e:
+            return {"success": False, "error": f"Failed at step 'Install Node.js': {e}"}
+
+        # 3c: Set fnm default so login shells pick it up
+        try:
+            _run("fnm default lts-latest", timeout=10)
+        except Exception:
+            pass  # Non-critical
+
+        # Verify node is now available
+        try:
+            result = _run("node --version", timeout=10)
+            if result.returncode != 0:
+                return {
+                    "success": False,
+                    "error": "Node.js installed but not found in PATH after fnm setup",
+                }
+            log.info(f"Node.js verified: {result.stdout.strip()}")
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Node.js installed but verification failed: {e}",
+            }
+
+    # Step 4: Install Claude Code CLI
     try:
-        result = subprocess.run(
-            ["npm", "install", "-g", "@anthropic-ai/claude-code"],
-            capture_output=True,
-            text=True,
-            timeout=180
+        log.info("Installing Claude Code CLI via npm...")
+        result = _run(
+            "npm install -g @anthropic-ai/claude-code",
+            timeout=180,
         )
         if result.returncode != 0:
             return {
                 "success": False,
-                "error": f"Failed to install Claude Code: {result.stderr.strip()}"
+                "error": f"Failed at step 'Install Claude Code': {result.stderr.strip()}",
             }
         steps_completed.append("claude-code")
+        log.info("Claude Code CLI installed")
     except subprocess.TimeoutExpired:
-        return {
-            "success": False,
-            "error": "npm install timed out (180s)"
-        }
+        return {"success": False, "error": "npm install timed out (180s)"}
     except Exception as e:
-        return {
-            "success": False,
-            "error": f"Failed to install Claude Code: {str(e)}"
-        }
+        return {"success": False, "error": f"Failed at step 'Install Claude Code': {e}"}
 
-    # Step 4: Verify installation
+    # Step 5: Verify installation
     version_str = "unknown"
     try:
-        result = subprocess.run(
-            ["claude", "--version"],
-            capture_output=True, text=True, timeout=10
-        )
+        result = _run("claude --version", timeout=10)
         if result.returncode == 0:
             version_str = result.stdout.strip()
         else:
             return {
                 "success": False,
-                "error": f"Installation completed but verification failed: {result.stderr.strip()}"
+                "error": f"Installation completed but verification failed: {result.stderr.strip()}",
             }
     except Exception as e:
         return {
             "success": False,
-            "error": f"Installation completed but verification failed: {str(e)}"
+            "error": f"Installation completed but verification failed: {e}",
         }
 
     return {
@@ -458,8 +517,8 @@ async def install_claude_code():
         "data": {
             "message": "Claude Code CLI installed successfully",
             "version": version_str,
-            "steps_completed": steps_completed
-        }
+            "steps_completed": steps_completed,
+        },
     }
 
 

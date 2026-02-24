@@ -471,6 +471,22 @@ class WorktreeManager:
                 "base_branch": self.base_branch,
             })
 
+        # Clean up internal auto-generated files that can block merge/checkout.
+        # These are untracked files created by agents that would collide with
+        # the same untracked files coming from the worktree branch.
+        _INTERNAL_MERGE_BLOCKERS = [
+            ".auto-claude-security.json",
+            ".auto-claude-status",
+        ]
+        for fname in _INTERNAL_MERGE_BLOCKERS:
+            blocker = self.project_dir / fname
+            if blocker.exists():
+                try:
+                    blocker.unlink()
+                    logger.info(f"Removed merge-blocking file: {fname}")
+                except OSError:
+                    pass
+
         # Switch to base branch in main project
         result = self._run_git(["checkout", self.base_branch])
         if result.returncode != 0:

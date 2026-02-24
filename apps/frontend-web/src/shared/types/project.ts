@@ -10,6 +10,8 @@ export interface Project {
   settings: ProjectSettings;
   createdAt: Date;
   updatedAt: Date;
+  /** Set when the backend created a new directory for this project */
+  createdDirectory?: boolean;
 }
 
 export interface ProjectSettings {

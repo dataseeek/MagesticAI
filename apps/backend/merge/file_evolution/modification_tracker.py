@@ -34,6 +34,17 @@ except ImportError:
 logger = logging.getLogger(__name__)
 MODULE = "merge.file_evolution.modification_tracker"
 
+# Files/patterns to ignore during conflict detection (internal auto-generated files)
+IGNORED_FILES = {
+    ".auto-claude-security.json",
+    ".auto-claude-status",
+}
+IGNORED_PREFIXES = (
+    ".auto-claude/",
+    "VERIFICATION_REPORT",
+    "LANGUAGE_CHOICE",
+)
+
 
 class ModificationTracker:
     """
@@ -165,7 +176,12 @@ class ModificationTracker:
                 text=True,
                 check=True,
             )
-            changed_files = [f for f in result.stdout.strip().split("\n") if f]
+            changed_files = [
+                f for f in result.stdout.strip().split("\n")
+                if f
+                and Path(f).name not in IGNORED_FILES
+                and not any(f.startswith(p) for p in IGNORED_PREFIXES)
+            ]
 
             debug(
                 MODULE,

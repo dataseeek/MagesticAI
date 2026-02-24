@@ -349,13 +349,19 @@ async def add_project(project: ProjectCreate):
     Returns project dict directly (not wrapped) because
     the frontend api-client.ts adds the {success, data} wrapper automatically.
     """
-    # Validate path exists
-    project_path = Path(project.path)
+    # Validate path — create directory if it doesn't exist
+    project_path = Path(project.path).expanduser()
+    created_directory = False
+
     if not project_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Path does not exist: {project.path}",
-        )
+        try:
+            project_path.mkdir(parents=True, exist_ok=True)
+            created_directory = True
+        except OSError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot create directory: {project.path} ({e})",
+            )
 
     if not project_path.is_dir():
         raise HTTPException(
@@ -385,7 +391,10 @@ async def add_project(project: ProjectCreate):
     projects[project_id] = project_data
     save_projects(projects)
 
-    return project_to_response(project_id, project_data)
+    response = project_to_response(project_id, project_data)
+    if created_directory:
+        response["createdDirectory"] = True
+    return response
 
 
 @router.get("/{project_id}")
