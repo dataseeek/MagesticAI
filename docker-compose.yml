@@ -1,12 +1,12 @@
 # =============================================================================
 # Martinica - Docker Compose
 # =============================================================================
-# Deploys with a static LAN IP (<gateway>67) via macvlan.
+# Deploys with a static LAN IP (<gateway>72) via macvlan.
 # No port mapping needed — the container is directly reachable on the LAN.
 #
 # Usage:
 #   docker compose up -d
-#   # Access: http://<gateway>67:8000
+#   # Access: http://<gateway>72:8000
 #
 # MACVLAN CAVEAT:
 #   By default, the Docker host (<host-ip>) CANNOT talk to macvlan
@@ -16,7 +16,7 @@
 #     sudo ip link add martinica-shim link <nic> type macvlan mode bridge
 #     sudo ip addr add <host-ip>/32 dev martinica-shim
 #     sudo ip link set martinica-shim up
-#     sudo ip route add <gateway>67/32 dev martinica-shim
+#     sudo ip route add <gateway>72/32 dev martinica-shim
 #
 #   To make it persistent, add to /etc/networkd-dispatcher or rc.local.
 # =============================================================================
@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
     networks:
       martinica-lan:
-        ipv4_address: <gateway>67
+        ipv4_address: <gateway>72
     volumes:
       # Persistent data (SQLite DB, tokens, JWT secrets)
       - martinica-data:/home/martinica/.martinica
@@ -36,8 +36,8 @@ services:
       # - /path/to/host/projects:/home/martinica/projects
     environment:
       # All optional — configure via the web UI onboarding wizard
-      - MARTINICA_DEBUG=false          # Set to true for Swagger docs at /docs
-      # - MARTINICA_API_TOKEN=          # Auto-generated if not set
+      - APP_DEBUG=false                 # Set to true for Swagger docs at /docs
+      # - APP_API_TOKEN=                # Auto-generated if not set
       # - CLAUDE_CODE_OAUTH_TOKEN=      # Set via UI OAuth flow instead
     # Uncomment for interactive debugging:
     # command: /bin/bash
@@ -53,7 +53,7 @@ networks:
       config:
         - subnet: 192.168.1.0/24
           gateway: <gateway>
-          ip_range: <gateway>67/32   # Reserve only this IP for Docker
+          ip_range: <gateway>72/32   # Reserve only this IP for Docker
 
 volumes:
   martinica-data:

@@ -104,7 +104,12 @@
       "updating": "Mettre à jour Claude Code",
       "inProgress": "Installation...",
       "success": "Commande d'installation envoyée au terminal. Veuillez terminer l'installation là-bas.",
-      "instructions": "L'installateur s'ouvrira dans votre terminal. Suivez les instructions pour terminer l'installation."
+      "successComplete": "Claude Code CLI installé avec succès !",
+      "instructions": "L'installateur s'ouvrira dans votre terminal. Suivez les instructions pour terminer l'installation.",
+      "stepClaude": "Installation de Claude Code CLI...",
+      "stepDone": "Installation terminée",
+      "nodeRequired": "Node.js est requis",
+      "nodeRequiredDescription": "Installez d'abord Node.js, puis exécutez la commande suivante :"
     },
     "learnMore": "En savoir plus sur Claude Code"
   },

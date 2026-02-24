@@ -313,50 +313,152 @@ async def check_claude_code_version():
 
     Returns data directly (not wrapped in {success, data}) because
     the frontend api-client.ts adds that wrapper automatically.
+
+    Node.js is installed at build time in the Dockerfile; claude CLI
+    goes to ~/.npm-global/bin which is on the PATH via ENV.
     """
     try:
-        # Use login shell to source PATH from user's shell profile
-        # This matches how PTY sessions find claude (pty/session.py uses "-l")
         result = subprocess.run(
-            ["bash", "-l", "-c", "claude --version"],
+            ["claude", "--version"],
             capture_output=True,
             text=True,
             timeout=10
         )
         if result.returncode == 0:
             version_str = result.stdout.strip()
-            # Get path to claude binary using login shell
             path_result = subprocess.run(
-                ["bash", "-l", "-c", "which claude"],
+                ["which", "claude"],
                 capture_output=True,
                 text=True,
                 timeout=5
             )
             claude_path = path_result.stdout.strip() if path_result.returncode == 0 else None
             return {
-                "installed": version_str,  # Version string or null
-                "latest": "unknown",  # Would need npm check for latest
-                "isOutdated": False,  # Assume not outdated
+                "installed": version_str,
+                "latest": "unknown",
+                "isOutdated": False,
                 "path": claude_path
             }
     except Exception:
         pass
 
+    # Check if Node.js is available (needed for install)
+    node_available = False
+    try:
+        node_result = subprocess.run(
+            ["node", "--version"],
+            capture_output=True, text=True, timeout=5
+        )
+        node_available = node_result.returncode == 0
+    except Exception:
+        pass
+
     return {
-        "installed": None,  # null means not installed
+        "installed": None,
         "latest": "unknown",
         "isOutdated": False,
-        "path": None
+        "path": None,
+        "nodeAvailable": node_available
     }
 
 
 @claude_code_router.post("/install")
 async def install_claude_code():
-    """Provide instructions to install Claude Code CLI."""
+    """Install Claude Code CLI via npm.
+
+    Node.js is pre-installed in the Docker image (copied from build stage).
+    npm global prefix is set to ~/.npm-global (user-writable, on PATH).
+    This endpoint just runs: npm install -g @anthropic-ai/claude-code
+    """
+    steps_completed: list[str] = []
+
+    # Step 1: Check if claude is already installed
+    try:
+        result = subprocess.run(
+            ["claude", "--version"],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0:
+            return {
+                "success": True,
+                "data": {
+                    "message": "Claude Code CLI is already installed",
+                    "version": result.stdout.strip(),
+                    "steps_completed": ["already-installed"]
+                }
+            }
+    except Exception:
+        pass
+
+    # Step 2: Verify node/npm is available
+    try:
+        result = subprocess.run(
+            ["node", "--version"],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode != 0:
+            return {
+                "success": False,
+                "error": "Node.js not found. Container may need rebuilding."
+            }
+        steps_completed.append("node-present")
+    except Exception:
+        return {
+            "success": False,
+            "error": "Node.js not found. Container may need rebuilding."
+        }
+
+    # Step 3: Install Claude Code CLI
+    try:
+        result = subprocess.run(
+            ["npm", "install", "-g", "@anthropic-ai/claude-code"],
+            capture_output=True,
+            text=True,
+            timeout=180
+        )
+        if result.returncode != 0:
+            return {
+                "success": False,
+                "error": f"Failed to install Claude Code: {result.stderr.strip()}"
+            }
+        steps_completed.append("claude-code")
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "error": "npm install timed out (180s)"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to install Claude Code: {str(e)}"
+        }
+
+    # Step 4: Verify installation
+    version_str = "unknown"
+    try:
+        result = subprocess.run(
+            ["claude", "--version"],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0:
+            version_str = result.stdout.strip()
+        else:
+            return {
+                "success": False,
+                "error": f"Installation completed but verification failed: {result.stderr.strip()}"
+            }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Installation completed but verification failed: {str(e)}"
+        }
+
     return {
         "success": True,
         "data": {
-            "message": "Install Claude Code: npm install -g @anthropic-ai/claude-code"
+            "message": "Claude Code CLI installed successfully",
+            "version": version_str,
+            "steps_completed": steps_completed
         }
     }
 

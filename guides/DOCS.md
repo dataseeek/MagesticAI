@@ -263,8 +263,8 @@ cp apps/web-server/.env.example apps/web-server/.env
 #   GRAPHITI_ENABLED=true
 #
 # apps/web-server/.env:
-#   AUTO_CLAUDE_HOST=0.0.0.0
-#   AUTO_CLAUDE_PORT=8000
+#   APP_HOST=0.0.0.0
+#   APP_PORT=8000
 ```
 
 ### Running the Application
@@ -305,11 +305,11 @@ npm run dev
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `AUTO_CLAUDE_HOST` | No | `0.0.0.0` | Server bind address |
-| `AUTO_CLAUDE_PORT` | No | `8000` | Server port |
-| `AUTO_CLAUDE_DEBUG` | No | `false` | Enable debug mode |
-| `AUTO_CLAUDE_API_TOKEN` | No | Auto-generated | Fixed API token |
-| `AUTO_CLAUDE_SSL_ENABLED` | No | `false` | Enable HTTPS |
+| `APP_HOST` | No | `0.0.0.0` | Server bind address |
+| `APP_PORT` | No | `8000` | Server port |
+| `APP_DEBUG` | No | `false` | Enable debug mode |
+| `APP_API_TOKEN` | No | Auto-generated | Fixed API token |
+| `APP_SSL_ENABLED` | No | `false` | Enable HTTPS |
 
 #### Frontend (`apps/frontend-web/.env`)
 
@@ -1102,13 +1102,13 @@ npm run build
 # Start production server
 cd apps/web-server
 source .venv/bin/activate
-AUTO_CLAUDE_DEBUG=false python -m server.main
+APP_DEBUG=false python -m server.main
 ```
 
 ### Remote Access
 
 1. Ensure ports 8000 accessible
-2. Set `AUTO_CLAUDE_HOST=0.0.0.0`
+2. Set `APP_HOST=0.0.0.0`
 3. Configure `VITE_WS_BASE_URL` for remote WebSocket
 4. Access via `http://YOUR_SERVER_IP:8000`
 
@@ -1116,7 +1116,7 @@ AUTO_CLAUDE_DEBUG=false python -m server.main
 
 ```bash
 # Enable SSL
-AUTO_CLAUDE_SSL_ENABLED=true
+APP_SSL_ENABLED=true
 # Certificates auto-generated in ~/.auto-claude-web/ssl/
 ```
 
@@ -1151,7 +1151,7 @@ Enable debug logging:
 
 ```bash
 # Backend
-AUTO_CLAUDE_DEBUG=true python -m server.main
+APP_DEBUG=true python -m server.main
 
 # Check Swagger docs
 http://localhost:8000/docs

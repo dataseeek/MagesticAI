@@ -562,10 +562,10 @@ Access the web UI at `http://localhost:5173` (or your server IP for remote acces
 
 **Backend (`apps/web-server/.env`):**
 ```bash
-AUTO_CLAUDE_HOST=0.0.0.0      # Listen on all interfaces
-AUTO_CLAUDE_PORT=8000          # API server port
-AUTO_CLAUDE_DEBUG=true         # Enable Swagger docs at /docs
-# AUTO_CLAUDE_API_TOKEN=xxx    # Optional: Set fixed token (auto-generated if not set)
+APP_HOST=0.0.0.0      # Listen on all interfaces
+APP_PORT=8000          # API server port
+APP_DEBUG=true         # Enable Swagger docs at /docs
+# APP_API_TOKEN=xxx    # Optional: Set fixed token (auto-generated if not set)
 ```
 
 **Frontend (`apps/frontend-web/.env`):**
@@ -586,7 +586,7 @@ For production, build the frontend (`npm run build`) and serve from `apps/web-se
 
 ### API Documentation
 
-When `AUTO_CLAUDE_DEBUG=true`:
+When `APP_DEBUG=true`:
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
 
@@ -611,7 +611,7 @@ See `apps/web-server/README.md` and `apps/frontend-web/README.md` for detailed d
 | Task start 404 | Mount execution.router at `/api/tasks` prefix (not `/api/execution`) in main.py |
 | Task start 422 | Frontend must send `{}` body even when options are undefined (Pydantic needs JSON body for defaults) |
 | Terminal resize 422 | Backend endpoint must use Pydantic model for `{ cols, rows }` body, not query params |
-| Task stuck with "Stream closed" | Ensure `permission_mode="bypassPermissions"` is set in all `ClaudeAgentOptions` AND auto-claude MCP tools are in permissions allow list (see `AUTO_CLAUDE_TOOLS` in `models.py`) |
+| Task stuck with "Stream closed" | Ensure `permission_mode="bypassPermissions"` is set in all `ClaudeAgentOptions` AND auto-claude MCP tools are in permissions allow list (see `APP_TOOLS` in `models.py`) |
 | Frontend shows task "stuck" but agent is working | File sync issue - worktree files not syncing to main spec dir. Fixed in agent_service.py with periodic sync every 3 seconds |
 | Roadmap/Changelog 500 error | FastAPI `Path` shadowing `pathlib.Path` - use `from pathlib import Path as FilePath` at top of route files |
 | Roadmap progress stuck at 0% | Roadmap generation was not implemented - see `roadmap_service.py` for the service pattern |

@@ -414,7 +414,7 @@ export function EditorPage() {
 **Simple Token Auth:**
 ```python
 # config.py
-API_TOKEN = os.getenv("AUTO_CLAUDE_TOKEN", "change-me")
+API_TOKEN = os.getenv("APP_TOKEN", "change-me")
 
 # auth.py middleware
 async def dispatch(request, call_next):

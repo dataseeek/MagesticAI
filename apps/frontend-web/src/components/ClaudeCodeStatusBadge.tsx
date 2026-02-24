@@ -109,6 +109,20 @@ export function ClaudeCodeStatusBadge({ className, onOpenOnboarding }: ClaudeCod
     return () => clearInterval(interval);
   }, [checkVersion, checkAuth]);
 
+  // Fast polling (30s) when setup is incomplete — auto-detects install/auth changes
+  // after the onboarding wizard finishes without needing a manual refresh
+  useEffect(() => {
+    const isIncomplete = status === 'not-found' || status === 'error' || hasToken === false;
+    if (!isIncomplete || isInstalling) return;
+
+    const fastInterval = setInterval(() => {
+      checkVersion();
+      checkAuth();
+    }, 30_000);
+
+    return () => clearInterval(fastInterval);
+  }, [status, hasToken, isInstalling, checkVersion, checkAuth]);
+
   // Perform the actual install/update
   const performInstall = async () => {
     setIsInstalling(true);

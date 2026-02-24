@@ -59,7 +59,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
-        env_prefix = "MARTINICA_"
+        env_prefix = "APP_"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

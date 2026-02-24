@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Terminal, Loader2, Check, AlertTriangle, X, RefreshCw, Download, Info, ExternalLink } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
+import { Progress } from '../ui/progress';
 import type { ClaudeCodeVersionInfo } from '../../shared/types/cli';
 
 interface ClaudeCodeStepProps {
@@ -24,6 +25,9 @@ export function ClaudeCodeStep({ onNext, onBack, onSkip }: ClaudeCodeStepProps) 
   const [status, setStatus] = useState<DetectionStatus>('loading');
   const [versionInfo, setVersionInfo] = useState<ClaudeCodeVersionInfo | null>(null);
   const [isInstalling, setIsInstalling] = useState(false);
+  const [installProgress, setInstallProgress] = useState(0);
+  const [installStepLabel, setInstallStepLabel] = useState('');
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [installSuccess, setInstallSuccess] = useState(false);
 
@@ -68,10 +72,43 @@ export function ClaudeCodeStep({ onNext, onBack, onSkip }: ClaudeCodeStepProps) 
     checkVersion();
   }, [checkVersion]);
 
+  // Auto-refresh version check every 10 seconds when not installed
+  // This detects if the user installs Claude Code manually in a terminal
+  useEffect(() => {
+    if (status !== 'not-found' && status !== 'error') return;
+    if (isInstalling) return;
+
+    const interval = setInterval(() => {
+      checkVersion();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [status, isInstalling, checkVersion]);
+
+  // Cleanup progress interval on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
+
   // Handle install/update button click
   const handleInstall = async () => {
     setIsInstalling(true);
     setError(null);
+    setInstallProgress(0);
+    setInstallStepLabel(t('claudeCode.install.stepClaude', 'Installing Claude Code CLI...'));
+
+    // Simulated progress: animate from 0→90% over ~60 seconds
+    const startTime = Date.now();
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      // Ease-out curve: fast at start, slows toward 90%
+      const progress = Math.min(90, (elapsed / 60) * 90 * (1 - Math.exp(-elapsed / 20)));
+      setInstallProgress(Math.round(progress));
+    }, 500);
 
     try {
       if (!window.API?.installClaudeCode) {
@@ -81,16 +118,44 @@ export function ClaudeCodeStep({ onNext, onBack, onSkip }: ClaudeCodeStepProps) 
 
       const result = await window.API.installClaudeCode();
 
+      // Stop progress animation
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
       if (result.success) {
+        setInstallProgress(100);
+        setInstallStepLabel(t('claudeCode.install.stepDone', 'Installation complete'));
         setInstallSuccess(true);
-        // Re-check version after a short delay to give user time to complete installation
-        setTimeout(() => {
+        // Update status directly from install response instead of calling checkVersion()
+        // (checkVersion resets installSuccess and may fail to find claude)
+        const installData = result.data as Record<string, unknown> | undefined;
+        const version = (installData?.version as string) || undefined;
+        if (version) {
+          setVersionInfo({
+            installed: version,
+            latest: 'unknown',
+            isOutdated: false,
+            path: undefined,
+            detectionResult: { found: true, source: 'system-path', message: 'Installed via npm' }
+          });
+          setStatus('installed');
+        } else {
           checkVersion();
-        }, 5000);
+        }
       } else {
-        setError(result.error || 'Failed to start installation');
+        setInstallProgress(0);
+        setInstallStepLabel('');
+        setError(result.error || 'Failed to install');
       }
     } catch (err) {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      setInstallProgress(0);
+      setInstallStepLabel('');
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsInstalling(false);
@@ -240,39 +305,73 @@ export function ClaudeCodeStep({ onNext, onBack, onSkip }: ClaudeCodeStepProps) 
             <Card className="border border-green-500/30 bg-green-500/10">
               <CardContent className="p-4">
                 <p className="text-sm text-green-700 dark:text-green-400">
-                  {t('claudeCode.install.success', 'Installation command sent to terminal. Please complete the installation there.')}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {t('claudeCode.install.instructions', 'The installer will open in your terminal. Follow the prompts to complete installation.')}
+                  {t('claudeCode.install.successComplete', 'Claude Code CLI installed successfully!')}
                 </p>
               </CardContent>
             </Card>
           )}
 
-          {/* Install/Update button */}
+          {/* Install/Update section */}
           {(status === 'not-found' || status === 'outdated') && !installSuccess && (
-            <div className="flex justify-center">
-              <Button
-                onClick={handleInstall}
-                disabled={isInstalling}
-                size="lg"
-                className="gap-2"
-              >
-                {isInstalling ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t('claudeCode.install.inProgress', 'Installing...')}
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4" />
-                    {status === 'outdated'
-                      ? t('claudeCode.install.updating', 'Update Claude Code')
-                      : t('claudeCode.install.button', 'Install Claude Code')
-                    }
-                  </>
-                )}
-              </Button>
+            <div className="space-y-3">
+              {/* If Node.js is not available, show manual install instructions */}
+              {versionInfo && versionInfo.nodeAvailable === false ? (
+                <Card className="border border-warning/30 bg-warning/10">
+                  <CardContent className="p-5">
+                    <div className="flex items-start gap-4">
+                      <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+                      <div className="flex-1 space-y-2">
+                        <p className="text-sm font-medium text-foreground">
+                          {t('claudeCode.install.nodeRequired', 'Node.js is required')}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {t('claudeCode.install.nodeRequiredDescription', 'Install Node.js first, then run the following command:')}
+                        </p>
+                        <code className="block bg-muted rounded px-3 py-2 text-xs font-mono text-foreground select-all">
+                          npm install -g @anthropic-ai/claude-code
+                        </code>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={handleInstall}
+                      disabled={isInstalling}
+                      size="lg"
+                      className="gap-2"
+                    >
+                      {isInstalling ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          {t('claudeCode.install.inProgress', 'Installing...')}
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4" />
+                          {status === 'outdated'
+                            ? t('claudeCode.install.updating', 'Update Claude Code')
+                            : t('claudeCode.install.button', 'Install Claude Code')
+                          }
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Progress bar during installation */}
+                  {isInstalling && (
+                    <div className="space-y-2 px-4">
+                      <Progress value={installProgress} animated className="h-2" />
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-muted-foreground">{installStepLabel}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{installProgress}%</p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 

@@ -247,6 +247,8 @@ export interface API {
   initializeClaudeProfile: (profileId: string) => Promise<IPCResult>;
   /** Start OAuth flow for a Claude profile (launches browser via backend) */
   startClaudeProfileOAuth: (profileId: string) => Promise<IPCResult<{ authUrl?: string }>>;
+  /** Complete OAuth by forwarding auth code to CLI callback inside container */
+  completeClaudeProfileOAuth: (profileId: string, code: string) => Promise<IPCResult>;
   /** Set OAuth token for a profile (used when capturing from terminal) */
   setClaudeProfileToken: (profileId: string, token: string, email?: string) => Promise<IPCResult>;
   /** Get auto-switch settings */

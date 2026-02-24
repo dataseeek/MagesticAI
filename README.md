@@ -235,10 +235,10 @@ GRAPHITI_ENABLED=true
 
 **Web Server (`apps/web-server/.env`):**
 ```bash
-AUTO_CLAUDE_HOST=0.0.0.0
-AUTO_CLAUDE_PORT=8000
-AUTO_CLAUDE_DEBUG=true
-# AUTO_CLAUDE_API_TOKEN=xxx  # Auto-generated if not set
+APP_HOST=0.0.0.0
+APP_PORT=8000
+APP_DEBUG=true
+# APP_API_TOKEN=xxx  # Auto-generated if not set
 ```
 
 **Frontend (`apps/frontend-web/.env`):**

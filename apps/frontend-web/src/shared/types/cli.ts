@@ -38,4 +38,6 @@ export interface ClaudeCodeVersionInfo {
   path?: string;
   /** Full detection result with source information */
   detectionResult: ToolDetectionResult;
+  /** Whether Node.js is available (needed to install Claude Code) */
+  nodeAvailable?: boolean;
 }

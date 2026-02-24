@@ -13,13 +13,14 @@ import {
   Check,
   Pencil,
   X,
-  LogIn,
   ChevronDown,
   ChevronRight,
   Users,
   Lock,
   Globe,
-  Key
+  Key,
+  Terminal as TerminalIcon,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -27,6 +28,7 @@ import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
 import { cn } from '../../lib/utils';
 import { loadClaudeProfiles as loadGlobalClaudeProfiles } from '../../stores/claude-profile-store';
+import { EmbeddedTerminal } from './EmbeddedTerminal';
 import type { ClaudeProfile } from '../../shared/types';
 
 interface OAuthStepProps {
@@ -40,7 +42,7 @@ interface OAuthStepProps {
  * Guides users through Claude profile management and OAuth authentication.
  *
  * Two auth methods:
- * 1. Browser OAuth — launches claude setup-token, opens browser, polls for token
+ * 1. Terminal OAuth — opens an embedded terminal running `claude auth login`
  * 2. Manual token entry — paste token from CLI
  */
 export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
@@ -56,9 +58,9 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editingProfileName, setEditingProfileName] = useState('');
 
-  // Browser auth state
+  // Terminal auth state
   const [browserAuthProfileId, setBrowserAuthProfileId] = useState<string | null>(null);
-  const [browserAuthUrl, setBrowserAuthUrl] = useState<string | null>(null);
+  const [detectedUrls, setDetectedUrls] = useState<string[]>([]);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Manual token entry state
@@ -106,7 +108,6 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
         await loadClaudeProfiles();
         stopPolling();
         setBrowserAuthProfileId(null);
-        setBrowserAuthUrl(null);
       }
     });
     return unsubscribe;
@@ -139,7 +140,6 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
             await loadGlobalClaudeProfiles();
             stopPolling();
             setBrowserAuthProfileId(null);
-            setBrowserAuthUrl(null);
           }
         }
       } catch {
@@ -148,29 +148,25 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
     }, 3000);
   };
 
-  // ========== Browser OAuth Flow ==========
+  // ========== Terminal OAuth Flow ==========
   const handleBrowserAuth = async (profileId: string) => {
     setError(null);
+    setDetectedUrls([]);
     setBrowserAuthProfileId(profileId);
-    setBrowserAuthUrl(null);
 
     try {
+      // Start the backend token poller (watches ~/.claude/.credentials.json)
       const result = await window.API.startClaudeProfileOAuth(profileId);
-      if (result.success && result.data) {
-        const authUrl = result.data.authUrl;
-        if (authUrl) {
-          setBrowserAuthUrl(authUrl);
-          // Open the URL in a new browser tab
-          window.open(authUrl, '_blank');
-        }
-        // Start polling for the token to appear
-        startPollingProfiles(profileId);
-      } else {
-        setError(result.error || 'Failed to start OAuth flow. Is Claude Code CLI installed?');
+      if (!result.success) {
+        setError(result.error || 'Failed to start OAuth flow');
         setBrowserAuthProfileId(null);
+        return;
       }
+
+      // Start polling for the token to appear
+      startPollingProfiles(profileId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start browser authentication');
+      setError(err instanceof Error ? err.message : 'Failed to start authentication');
       setBrowserAuthProfileId(null);
     }
   };
@@ -178,7 +174,29 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
   const handleCancelBrowserAuth = () => {
     stopPolling();
     setBrowserAuthProfileId(null);
-    setBrowserAuthUrl(null);
+    setDetectedUrls([]);
+  };
+
+  // When the embedded terminal detects an OAuth token in the output,
+  // save it to the profile and complete the auth flow
+  const handleTokenDetected = async (token: string) => {
+    if (!browserAuthProfileId) return;
+
+    try {
+      const result = await window.API.setClaudeProfileToken(
+        browserAuthProfileId,
+        token
+      );
+      if (result.success) {
+        await loadClaudeProfiles();
+        await loadGlobalClaudeProfiles();
+        stopPolling();
+        setBrowserAuthProfileId(null);
+        setDetectedUrls([]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save token');
+    }
   };
 
   // ========== Profile Management ==========
@@ -319,7 +337,7 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
 
   return (
     <div className="flex h-full flex-col items-center justify-center px-8 py-6">
-      <div className="w-full max-w-2xl">
+      <div className={cn("w-full", browserAuthProfileId ? "max-w-4xl" : "max-w-2xl")}>
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
@@ -466,7 +484,7 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
                                     ) : isWaitingForBrowserAuth ? (
                                       <span className="text-xs bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded flex items-center gap-1">
                                         <Loader2 className="h-3 w-3 animate-spin" />
-                                        Waiting...
+                                        Authenticating...
                                       </span>
                                     ) : (
                                       <span className="text-xs bg-warning/20 text-warning px-1.5 py-0.5 rounded">
@@ -549,40 +567,62 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
                           )}
                         </div>
 
-                        {/* Browser auth waiting state */}
+                        {/* Embedded terminal for auth */}
                         {isWaitingForBrowserAuth && (
                           <div className="px-3 pb-3 pt-0 border-t border-border/50 mt-0">
-                            <div className="bg-yellow-500/5 rounded-lg p-3 mt-3 space-y-3">
-                              <div className="flex items-center gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin text-yellow-600 dark:text-yellow-400" />
-                                <span className="text-sm font-medium text-foreground">
-                                  Waiting for browser authentication...
-                                </span>
+                            <div className="space-y-3 mt-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <TerminalIcon className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                                  <span className="text-sm font-medium text-foreground">
+                                    Complete authentication in the terminal below
+                                  </span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleCancelBrowserAuth}
+                                  className="h-7 text-xs text-muted-foreground"
+                                >
+                                  Cancel
+                                </Button>
                               </div>
                               <p className="text-xs text-muted-foreground">
-                                A browser tab should have opened. Sign in with your Claude account there. The token will be saved automatically.
+                                Follow the instructions in the terminal. If a link appears, click the button below to open it.
                               </p>
-                              {browserAuthUrl && (
-                                <div className="text-xs">
-                                  <span className="text-muted-foreground">Didn't open? </span>
-                                  <a
-                                    href={browserAuthUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:underline"
-                                  >
-                                    Click here to sign in
-                                  </a>
+
+                              {/* Extracted URLs shown as clickable buttons */}
+                              {detectedUrls.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                  {detectedUrls.map((url, i) => (
+                                    <a
+                                      key={i}
+                                      href={url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                                    >
+                                      <ExternalLink className="h-3 w-3" />
+                                      Open Auth Link
+                                    </a>
+                                  ))}
                                 </div>
                               )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleCancelBrowserAuth}
-                                className="h-7 text-xs text-muted-foreground"
-                              >
-                                Cancel
-                              </Button>
+
+                              {/* Embedded terminal running `claude setup-token` */}
+                              <EmbeddedTerminal
+                                initialCommand="claude setup-token"
+                                height={350}
+                                onUrlDetected={(url) => setDetectedUrls(prev => [...prev, url])}
+                                onTokenDetected={handleTokenDetected}
+                              />
+
+                              <div className="flex items-center gap-2">
+                                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">
+                                  Waiting for authentication to complete...
+                                </span>
+                              </div>
                             </div>
                           </div>
                         )}

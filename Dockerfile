@@ -49,6 +49,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     git \
     curl \
+    unzip \
     ca-certificates \
     build-essential \
     libffi-dev \
@@ -70,8 +71,20 @@ COPY --from=frontend-build --chown=martinica:martinica \
     /build/apps/web-server/static/ \
     /home/projects/Martinica/apps/web-server/static/
 
+# Copy Node.js from the frontend build stage so it's available at runtime
+# (needed for npm install -g @anthropic-ai/claude-code)
+COPY --from=frontend-build /usr/local/bin/node /usr/local/bin/node
+COPY --from=frontend-build /usr/local/lib/node_modules/ /usr/local/lib/node_modules/
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
+    ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+
 # Switch to non-root user for remaining setup
 USER martinica
+
+# Configure npm global installs to go to user-writable directory
+# (non-root user can't write to /usr/local/lib/node_modules)
+RUN mkdir -p /home/martinica/.npm-global && \
+    npm config set prefix /home/martinica/.npm-global
 
 # Create single Python venv (both web-server and backend share it,
 # because agent_service.py spawns backend scripts via sys.executable)
@@ -92,14 +105,14 @@ RUN mkdir -p /home/martinica/.martinica
 # ---------------------------------------------------------------------------
 # Environment
 # ---------------------------------------------------------------------------
-ENV MARTINICA_HOST=0.0.0.0 \
-    MARTINICA_PORT=8000 \
-    MARTINICA_BACKEND_PATH=/home/projects/Martinica/apps/backend \
-    MARTINICA_PROJECTS_DATA_DIR=/home/martinica/.martinica \
-    MARTINICA_DEFAULT_SHELL=/bin/bash \
+ENV APP_HOST=0.0.0.0 \
+    APP_PORT=8000 \
+    APP_BACKEND_PATH=/home/projects/Martinica/apps/backend \
+    APP_PROJECTS_DATA_DIR=/home/martinica/.martinica \
+    APP_DEFAULT_SHELL=/bin/bash \
     PYTHONUNBUFFERED=1 \
-    # Ensure venv Python is used everywhere
-    PATH="/home/projects/Martinica/.venv/bin:$PATH"
+    # npm global bin + venv Python on PATH
+    PATH="/home/martinica/.npm-global/bin:/home/projects/Martinica/.venv/bin:$PATH"
 
 EXPOSE 8000
 

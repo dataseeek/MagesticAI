@@ -34,7 +34,7 @@ interface AddProjectModalProps {
 }
 
 // Default projects folder - can be customized
-const DEFAULT_PROJECTS_FOLDER = '<project>';
+const DEFAULT_PROJECTS_FOLDER = '/home';
 
 export function AddProjectModal({ open, onOpenChange, onProjectAdded }: AddProjectModalProps) {
   const { t } = useTranslation('dialogs');

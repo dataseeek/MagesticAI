@@ -13,6 +13,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { WizardProgress, WizardStep } from './WizardProgress';
 import { WelcomeStep } from './WelcomeStep';
 import { ImportCredentialsStep } from './ImportCredentialsStep';
+import { ClaudeCodeStep } from './ClaudeCodeStep';
 import { OAuthStep } from './OAuthStep';
 import { CompletionStep } from './CompletionStep';
 import { useSettingsStore } from '../../stores/settings-store';
@@ -24,13 +25,14 @@ interface OnboardingWizardProps {
   onOpenSettings?: () => void;
 }
 
-// Wizard step identifiers — simplified to 4 steps
-type WizardStepId = 'welcome' | 'import-credentials' | 'oauth' | 'completion';
+// Wizard step identifiers
+type WizardStepId = 'welcome' | 'import-credentials' | 'claude-code' | 'oauth' | 'completion';
 
 // Step configuration with translation keys
 const WIZARD_STEPS: { id: WizardStepId; labelKey: string }[] = [
   { id: 'welcome', labelKey: 'steps.welcome' },
   { id: 'import-credentials', labelKey: 'steps.importCredentials' },
+  { id: 'claude-code', labelKey: 'steps.claudeCode' },
   { id: 'oauth', labelKey: 'steps.auth' },
   { id: 'completion', labelKey: 'steps.done' }
 ];
@@ -87,6 +89,7 @@ export function OnboardingWizard({
       const next = new Set(prev);
       next.add('welcome');
       next.add('import-credentials');
+      next.add('claude-code');
       next.add('oauth');
       return next;
     });
@@ -142,6 +145,7 @@ export function OnboardingWizard({
     }
   }, [onOpenSettings, finishWizard]);
 
+
   // Render current step content
   const renderStepContent = () => {
     switch (currentStepId) {
@@ -159,6 +163,14 @@ export function OnboardingWizard({
             onSkipToCompletion={goToCompletion}
             onBack={goToPreviousStep}
             onSkip={skipWizard}
+          />
+        );
+      case 'claude-code':
+        return (
+          <ClaudeCodeStep
+            onNext={goToNextStep}
+            onBack={goToPreviousStep}
+            onSkip={goToNextStep}
           />
         );
       case 'oauth':

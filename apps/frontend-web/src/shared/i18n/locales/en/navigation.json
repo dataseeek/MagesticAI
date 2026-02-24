@@ -20,11 +20,19 @@
   "actions": {
     "settings": "Settings",
     "help": "Help & Feedback",
-    "newTask": "Task"
+    "newTask": "Task",
+    "logout": "Log Out"
   },
   "tooltips": {
     "settings": "Application Settings",
-    "help": "Help & Feedback"
+    "help": "Help & Feedback",
+    "logout": "Log out and return to login screen"
+  },
+  "logoutDialog": {
+    "title": "Log Out",
+    "description": "Are you sure you want to log out? You will need to enter your API token again.",
+    "confirm": "Log Out",
+    "cancel": "Cancel"
   },
   "messages": {
     "initializeToCreateTasks": "Initialize Martinica to create tasks"
