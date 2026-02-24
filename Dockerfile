@@ -5,6 +5,11 @@
 # Stage 2: Ubuntu runtime with Python backend + built frontend
 # =============================================================================
 
+# Global ARG — must be declared before any FROM that uses it
+# Ubuntu 24.04 LTS ships Python 3.12 natively.
+# For 22.04, you'd need: add-apt-repository ppa:deadsnakes/ppa && apt install python3.12
+ARG UBUNTU_VERSION=24.04
+
 # ---------------------------------------------------------------------------
 # Stage 1: Build frontend (React 19 + Vite)
 # ---------------------------------------------------------------------------
@@ -32,9 +37,6 @@ RUN mkdir -p apps/web-server/static && \
 # ---------------------------------------------------------------------------
 # Stage 2: Runtime (Ubuntu + Python)
 # ---------------------------------------------------------------------------
-# Ubuntu 24.04 LTS ships Python 3.12 natively.
-# For 22.04, you'd need: add-apt-repository ppa:deadsnakes/ppa && apt install python3.12
-ARG UBUNTU_VERSION=24.04
 FROM ubuntu:${UBUNTU_VERSION} AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
