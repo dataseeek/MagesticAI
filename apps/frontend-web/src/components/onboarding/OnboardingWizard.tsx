@@ -115,6 +115,8 @@ export function OnboardingWizard({
     updateSettings({ onboardingCompleted: true });
     onOpenChange(false);
     resetWizard();
+    // Trigger immediate refresh of Claude Code status badge
+    window.dispatchEvent(new Event('claude-code-refresh'));
   }, [updateSettings, onOpenChange, resetWizard]);
 
   const finishWizard = useCallback(async () => {
@@ -129,6 +131,8 @@ export function OnboardingWizard({
     updateSettings({ onboardingCompleted: true });
     onOpenChange(false);
     resetWizard();
+    // Trigger immediate refresh of Claude Code status badge
+    window.dispatchEvent(new Event('claude-code-refresh'));
   }, [updateSettings, onOpenChange, resetWizard]);
 
   const handleOpenTaskCreator = useCallback(() => {

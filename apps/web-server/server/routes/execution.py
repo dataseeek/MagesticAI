@@ -174,6 +174,14 @@ async def start_task(task_id: str, request: StartTaskRequest):
                 detail="Invalid requirements.json format",
             )
 
+        # Read complexity from request, or fall back to task metadata
+        complexity = request.complexity
+        if not complexity:
+            metadata = requirements.get("metadata", {})
+            meta_complexity = metadata.get("complexity")
+            if meta_complexity in ("simple", "standard", "complex"):
+                complexity = meta_complexity
+
         agent_service = get_agent_service()
 
         # Run spec creation first
@@ -183,7 +191,7 @@ async def start_task(task_id: str, request: StartTaskRequest):
                 project_path=project_path,
                 title=title,
                 description=description,
-                complexity=request.complexity,
+                complexity=complexity,
                 auto_continue=request.auto_continue,
             )
 

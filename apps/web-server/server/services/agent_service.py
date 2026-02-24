@@ -1345,6 +1345,9 @@ class AgentService:
                             # Emit completion event
                             logger.info(f"[AgentService] Spec {detected_spec_id} created successfully (no review required)")
 
+                            # Persist status to implementation_plan.json
+                            await self._update_plan_status(project_path, detected_spec_id, "completed", task_id)
+
                             # Clean up tracking data
                             if task_id in self.running_tasks:
                                 del self.running_tasks[task_id]

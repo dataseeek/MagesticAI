@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FolderOpen, Search, Loader2, GitBranch, Package, FileCode, CheckCircle, FileText } from 'lucide-react';
+import { FolderOpen, Search, Loader2, GitBranch, Package, FileCode, CheckCircle, FileText, FolderPlus } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -47,6 +47,7 @@ export function AddProjectModal({ open, onOpenChange, onProjectAdded }: AddProje
   const [error, setError] = useState<string | null>(null);
   const [useCustomPath, setUseCustomPath] = useState(false);
   const [showClaudeReadyOnly, setShowClaudeReadyOnly] = useState(false);
+  const [createdDirPath, setCreatedDirPath] = useState<string | null>(null);
 
   // Filter and sort projects - Claude-ready projects first
   const sortedProjects = [...discoveredProjects].sort((a, b) => {
@@ -97,6 +98,7 @@ export function AddProjectModal({ open, onOpenChange, onProjectAdded }: AddProje
       setUseCustomPath(false);
       setShowClaudeReadyOnly(false);
       setError(null);
+      setCreatedDirPath(null);
       scanProjects();
     }
   }, [open, scanProjects]);
@@ -126,9 +128,18 @@ export function AddProjectModal({ open, onOpenChange, onProjectAdded }: AddProje
           // Non-fatal - main branch can be set later
         }
         onProjectAdded?.(project, !project.autoBuildPath);
-        onOpenChange(false);
+        if (project.createdDirectory) {
+          // Show info message briefly before closing
+          setCreatedDirPath(project.path);
+          setTimeout(() => {
+            setCreatedDirPath(null);
+            onOpenChange(false);
+          }, 3000);
+        } else {
+          onOpenChange(false);
+        }
       } else {
-        setError('Failed to add project. Please check the path exists on the server.');
+        setError('Failed to add project. Please check the path is valid.');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add project');
@@ -279,6 +290,14 @@ export function AddProjectModal({ open, onOpenChange, onProjectAdded }: AddProje
                 onKeyDown={handleKeyDown}
                 autoFocus
               />
+            </div>
+          )}
+
+          {/* Directory created info */}
+          {createdDirPath && (
+            <div className="text-sm text-green-700 dark:text-green-400 bg-green-500/10 rounded-lg p-3 flex items-center gap-2">
+              <FolderPlus className="h-4 w-4 shrink-0" />
+              <span>Created new directory: <strong>{createdDirPath}</strong></span>
             </div>
           )}
 

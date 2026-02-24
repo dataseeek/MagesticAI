@@ -112,11 +112,36 @@ function AuthenticatedApp() {
     loadSettings();
   }, []);
 
-  // Trigger onboarding if not completed
+  // Trigger onboarding only if CLI not installed or auth token missing
   useEffect(() => {
-    if (settings.onboardingCompleted === false) {
-      setIsOnboardingOpen(true);
-    }
+    if (settings.onboardingCompleted !== false) return;
+
+    // Check actual setup status before showing wizard
+    const checkSetup = async () => {
+      try {
+        const [versionResult, authResult] = await Promise.all([
+          window.API?.checkClaudeCodeVersion?.() ?? { success: false },
+          window.API?.getAuthStatus?.() ?? { success: false },
+        ]);
+
+        const cliInstalled = versionResult.success && versionResult.data?.installed;
+        const hasToken = authResult.success && authResult.data?.hasToken;
+
+        if (cliInstalled && hasToken) {
+          // Everything is set up — skip wizard and mark as completed
+          const { updateSettings } = useSettingsStore.getState();
+          updateSettings({ onboardingCompleted: true });
+          window.API?.saveSettings?.({ onboardingCompleted: true });
+        } else {
+          setIsOnboardingOpen(true);
+        }
+      } catch {
+        // If checks fail, show wizard as fallback
+        setIsOnboardingOpen(true);
+      }
+    };
+
+    checkSetup();
   }, [settings.onboardingCompleted]);
 
   // Sync i18n language with settings

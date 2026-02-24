@@ -2593,6 +2593,22 @@ async def merge_worktree(task_id: str, options: WorktreeMergeOptions = None):
     except subprocess.CalledProcessError:
         base_branch = "develop"
 
+    # Clean up internal auto-generated files that can block merge
+    # These are untracked files created by agents in worktrees that would
+    # collide with the same untracked files in the main working directory.
+    _INTERNAL_MERGE_BLOCKERS = [
+        ".auto-claude-security.json",
+        ".auto-claude-status",
+    ]
+    for fname in _INTERNAL_MERGE_BLOCKERS:
+        blocker = project_path / fname
+        if blocker.exists():
+            try:
+                blocker.unlink()
+                logger.info(f"Removed merge-blocking file: {fname}")
+            except OSError:
+                pass
+
     # Perform the merge
     try:
         merge_cmd = ["git", "merge", worktree_branch]
@@ -2966,6 +2982,15 @@ async def get_worktree_diff(task_id: str):
                 f["status"] = status_map[f["path"]]
     except subprocess.CalledProcessError:
         pass
+
+    # Filter out internal auto-claude files and agent artifacts (not relevant for user review)
+    INTERNAL_FILES = {".auto-claude-security.json", ".auto-claude-status"}
+    INTERNAL_PREFIXES = (".auto-claude/", "VERIFICATION_REPORT", "LANGUAGE_CHOICE")
+    files = [
+        f for f in files
+        if f["path"] not in INTERNAL_FILES
+        and not any(f["path"].startswith(p) for p in INTERNAL_PREFIXES)
+    ]
 
     # Get actual diff content for each file
     for f in files:
