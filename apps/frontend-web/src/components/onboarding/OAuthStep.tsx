@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Key,
   Eye,
   EyeOff,
   Info,
@@ -18,7 +17,9 @@ import {
   ChevronDown,
   ChevronRight,
   Users,
-  Lock
+  Lock,
+  Globe,
+  Key
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -36,8 +37,11 @@ interface OAuthStepProps {
 
 /**
  * OAuth step component for the onboarding wizard.
- * Guides users through Claude profile management and OAuth authentication,
- * reusing patterns from IntegrationSettings.tsx.
+ * Guides users through Claude profile management and OAuth authentication.
+ *
+ * Two auth methods:
+ * 1. Browser OAuth — launches claude setup-token, opens browser, polls for token
+ * 2. Manual token entry — paste token from CLI
  */
 export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
   const { t } = useTranslation('onboarding');
@@ -51,7 +55,11 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
   const [deletingProfileId, setDeletingProfileId] = useState<string | null>(null);
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editingProfileName, setEditingProfileName] = useState('');
-  const [authenticatingProfileId, setAuthenticatingProfileId] = useState<string | null>(null);
+
+  // Browser auth state
+  const [browserAuthProfileId, setBrowserAuthProfileId] = useState<string | null>(null);
+  const [browserAuthUrl, setBrowserAuthUrl] = useState<string | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Manual token entry state
   const [expandedTokenProfileId, setExpandedTokenProfileId] = useState<string | null>(null);
@@ -68,7 +76,7 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
     (profile) => profile.oauthToken || (profile.isDefault && profile.configDir)
   );
 
-  // Reusable function to load Claude profiles
+  // Load Claude profiles
   const loadClaudeProfiles = async () => {
     setIsLoadingProfiles(true);
     setError(null);
@@ -77,7 +85,6 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
       if (result.success && result.data) {
         setClaudeProfiles(result.data.profiles);
         setActiveProfileId(result.data.activeProfileId);
-        // Also update the global store
         await loadGlobalClaudeProfiles();
       }
     } catch (err) {
@@ -87,26 +94,94 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
     }
   };
 
-  // Load Claude profiles on mount
+  // Load profiles on mount
   useEffect(() => {
     loadClaudeProfiles();
   }, []);
 
-  // Listen for OAuth authentication completion
+  // Listen for OAuth authentication completion via terminal events
   useEffect(() => {
     const unsubscribe = window.API.onTerminalOAuthToken(async (info) => {
       if (info.success && info.profileId) {
-        // Reload profiles to show updated state
         await loadClaudeProfiles();
-        // Show simple success notification
-        alert(`✅ Profile authenticated successfully!\n\n${info.email ? `Account: ${info.email}` : 'Authentication complete.'}\n\nYou can now use this profile.`);
+        stopPolling();
+        setBrowserAuthProfileId(null);
+        setBrowserAuthUrl(null);
       }
     });
-
     return unsubscribe;
   }, []);
 
-  // Profile management handlers - following patterns from IntegrationSettings.tsx
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => stopPolling();
+  }, []);
+
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
+
+  // Start polling profiles to detect when the backend poller saves the token
+  const startPollingProfiles = (profileId: string) => {
+    stopPolling();
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const result = await window.API.getClaudeProfiles();
+        if (result.success && result.data) {
+          const profile = result.data.profiles.find((p: ClaudeProfile) => p.id === profileId);
+          if (profile?.oauthToken) {
+            // Token was saved by the backend poller
+            setClaudeProfiles(result.data.profiles);
+            setActiveProfileId(result.data.activeProfileId);
+            await loadGlobalClaudeProfiles();
+            stopPolling();
+            setBrowserAuthProfileId(null);
+            setBrowserAuthUrl(null);
+          }
+        }
+      } catch {
+        // Ignore polling errors
+      }
+    }, 3000);
+  };
+
+  // ========== Browser OAuth Flow ==========
+  const handleBrowserAuth = async (profileId: string) => {
+    setError(null);
+    setBrowserAuthProfileId(profileId);
+    setBrowserAuthUrl(null);
+
+    try {
+      const result = await window.API.startClaudeProfileOAuth(profileId);
+      if (result.success && result.data) {
+        const authUrl = result.data.authUrl;
+        if (authUrl) {
+          setBrowserAuthUrl(authUrl);
+          // Open the URL in a new browser tab
+          window.open(authUrl, '_blank');
+        }
+        // Start polling for the token to appear
+        startPollingProfiles(profileId);
+      } else {
+        setError(result.error || 'Failed to start OAuth flow. Is Claude Code CLI installed?');
+        setBrowserAuthProfileId(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start browser authentication');
+      setBrowserAuthProfileId(null);
+    }
+  };
+
+  const handleCancelBrowserAuth = () => {
+    stopPolling();
+    setBrowserAuthProfileId(null);
+    setBrowserAuthUrl(null);
+  };
+
+  // ========== Profile Management ==========
   const handleAddProfile = async () => {
     if (!newProfileName.trim()) return;
 
@@ -114,14 +189,12 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
     setError(null);
     try {
       const profileName = newProfileName.trim();
-      // Sanitize slug: only allow alphanumeric and dashes, remove leading/trailing dashes
       const profileSlug = profileName
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '');
 
-      // Validate that sanitized slug is not empty (e.g., "!!!" becomes "")
       if (!profileSlug) {
         setError('Profile name must contain at least one letter or number');
         setIsAddingProfile(false);
@@ -137,26 +210,12 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
       });
 
       if (result.success && result.data) {
-        // Initialize the profile (starts OAuth flow)
-        const initResult = await window.API.initializeClaudeProfile(result.data.id);
-
-        if (initResult.success) {
-          await loadClaudeProfiles();
-          setNewProfileName('');
-
-          alert(
-            `Authenticating "${profileName}"...\n\n` +
-            `A browser window will open for you to log in with your Claude account.\n\n` +
-            `The authentication will be saved automatically once complete.`
-          );
-        } else {
-          await loadClaudeProfiles();
-          alert(`Failed to start authentication: ${initResult.error || 'Please try again.'}`);
-        }
+        await window.API.initializeClaudeProfile(result.data.id);
+        await loadClaudeProfiles();
+        setNewProfileName('');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add profile');
-      alert('Failed to add profile. Please try again.');
     } finally {
       setIsAddingProfile(false);
     }
@@ -189,7 +248,6 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
 
   const handleRenameProfile = async () => {
     if (!editingProfileId || !editingProfileName.trim()) return;
-
     setError(null);
     try {
       const result = await window.API.renameClaudeProfile(editingProfileId, editingProfileName.trim());
@@ -217,17 +275,7 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
     }
   };
 
-  const handleAuthenticateProfile = async (profileId: string) => {
-    setAuthenticatingProfileId(profileId);
-    setError(null);
-    // Manual flow: expand token inputs and let user paste after running claude setup-token
-    setExpandedTokenProfileId(profileId);
-    setManualToken('');
-    setManualTokenEmail('');
-    setShowManualToken(false);
-    setAuthenticatingProfileId(null);
-  };
-
+  // ========== Manual Token Entry ==========
   const toggleTokenEntry = (profileId: string) => {
     if (expandedTokenProfileId === profileId) {
       setExpandedTokenProfileId(null);
@@ -260,18 +308,13 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
         setManualTokenEmail('');
         setShowManualToken(false);
       } else {
-        alert(`Failed to save token: ${result.error || 'Please try again.'}`);
+        setError(result.error || 'Failed to save token');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save token');
-      alert('Failed to save token. Please try again.');
     } finally {
       setSavingTokenProfileId(null);
     }
-  };
-
-  const handleContinue = () => {
-    onNext();
   };
 
   return (
@@ -299,7 +342,6 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
           </div>
         )}
 
-        {/* Profile management UI - placeholder for subtask-1-4 */}
         {!isLoadingProfiles && (
           <div className="space-y-6">
             {/* Error banner */}
@@ -355,231 +397,266 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
                 </div>
               ) : (
                 <div className="space-y-2 mb-4">
-                  {claudeProfiles.map((profile) => (
-                    <div
-                      key={profile.id}
-                      className={cn(
-                        "rounded-lg border transition-colors",
-                        profile.id === activeProfileId
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-background"
-                      )}
-                    >
-                      <div className={cn(
-                        "flex items-center justify-between p-3",
-                        expandedTokenProfileId !== profile.id && "hover:bg-muted/50"
-                      )}>
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "h-7 w-7 rounded-full flex items-center justify-center text-xs font-medium shrink-0",
-                            profile.id === activeProfileId
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground"
-                          )}>
-                            {(editingProfileId === profile.id ? editingProfileName : profile.name).charAt(0).toUpperCase()}
+                  {claudeProfiles.map((profile) => {
+                    const isAuthenticated = !!(profile.oauthToken || (profile.isDefault && profile.configDir));
+                    const isWaitingForBrowserAuth = browserAuthProfileId === profile.id;
+
+                    return (
+                      <div
+                        key={profile.id}
+                        className={cn(
+                          "rounded-lg border transition-colors",
+                          profile.id === activeProfileId
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-background"
+                        )}
+                      >
+                        {/* Profile header row */}
+                        <div className={cn(
+                          "flex items-center justify-between p-3",
+                          !isWaitingForBrowserAuth && expandedTokenProfileId !== profile.id && "hover:bg-muted/50"
+                        )}>
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "h-7 w-7 rounded-full flex items-center justify-center text-xs font-medium shrink-0",
+                              profile.id === activeProfileId
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-muted-foreground"
+                            )}>
+                              {(editingProfileId === profile.id ? editingProfileName : profile.name).charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              {editingProfileId === profile.id ? (
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    value={editingProfileName}
+                                    onChange={(e) => setEditingProfileName(e.target.value)}
+                                    className="h-7 text-sm w-40"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleRenameProfile();
+                                      if (e.key === 'Escape') cancelEditingProfile();
+                                    }}
+                                  />
+                                  <Button variant="ghost" size="icon" onClick={handleRenameProfile} className="h-7 w-7 text-success hover:text-success hover:bg-success/10">
+                                    <Check className="h-3 w-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={cancelEditingProfile} className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-medium text-foreground">{profile.name}</span>
+                                    {profile.isDefault && (
+                                      <span className="text-xs bg-muted px-1.5 py-0.5 rounded">Default</span>
+                                    )}
+                                    {profile.id === activeProfileId && (
+                                      <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded flex items-center gap-1">
+                                        <Star className="h-3 w-3" />
+                                        Active
+                                      </span>
+                                    )}
+                                    {isAuthenticated ? (
+                                      <span className="text-xs bg-success/20 text-success px-1.5 py-0.5 rounded flex items-center gap-1">
+                                        <Check className="h-3 w-3" />
+                                        Authenticated
+                                      </span>
+                                    ) : isWaitingForBrowserAuth ? (
+                                      <span className="text-xs bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        Waiting...
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs bg-warning/20 text-warning px-1.5 py-0.5 rounded">
+                                        Needs Auth
+                                      </span>
+                                    )}
+                                  </div>
+                                  {profile.email && (
+                                    <span className="text-xs text-muted-foreground">{profile.email}</span>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            {editingProfileId === profile.id ? (
-                              <div className="flex items-center gap-2">
-                                <Input
-                                  value={editingProfileName}
-                                  onChange={(e) => setEditingProfileName(e.target.value)}
-                                  className="h-7 text-sm w-40"
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleRenameProfile();
-                                    if (e.key === 'Escape') cancelEditingProfile();
-                                  }}
-                                />
+                          {editingProfileId !== profile.id && !isWaitingForBrowserAuth && (
+                            <div className="flex items-center gap-1">
+                              {!isAuthenticated && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleBrowserAuth(profile.id)}
+                                    className="gap-1 h-7 text-xs"
+                                  >
+                                    <Globe className="h-3 w-3" />
+                                    Sign In
+                                  </Button>
+                                </>
+                              )}
+                              {profile.id !== activeProfileId && isAuthenticated && (
                                 <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={handleRenameProfile}
-                                  className="h-7 w-7 text-success hover:text-success hover:bg-success/10"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleSetActiveProfile(profile.id)}
+                                  className="gap-1 h-7 text-xs"
                                 >
                                   <Check className="h-3 w-3" />
+                                  Set Active
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={cancelEditingProfile}
-                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-sm font-medium text-foreground">{profile.name}</span>
-                                  {profile.isDefault && (
-                                    <span className="text-xs bg-muted px-1.5 py-0.5 rounded">Default</span>
-                                  )}
-                                  {profile.id === activeProfileId && (
-                                    <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded flex items-center gap-1">
-                                      <Star className="h-3 w-3" />
-                                      Active
-                                    </span>
-                                  )}
-                                  {(profile.oauthToken || (profile.isDefault && profile.configDir)) ? (
-                                    <span className="text-xs bg-success/20 text-success px-1.5 py-0.5 rounded flex items-center gap-1">
-                                      <Check className="h-3 w-3" />
-                                      Authenticated
-                                    </span>
-                                  ) : (
-                                    <span className="text-xs bg-warning/20 text-warning px-1.5 py-0.5 rounded">
-                                      Needs Auth
-                                    </span>
-                                  )}
-                                </div>
-                                {profile.email && (
-                                  <span className="text-xs text-muted-foreground">{profile.email}</span>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        {editingProfileId !== profile.id && (
-                          <div className="flex items-center gap-1">
-                            {/* Authenticate button - show if not authenticated */}
-                            {!profile.oauthToken && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleAuthenticateProfile(profile.id)}
-                                disabled={authenticatingProfileId === profile.id}
-                                className="gap-1 h-7 text-xs"
-                              >
-                                {authenticatingProfileId === profile.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <LogIn className="h-3 w-3" />
-                                )}
-                                Authenticate
-                              </Button>
-                            )}
-                            {profile.id !== activeProfileId && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleSetActiveProfile(profile.id)}
-                                className="gap-1 h-7 text-xs"
-                              >
-                                <Check className="h-3 w-3" />
-                                Set Active
-                              </Button>
-                            )}
-                            {/* Toggle token entry button */}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => toggleTokenEntry(profile.id)}
-                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                              title={expandedTokenProfileId === profile.id ? "Hide token entry" : "Enter token manually"}
-                            >
-                              {expandedTokenProfileId === profile.id ? (
-                                <ChevronDown className="h-3 w-3" />
-                              ) : (
-                                <ChevronRight className="h-3 w-3" />
                               )}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => startEditingProfile(profile)}
-                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                              title="Rename profile"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                            {!profile.isDefault && (
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleDeleteProfile(profile.id)}
-                                disabled={deletingProfileId === profile.id}
-                                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                title="Delete profile"
+                                onClick={() => toggleTokenEntry(profile.id)}
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                title={expandedTokenProfileId === profile.id ? "Hide token entry" : "Enter token manually"}
                               >
-                                {deletingProfileId === profile.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                {expandedTokenProfileId === profile.id ? (
+                                  <ChevronDown className="h-3 w-3" />
                                 ) : (
-                                  <Trash2 className="h-3 w-3" />
+                                  <ChevronRight className="h-3 w-3" />
                                 )}
                               </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Expanded token entry section */}
-                      {expandedTokenProfileId === profile.id && (
-                        <div className="px-3 pb-3 pt-0 border-t border-border/50 mt-0">
-                          <div className="bg-muted/30 rounded-lg p-3 mt-3 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <Label className="text-xs font-medium text-muted-foreground">
-                                Manual Token Entry
-                              </Label>
-                              <span className="text-xs text-muted-foreground">
-                                Run <code className="px-1 py-0.5 bg-muted rounded font-mono text-xs">claude setup-token</code> to get your token
-                              </span>
-                            </div>
-
-                            <div className="space-y-2">
-                              <div className="relative">
-                                <Input
-                                  type={showManualToken ? 'text' : 'password'}
-                                  placeholder="sk-ant-oat01-..."
-                                  value={manualToken}
-                                  onChange={(e) => setManualToken(e.target.value)}
-                                  className="pr-10 font-mono text-xs h-8"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => setShowManualToken(!showManualToken)}
-                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => startEditingProfile(profile)}
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                title="Rename profile"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              {!profile.isDefault && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteProfile(profile.id)}
+                                  disabled={deletingProfileId === profile.id}
+                                  className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  title="Delete profile"
                                 >
-                                  {showManualToken ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                                </button>
-                              </div>
-
-                              <Input
-                                type="email"
-                                placeholder="Email (optional, for display)"
-                                value={manualTokenEmail}
-                                onChange={(e) => setManualTokenEmail(e.target.value)}
-                                className="text-xs h-8"
-                              />
+                                  {deletingProfileId === profile.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              )}
                             </div>
+                          )}
+                        </div>
 
-                            <div className="flex items-center justify-end gap-2">
+                        {/* Browser auth waiting state */}
+                        {isWaitingForBrowserAuth && (
+                          <div className="px-3 pb-3 pt-0 border-t border-border/50 mt-0">
+                            <div className="bg-yellow-500/5 rounded-lg p-3 mt-3 space-y-3">
+                              <div className="flex items-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin text-yellow-600 dark:text-yellow-400" />
+                                <span className="text-sm font-medium text-foreground">
+                                  Waiting for browser authentication...
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                A browser tab should have opened. Sign in with your Claude account there. The token will be saved automatically.
+                              </p>
+                              {browserAuthUrl && (
+                                <div className="text-xs">
+                                  <span className="text-muted-foreground">Didn't open? </span>
+                                  <a
+                                    href={browserAuthUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline"
+                                  >
+                                    Click here to sign in
+                                  </a>
+                                </div>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => toggleTokenEntry(profile.id)}
-                                className="h-7 text-xs"
+                                onClick={handleCancelBrowserAuth}
+                                className="h-7 text-xs text-muted-foreground"
                               >
                                 Cancel
                               </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => handleSaveManualToken(profile.id)}
-                                disabled={!manualToken.trim() || savingTokenProfileId === profile.id}
-                                className="h-7 text-xs gap-1"
-                              >
-                                {savingTokenProfileId === profile.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <Check className="h-3 w-3" />
-                                )}
-                                Save Token
-                              </Button>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+
+                        {/* Manual token entry section */}
+                        {expandedTokenProfileId === profile.id && !isWaitingForBrowserAuth && (
+                          <div className="px-3 pb-3 pt-0 border-t border-border/50 mt-0">
+                            <div className="bg-muted/30 rounded-lg p-3 mt-3 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                  <Key className="h-3 w-3" />
+                                  Manual Token Entry
+                                </Label>
+                                <span className="text-xs text-muted-foreground">
+                                  Run <code className="px-1 py-0.5 bg-muted rounded font-mono text-xs">claude setup-token</code> to get your token
+                                </span>
+                              </div>
+
+                              <div className="space-y-2">
+                                <div className="relative">
+                                  <Input
+                                    type={showManualToken ? 'text' : 'password'}
+                                    placeholder="sk-ant-oat01-..."
+                                    value={manualToken}
+                                    onChange={(e) => setManualToken(e.target.value)}
+                                    className="pr-10 font-mono text-xs h-8"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowManualToken(!showManualToken)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                  >
+                                    {showManualToken ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                  </button>
+                                </div>
+
+                                <Input
+                                  type="email"
+                                  placeholder="Email (optional, for display)"
+                                  value={manualTokenEmail}
+                                  onChange={(e) => setManualTokenEmail(e.target.value)}
+                                  className="text-xs h-8"
+                                />
+                              </div>
+
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleTokenEntry(profile.id)}
+                                  className="h-7 text-xs"
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleSaveManualToken(profile.id)}
+                                  disabled={!manualToken.trim() || savingTokenProfileId === profile.id}
+                                  className="h-7 text-xs gap-1"
+                                >
+                                  {savingTokenProfileId === profile.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Check className="h-3 w-3" />
+                                  )}
+                                  Save Token
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -646,7 +723,7 @@ export function OAuthStep({ onNext, onBack, onSkip }: OAuthStepProps) {
               Skip
             </Button>
             <Button
-              onClick={handleContinue}
+              onClick={onNext}
               disabled={!hasAuthenticatedProfile}
             >
               Continue

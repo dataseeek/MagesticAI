@@ -61,8 +61,20 @@
     "finish": "Finish & Start Building",
     "rerunHint": "You can always re-run this wizard from Settings → Application"
   },
+  "importCredentials": {
+    "checking": "Checking for existing credentials...",
+    "title": "Existing Credentials Detected",
+    "description": "We found existing Claude Code credentials on your system.",
+    "found": "Claude Code CLI credentials found",
+    "foundDescription": "A valid OAuth token was found in ~/.claude/.credentials.json. Would you like to import it into Martinica?",
+    "importButton": "Yes, Import Credentials",
+    "manualSetup": "No, Set Up Manually",
+    "success": "Credentials imported successfully! Continuing...",
+    "error": "Failed to import credentials. You can set up authentication manually."
+  },
   "steps": {
     "welcome": "Welcome",
+    "importCredentials": "Import",
     "authChoice": "Auth Method",
     "auth": "Auth",
     "claudeCode": "CLI",

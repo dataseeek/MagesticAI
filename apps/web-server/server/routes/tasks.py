@@ -16,6 +16,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from .projects import load_projects
+from ..paths import get_data_dir, get_data_file
 
 router = APIRouter()
 
@@ -1481,7 +1482,7 @@ async def get_worktree_merge_preview(task_id: str):
     import subprocess
 
     # Find the task's spec directory and worktree
-    projects_data_dir = Path.home() / ".auto-claude-web"
+    projects_data_dir = get_data_dir()
     projects_file = projects_data_dir / "projects.json"
 
     if not projects_file.exists():
@@ -1784,7 +1785,7 @@ async def resolve_worktree_conflicts(task_id: str, options: ConflictResolveOptio
         options = ConflictResolveOptions()
 
     # Find the task's spec directory and worktree
-    projects_data_dir = Path.home() / ".auto-claude-web"
+    projects_data_dir = get_data_dir()
     projects_file = projects_data_dir / "projects.json"
 
     if not projects_file.exists():
@@ -1880,7 +1881,7 @@ async def resolve_uncommitted_conflicts(task_id: str):
     logger.info(f"Resolving uncommitted conflicts for task {task_id}")
 
     # Find the task's project
-    projects_data_dir = Path.home() / ".auto-claude-web"
+    projects_data_dir = get_data_dir()
     projects_file = projects_data_dir / "projects.json"
 
     if not projects_file.exists():
@@ -2143,7 +2144,7 @@ async def resolve_git_merge_conflicts(task_id: str):
     logger.info(f"Resolving git merge conflicts for task {task_id}")
 
     # Find the task's project
-    projects_data_dir = Path.home() / ".auto-claude-web"
+    projects_data_dir = get_data_dir()
     projects_file = projects_data_dir / "projects.json"
 
     if not projects_file.exists():
@@ -2411,7 +2412,7 @@ async def abort_worktree_merge(task_id: str):
     logger.info(f"Aborting merge for task {task_id}")
 
     # Find the task's project
-    projects_data_dir = Path.home() / ".auto-claude-web"
+    projects_data_dir = get_data_dir()
     projects_file = projects_data_dir / "projects.json"
 
     if not projects_file.exists():
@@ -2530,7 +2531,7 @@ async def merge_worktree(task_id: str, options: WorktreeMergeOptions = None):
         options = WorktreeMergeOptions()
 
     # Find the task's project
-    projects_data_dir = Path.home() / ".auto-claude-web"
+    projects_data_dir = get_data_dir()
     projects_file = projects_data_dir / "projects.json"
 
     if not projects_file.exists():
@@ -2676,7 +2677,7 @@ async def get_worktree_status(task_id: str):
         project_id = None
 
     # Find project path
-    projects_data_dir = Path.home() / ".auto-claude-web"
+    projects_data_dir = get_data_dir()
     projects_file = projects_data_dir / "projects.json"
 
     if not projects_file.exists():
@@ -2830,7 +2831,7 @@ async def get_worktree_diff(task_id: str):
         project_id = None
 
     # Find project path
-    projects_data_dir = Path.home() / ".auto-claude-web"
+    projects_data_dir = get_data_dir()
     projects_file = projects_data_dir / "projects.json"
 
     if not projects_file.exists():
@@ -3006,7 +3007,7 @@ async def discard_worktree(task_id: str):
     if ":" in task_id:
         project_id, spec_id = task_id.split(":", 1)
         # Look up project path
-        projects_file = Path.home() / ".auto-claude-web" / "projects.json"
+        projects_file = get_data_file("projects.json")
         if not projects_file.exists():
             return {"success": False, "error": "Projects file not found"}
 

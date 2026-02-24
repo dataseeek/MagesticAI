@@ -21,6 +21,7 @@ import { AddProjectModal } from './components/AddProjectModal';
 import { AppSettingsDialog } from './components/settings';
 import { TaskCreationWizard } from './components/TaskCreationWizard';
 import { TaskDetailModal } from './components/task-detail';
+import { OnboardingWizard } from './components/onboarding';
 import { LoadingScreen } from './components/LoadingScreen';
 import { ProjectSwitchLoadingModal } from './components/ProjectSwitchLoadingModal';
 import { LoginPage } from './pages/LoginPage';
@@ -97,6 +98,7 @@ function AuthenticatedApp() {
   const [isNewTaskDialogOpen, setIsNewTaskDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   const selectedProject = projects.find((p) => p.id === (activeProjectId || selectedProjectId));
 
@@ -111,6 +113,13 @@ function AuthenticatedApp() {
     loadProjects();
     loadSettings();
   }, []);
+
+  // Trigger onboarding if not completed
+  useEffect(() => {
+    if (settings.onboardingCompleted === false) {
+      setIsOnboardingOpen(true);
+    }
+  }, [settings.onboardingCompleted]);
 
   // Sync i18n language with settings
   const { i18n } = useTranslation();
@@ -223,6 +232,7 @@ function AuthenticatedApp() {
           <Sidebar
             onSettingsClick={() => setIsSettingsDialogOpen(true)}
             onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
+            onOpenOnboarding={() => setIsOnboardingOpen(true)}
             activeView={activeView}
             onViewChange={setActiveView}
           />
@@ -366,6 +376,14 @@ function AuthenticatedApp() {
             }}
             onSwitchToTerminals={() => setActiveView('terminals')}
             onOpenInbuiltTerminal={handleOpenInbuiltTerminal}
+          />
+
+          {/* Onboarding Wizard */}
+          <OnboardingWizard
+            open={isOnboardingOpen}
+            onOpenChange={setIsOnboardingOpen}
+            onOpenTaskCreator={() => setIsNewTaskDialogOpen(true)}
+            onOpenSettings={() => setIsSettingsDialogOpen(true)}
           />
         </div>
       </TooltipProvider>

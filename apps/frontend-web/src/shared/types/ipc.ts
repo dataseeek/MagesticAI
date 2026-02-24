@@ -256,7 +256,7 @@ export interface API {
   /** Initialize authentication for a Claude profile */
   initializeClaudeProfile: (profileId: string) => Promise<IPCResult>;
   /** Start OAuth flow for a Claude profile (launches browser via backend) */
-  startClaudeProfileOAuth: (profileId: string) => Promise<IPCResult>;
+  startClaudeProfileOAuth: (profileId: string) => Promise<IPCResult<{ authUrl?: string }>>;
   /** Set OAuth token for a profile (used when capturing from terminal) */
   setClaudeProfileToken: (profileId: string, token: string, email?: string) => Promise<IPCResult>;
   /** Get auto-switch settings */
@@ -777,6 +777,11 @@ export interface API {
   // Claude Code CLI operations
   checkClaudeCodeVersion: () => Promise<IPCResult<import('./cli').ClaudeCodeVersionInfo>>;
   installClaudeCode: () => Promise<IPCResult<{ command: string }>>;
+
+  // Auth status operations
+  getAuthStatus: () => Promise<IPCResult<{ hasToken: boolean; profileCount: number; source: string | null }>>;
+  checkClaudeCredentialsExist: () => Promise<IPCResult<{ exists: boolean }>>;
+  importClaudeCredentials: () => Promise<IPCResult<{ success: boolean; profileId: string; profileName: string }>>;
 
   // Debug operations
   getDebugInfo: () => Promise<{

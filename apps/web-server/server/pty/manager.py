@@ -78,7 +78,8 @@ class PTYManager:
         # 2) Active profile from profiles file
         settings = get_settings()
         profiles_file = Path(settings.PROJECTS_DATA_DIR) / "claude-profiles.json"
-        legacy_profiles_file = Path.home() / ".auto-claude-web" / "claude-profiles.json"
+        from ..paths import get_data_file
+        legacy_profiles_file = get_data_file("claude-profiles.json")
         if not profiles_file.exists() and legacy_profiles_file.exists():
             profiles_file = legacy_profiles_file
 

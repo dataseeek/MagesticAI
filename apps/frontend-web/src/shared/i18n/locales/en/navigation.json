@@ -4,9 +4,9 @@
     "tools": "Tools"
   },
   "items": {
-    "kanban": "Kanban Board",
-    "terminals": "Agent Terminals",
-    "editor": "Files Editor",
+    "kanban": "Boards",
+    "terminals": "Terminal",
+    "editor": "Files",
     "chat": "Chat",
     "roadmap": "Roadmap",
     "ideation": "Ideation",
@@ -22,7 +22,7 @@
   "actions": {
     "settings": "Settings",
     "help": "Help & Feedback",
-    "newTask": "New Task"
+    "newTask": "Task"
   },
   "tooltips": {
     "settings": "Application Settings",
@@ -46,6 +46,12 @@
     "learnMore": "Learn more about Claude Code",
     "updateWarningTitle": "Update Claude Code?",
     "updateWarningDescription": "Updating will close all running Claude Code sessions. Any unsaved work in those sessions may be lost. Make sure to save your work before proceeding.",
-    "updateAnyway": "Update Anyway"
+    "updateAnyway": "Update Anyway",
+    "noToken": "No auth token configured",
+    "tokenOk": "Auth token configured",
+    "noAuth": "No Auth",
+    "tokenConfigured": "Auth token configured",
+    "noTokenConfigured": "No auth token configured",
+    "setupAuth": "Set Up Auth"
   }
 }

@@ -442,7 +442,7 @@ class AgentService:
 
         Resolution order:
         1. Environment override (CLAUDE_CODE_OAUTH_TOKEN already set)
-        2. Active profile from ~/.auto-claude-web/claude-profiles.json
+        2. Active profile from ~/.martinica/claude-profiles.json
         3. Best available profile (excluding failed profile if provided)
         4. Fallback to ~/.claude/oauth_token
 
@@ -465,7 +465,8 @@ class AgentService:
 
         # Load claude-profiles.json
         profiles_file = Path(self.settings.PROJECTS_DATA_DIR) / "claude-profiles.json"
-        legacy_profiles_file = Path.home() / ".auto-claude-web" / "claude-profiles.json"
+        from ..paths import get_data_file
+        legacy_profiles_file = get_data_file("claude-profiles.json")
         if not profiles_file.exists() and legacy_profiles_file.exists():
             profiles_file = legacy_profiles_file
             logger.debug(f"[AgentService] Using legacy profiles file at {profiles_file}")
@@ -571,14 +572,8 @@ class AgentService:
         import logging
         logger = logging.getLogger(__name__)
 
-        # Primary path (matches settings API): ~/.auto-claude-web/auto-switch.json
+        # Primary path: ~/.martinica/auto-switch.json
         settings_file = Path(self.settings.PROJECTS_DATA_DIR) / "auto-switch.json"
-
-        # Backward-compatibility fallback to legacy path: ~/.auto-claude-web/data/auto-switch.json
-        legacy_settings_file = Path.home() / ".auto-claude-web" / "data" / "auto-switch.json"
-        if not settings_file.exists() and legacy_settings_file.exists():
-            settings_file = legacy_settings_file
-            logger.debug(f"[AgentService] Using legacy auto-switch settings at {settings_file}")
 
         if not settings_file.exists():
             logger.debug(f"[AgentService] Auto-switch settings not found at {settings_file}, failover disabled")
@@ -653,7 +648,8 @@ class AgentService:
         logger = logging.getLogger(__name__)
 
         profiles_file = Path(self.settings.PROJECTS_DATA_DIR) / "claude-profiles.json"
-        legacy_profiles_file = Path.home() / ".auto-claude-web" / "claude-profiles.json"
+        from ..paths import get_data_file
+        legacy_profiles_file = get_data_file("claude-profiles.json")
 
         if not profiles_file.exists() and legacy_profiles_file.exists():
             profiles_file = legacy_profiles_file

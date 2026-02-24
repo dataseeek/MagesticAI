@@ -61,8 +61,20 @@
     "finish": "Terminer et commencer à construire",
     "rerunHint": "Vous pouvez toujours relancer cet assistant depuis Paramètres → Application"
   },
+  "importCredentials": {
+    "checking": "Vérification des identifiants existants...",
+    "title": "Identifiants existants détectés",
+    "description": "Nous avons trouvé des identifiants Claude Code existants sur votre système.",
+    "found": "Identifiants Claude Code CLI trouvés",
+    "foundDescription": "Un jeton OAuth valide a été trouvé dans ~/.claude/.credentials.json. Souhaitez-vous l'importer dans Martinica ?",
+    "importButton": "Oui, importer les identifiants",
+    "manualSetup": "Non, configurer manuellement",
+    "success": "Identifiants importés avec succès ! Continuation...",
+    "error": "Échec de l'importation des identifiants. Vous pouvez configurer l'authentification manuellement."
+  },
   "steps": {
     "welcome": "Bienvenue",
+    "importCredentials": "Import",
     "authChoice": "Méthode d'auth",
     "auth": "Auth",
     "claudeCode": "CLI",

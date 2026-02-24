@@ -1,5 +1,5 @@
 """
-Logging configuration for Auto-Claude Web Server.
+Logging configuration for Martinica Web Server.
 
 Sets up file-based logging with rotation for persistent error tracking and debugging.
 """
@@ -10,8 +10,10 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+from .paths import get_data_dir
+
 # Log directory - stored in user's home directory
-LOG_DIR = Path.home() / ".auto-claude-web" / "logs"
+LOG_DIR = get_data_dir() / "logs"
 
 # Log file settings
 MAX_LOG_SIZE = 10 * 1024 * 1024  # 10 MB

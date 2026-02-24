@@ -1,5 +1,5 @@
 """
-Configuration settings for Auto-Claude Web Server.
+Configuration settings for Martinica Web Server.
 
 Settings are loaded from environment variables with sensible defaults.
 """
@@ -8,6 +8,8 @@ import secrets
 from pathlib import Path
 
 from pydantic_settings import BaseSettings
+
+from .paths import get_data_dir, get_data_file
 
 
 class Settings(BaseSettings):
@@ -57,7 +59,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
-        env_prefix = "AUTO_CLAUDE_"
+        env_prefix = "MARTINICA_"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -78,10 +80,7 @@ class Settings(BaseSettings):
             )
 
         if not self.PROJECTS_DATA_DIR:
-            # Store project data in a .auto-claude-web directory
-            self.PROJECTS_DATA_DIR = str(
-                Path.home() / ".auto-claude-web"
-            )
+            self.PROJECTS_DATA_DIR = str(get_data_dir())
 
         # Set default database URL
         if not self.DATABASE_URL:
@@ -95,7 +94,7 @@ class Settings(BaseSettings):
 
     def _get_or_generate_token(self) -> str:
         """Get existing token or generate a new one."""
-        token_file = Path.home() / ".auto-claude-web" / ".token"
+        token_file = get_data_file(".token")
 
         if token_file.exists():
             return token_file.read_text().strip()
@@ -109,7 +108,7 @@ class Settings(BaseSettings):
         token_file.chmod(0o600)  # Owner read/write only
 
         print(f"\n{'='*60}")
-        print("Auto-Claude Web Server - First Run Setup")
+        print("Martinica - First Run Setup")
         print(f"{'='*60}")
         print(f"Generated API token: {token}")
         print(f"Token saved to: {token_file}")
@@ -122,10 +121,10 @@ class Settings(BaseSettings):
     def _get_or_generate_jwt_secret(self) -> str:
         """Get existing JWT secret or generate a new one.
 
-        The secret is persisted to ~/.auto-claude-web/.jwt_secret so it
+        The secret is persisted to ~/.martinica/.jwt_secret so it
         survives server restarts, keeping existing tokens valid.
         """
-        secret_file = Path.home() / ".auto-claude-web" / ".jwt_secret"
+        secret_file = get_data_file(".jwt_secret")
 
         if secret_file.exists():
             return secret_file.read_text().strip()
@@ -144,7 +143,7 @@ class Settings(BaseSettings):
         """Set up SSL certificates, generating self-signed if needed."""
         import subprocess
 
-        ssl_dir = Path.home() / ".auto-claude-web" / "ssl"
+        ssl_dir = get_data_dir() / "ssl"
         ssl_dir.mkdir(parents=True, exist_ok=True)
 
         cert_file = ssl_dir / "cert.pem"
@@ -162,7 +161,7 @@ class Settings(BaseSettings):
         # Generate self-signed certificate if not exists
         if not cert_file.exists() or not key_file.exists():
             print(f"\n{'='*60}")
-            print("Auto-Claude Web Server - SSL Setup")
+            print("Martinica - SSL Setup")
             print(f"{'='*60}")
             print("Generating self-signed SSL certificate...")
 
@@ -174,7 +173,7 @@ class Settings(BaseSettings):
                         "-out", str(cert_file),
                         "-days", "365",
                         "-nodes",
-                        "-subj", "/CN=localhost/O=Auto-Claude/C=US"
+                        "-subj", "/CN=localhost/O=Martinica/C=US"
                     ],
                     check=True,
                     capture_output=True
