@@ -17,11 +17,12 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from .models import Base
+from ..paths import get_data_dir
 
 logger = logging.getLogger(__name__)
 
-# Database file location: ~/.auto-claude-web/data.db
-DATABASE_DIR = Path.home() / ".auto-claude-web"
+# Database file location: ~/.martinica/data.db
+DATABASE_DIR = get_data_dir()
 DATABASE_PATH = DATABASE_DIR / "data.db"
 DATABASE_URL = f"sqlite+aiosqlite:///{DATABASE_PATH}"
 

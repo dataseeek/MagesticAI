@@ -951,6 +951,11 @@ export const webAPI: API & { _isWebMode: boolean } = {
   checkClaudeCodeVersion: () => get('/claude-code/version'),
   installClaudeCode: () => post('/claude-code/install'),
 
+  // ========== Auth Status ==========
+  getAuthStatus: () => get('/settings/auth-status'),
+  checkClaudeCredentialsExist: () => get('/settings/claude-credentials-exist'),
+  importClaudeCredentials: () => post('/settings/import-claude-credentials'),
+
   // ========== Debug Operations ==========
   getDebugInfo: async () => ({
     systemInfo: { appVersion: '1.0.0-web', platform: 'web', isPackaged: 'false' },

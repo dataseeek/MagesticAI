@@ -1,15 +1,16 @@
 """
-Authentication helpers for Auto Claude.
+Authentication helpers for Martinica.
 
 Provides centralized authentication token resolution with fallback support
-for multiple environment variables, and SDK environment variable passthrough
-for custom API endpoints.
+for multiple environment variables, Martinica profiles, Claude Code CLI
+credentials, and SDK environment variable passthrough for custom API endpoints.
 """
 
 import json
 import os
 import platform
 import subprocess
+from pathlib import Path
 
 # Priority order for auth token resolution
 # NOTE: We intentionally do NOT fall back to ANTHROPIC_API_KEY.
@@ -129,14 +130,51 @@ def _get_token_from_windows_credential_files() -> str | None:
         return None
 
 
+def _get_token_from_martinica_profiles() -> str | None:
+    """Read token from Martinica profiles storage (~/.martinica/claude-profiles.json)."""
+    path = Path.home() / ".martinica" / "claude-profiles.json"
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text())
+        active_id = data.get("activeProfileId")
+        for profile in data.get("profiles", []):
+            if profile.get("id") == active_id and profile.get("oauthToken"):
+                return profile["oauthToken"]
+        # If no active profile, return first token found
+        for profile in data.get("profiles", []):
+            if profile.get("oauthToken"):
+                return profile["oauthToken"]
+    except (json.JSONDecodeError, KeyError):
+        pass
+    return None
+
+
+def _get_token_from_claude_credentials() -> str | None:
+    """Read token from official Claude Code CLI credentials (~/.claude/.credentials.json)."""
+    path = Path.home() / ".claude" / ".credentials.json"
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text())
+        token = data.get("claudeAiOauth", {}).get("accessToken")
+        if token and token.startswith("sk-ant-oat01-"):
+            return token
+    except (json.JSONDecodeError, KeyError):
+        pass
+    return None
+
+
 def get_auth_token() -> str | None:
     """
-    Get authentication token from environment variables or system credential store.
+    Get authentication token from environment variables or credential stores.
 
     Checks multiple sources in priority order:
     1. CLAUDE_CODE_OAUTH_TOKEN (env var)
     2. ANTHROPIC_AUTH_TOKEN (CCR/proxy env var for enterprise setups)
-    3. System credential store (macOS Keychain, Windows Credential Manager)
+    3. Martinica profiles (~/.martinica/claude-profiles.json)
+    4. Claude Code CLI credentials (~/.claude/.credentials.json)
+    5. System credential store (macOS Keychain, Windows Credential Manager)
 
     NOTE: ANTHROPIC_API_KEY is intentionally NOT supported to prevent
     silent billing to user's API credits when OAuth is misconfigured.
@@ -150,6 +188,16 @@ def get_auth_token() -> str | None:
         if token:
             return token
 
+    # Check Martinica profiles
+    token = _get_token_from_martinica_profiles()
+    if token:
+        return token
+
+    # Check Claude Code CLI credentials
+    token = _get_token_from_claude_credentials()
+    if token:
+        return token
+
     # Fallback to system credential store
     return get_token_from_keychain()
 
@@ -160,6 +208,14 @@ def get_auth_token_source() -> str | None:
     for var in AUTH_TOKEN_ENV_VARS:
         if os.environ.get(var):
             return var
+
+    # Check Martinica profiles
+    if _get_token_from_martinica_profiles():
+        return "Martinica Profiles"
+
+    # Check Claude Code CLI credentials
+    if _get_token_from_claude_credentials():
+        return "Claude Code CLI Credentials"
 
     # Check if token came from system credential store
     if get_token_from_keychain():
@@ -185,7 +241,7 @@ def require_auth_token() -> str:
     if not token:
         error_msg = (
             "No OAuth token found.\n\n"
-            "Auto Claude requires Claude Code OAuth authentication.\n"
+            "Martinica requires Claude Code OAuth authentication.\n"
             "Direct API keys (ANTHROPIC_API_KEY) are not supported.\n\n"
         )
         # Provide platform-specific guidance

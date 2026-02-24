@@ -274,7 +274,8 @@ async def clear_terminal_sessions(project: str | None = None):
             dirs_to_clear.append(default_sessions_dir)
 
         # Also try to find project sessions
-        projects_file = Path.home() / ".auto-claude-web" / "projects.json"
+        from ..paths import get_data_file
+        projects_file = get_data_file("projects.json")
         if projects_file.exists():
             try:
                 projects_data = json.loads(projects_file.read_text())

@@ -4,9 +4,9 @@
     "tools": "Outils"
   },
   "items": {
-    "kanban": "Tableau Kanban",
-    "terminals": "Terminaux Agent",
-    "editor": "Éditeur de Fichiers",
+    "kanban": "Tableaux",
+    "terminals": "Terminal",
+    "editor": "Fichiers",
     "chat": "Chat",
     "roadmap": "Feuille de route",
     "ideation": "Idéation",
@@ -22,7 +22,7 @@
   "actions": {
     "settings": "Paramètres",
     "help": "Aide & Feedback",
-    "newTask": "Nouvelle tâche"
+    "newTask": "Tâche"
   },
   "tooltips": {
     "settings": "Paramètres de l'application",
@@ -46,6 +46,12 @@
     "learnMore": "En savoir plus sur Claude Code",
     "updateWarningTitle": "Mettre à jour Claude Code ?",
     "updateWarningDescription": "La mise à jour fermera toutes les sessions Claude Code en cours. Tout travail non sauvegardé dans ces sessions pourrait être perdu. Assurez-vous de sauvegarder votre travail avant de continuer.",
-    "updateAnyway": "Mettre à jour quand même"
+    "updateAnyway": "Mettre à jour quand même",
+    "noToken": "Aucun jeton d'authentification configuré",
+    "tokenOk": "Jeton d'authentification configuré",
+    "noAuth": "Pas d'auth",
+    "tokenConfigured": "Jeton d'authentification configuré",
+    "noTokenConfigured": "Aucun jeton d'authentification configuré",
+    "setupAuth": "Configurer l'auth"
   }
 }

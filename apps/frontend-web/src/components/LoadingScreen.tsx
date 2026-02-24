@@ -29,8 +29,8 @@ export function LoadingScreen({ duration = 5000, onComplete }: LoadingScreenProp
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background">
       {/* Logo and branding */}
       <div className="mb-8 flex flex-col items-center">
-        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl">
+          <img src="/logo.png" alt="Martinica" className="h-20 w-20 rounded-2xl" />
         </div>
         <h1 className="text-2xl font-bold text-foreground">Martinica</h1>
         <p className="mt-2 text-sm text-muted-foreground">Preparing your workspace...</p>

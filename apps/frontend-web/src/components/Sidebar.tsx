@@ -4,8 +4,9 @@ import {
   Plus,
   Settings,
   Trash2,
-  LayoutGrid,
+  Columns3,
   Terminal,
+  FolderOpen,
   Map,
   BookOpen,
   Lightbulb,
@@ -17,7 +18,6 @@ import {
   GitPullRequest,
   GitMerge,
   FileText,
-  FileCode,
   Sparkles,
   GitBranch,
   HelpCircle,
@@ -59,6 +59,7 @@ export type SidebarView = 'kanban' | 'terminals' | 'editor' | 'roadmap' | 'conte
 interface SidebarProps {
   onSettingsClick: () => void;
   onNewTaskClick: () => void;
+  onOpenOnboarding?: () => void;
   activeView?: SidebarView;
   onViewChange?: (view: SidebarView) => void;
 }
@@ -71,9 +72,9 @@ interface NavItem {
 
 // Base nav items always shown
 const baseNavItems: NavItem[] = [
-  { id: 'kanban', labelKey: 'navigation:items.kanban', icon: LayoutGrid },
+  { id: 'kanban', labelKey: 'navigation:items.kanban', icon: Columns3 },
   { id: 'terminals', labelKey: 'navigation:items.terminals', icon: Terminal },
-  { id: 'editor', labelKey: 'navigation:items.editor', icon: FileCode },
+  { id: 'editor', labelKey: 'navigation:items.editor', icon: FolderOpen },
   { id: 'insights', labelKey: 'navigation:items.chat', icon: Sparkles },
   { id: 'roadmap', labelKey: 'navigation:items.roadmap', icon: Map },
   { id: 'ideation', labelKey: 'navigation:items.ideation', icon: Lightbulb },
@@ -98,6 +99,7 @@ const gitlabNavItems: NavItem[] = [
 export function Sidebar({
   onSettingsClick,
   onNewTaskClick,
+  onOpenOnboarding,
   activeView = 'kanban',
   onViewChange
 }: SidebarProps) {
@@ -287,8 +289,9 @@ export function Sidebar({
     <TooltipProvider>
       <div className="flex h-full w-64 flex-col bg-sidebar border-r border-border">
         {/* Header with drag area - extra top padding for macOS traffic lights */}
-        <div className="electron-drag flex h-14 items-center px-4 pt-6">
-          <span className="electron-no-drag text-lg font-bold text-primary">Martinica</span>
+        <div className="electron-drag flex h-14 items-center gap-2.5 px-4 pt-6">
+          <img src="/logo.png" alt="Martinica" className="electron-no-drag h-7 w-7 rounded" />
+          <span className="electron-no-drag text-lg font-bold text-white bg-primary/30 px-2 py-0.5 rounded">Martinica AI</span>
         </div>
 
         <Separator className="mt-2" />
@@ -341,7 +344,7 @@ export function Sidebar({
         {/* Bottom section with Settings, Help, and New Task */}
         <div className="p-4 space-y-3">
           {/* Claude Code Status Badge */}
-          <ClaudeCodeStatusBadge />
+          <ClaudeCodeStatusBadge onOpenOnboarding={onOpenOnboarding} />
 
           {/* Settings and Help row */}
           <div className="flex items-center gap-2">

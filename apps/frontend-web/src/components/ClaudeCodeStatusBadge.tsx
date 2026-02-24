@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Terminal, Check, AlertTriangle, X, Loader2, Download, RefreshCw, ExternalLink } from 'lucide-react';
+import { Terminal, Check, AlertTriangle, X, Loader2, Download, RefreshCw, ExternalLink, KeyRound } from 'lucide-react';
 import { Button } from './ui/button';
 import {
   Popover,
@@ -27,6 +27,7 @@ import type { ClaudeCodeVersionInfo } from '../shared/types/cli';
 
 interface ClaudeCodeStatusBadgeProps {
   className?: string;
+  onOpenOnboarding?: () => void;
 }
 
 type StatusType = 'loading' | 'installed' | 'outdated' | 'not-found' | 'error';
@@ -36,9 +37,9 @@ const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Claude Code CLI status badge for the sidebar.
- * Shows installation status and provides quick access to install/update.
+ * Shows installation status, auth token status, and provides quick access to install/update.
  */
-export function ClaudeCodeStatusBadge({ className }: ClaudeCodeStatusBadgeProps) {
+export function ClaudeCodeStatusBadge({ className, onOpenOnboarding }: ClaudeCodeStatusBadgeProps) {
   const { t } = useTranslation(['common', 'navigation']);
   const [status, setStatus] = useState<StatusType>('loading');
   const [versionInfo, setVersionInfo] = useState<ClaudeCodeVersionInfo | null>(null);
@@ -46,6 +47,10 @@ export function ClaudeCodeStatusBadge({ className }: ClaudeCodeStatusBadgeProps)
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [showUpdateWarning, setShowUpdateWarning] = useState(false);
+
+  // Auth status
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const [authSource, setAuthSource] = useState<string | null>(null);
 
   // Check Claude Code version
   const checkVersion = useCallback(async () => {
@@ -77,17 +82,32 @@ export function ClaudeCodeStatusBadge({ className }: ClaudeCodeStatusBadgeProps)
     }
   }, []);
 
+  // Check auth status
+  const checkAuth = useCallback(async () => {
+    try {
+      if (!window.API?.getAuthStatus) return;
+      const result = await window.API.getAuthStatus();
+      if (result.success && result.data) {
+        setHasToken(result.data.hasToken);
+        setAuthSource(result.data.source);
+      }
+    } catch {
+      // Non-critical, just leave as null
+    }
+  }, []);
+
   // Initial check and periodic re-check
   useEffect(() => {
     checkVersion();
+    checkAuth();
 
-    // Set up periodic check
     const interval = setInterval(() => {
       checkVersion();
+      checkAuth();
     }, CHECK_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [checkVersion]);
+  }, [checkVersion, checkAuth]);
 
   // Perform the actual install/update
   const performInstall = async () => {
@@ -101,7 +121,6 @@ export function ClaudeCodeStatusBadge({ className }: ClaudeCodeStatusBadgeProps)
       const result = await window.API.installClaudeCode();
 
       if (result.success) {
-        // Re-check after a delay
         setTimeout(() => {
           checkVersion();
         }, 5000);
@@ -116,26 +135,33 @@ export function ClaudeCodeStatusBadge({ className }: ClaudeCodeStatusBadgeProps)
   // Handle install/update button click
   const handleInstall = () => {
     if (status === 'outdated') {
-      // Show warning for updates since it will close running Claude sessions
       setShowUpdateWarning(true);
     } else {
-      // Fresh install - no warning needed
       performInstall();
     }
   };
 
+  // Determine overall health: green = CLI + token, yellow = partial, red = neither
+  const getOverallHealth = (): 'good' | 'partial' | 'bad' => {
+    const cliOk = status === 'installed' || status === 'outdated';
+    const tokenOk = hasToken === true;
+    if (cliOk && tokenOk) return 'good';
+    if (cliOk || tokenOk) return 'partial';
+    return 'bad';
+  };
+
+  const overallHealth = getOverallHealth();
+
   // Get status indicator color
   const getStatusColor = () => {
-    switch (status) {
-      case 'installed':
+    if (status === 'loading') return 'bg-muted-foreground';
+    switch (overallHealth) {
+      case 'good':
         return 'bg-green-500';
-      case 'outdated':
+      case 'partial':
         return 'bg-yellow-500';
-      case 'not-found':
-      case 'error':
+      case 'bad':
         return 'bg-destructive';
-      default:
-        return 'bg-muted-foreground';
     }
   };
 
@@ -157,18 +183,18 @@ export function ClaudeCodeStatusBadge({ className }: ClaudeCodeStatusBadgeProps)
 
   // Get tooltip text
   const getTooltipText = () => {
-    switch (status) {
-      case 'loading':
-        return t('navigation:claudeCode.checking', 'Checking Claude Code...');
-      case 'installed':
-        return t('navigation:claudeCode.upToDate', 'Claude Code is up to date');
-      case 'outdated':
-        return t('navigation:claudeCode.updateAvailable', 'Claude Code update available');
-      case 'not-found':
-        return t('navigation:claudeCode.notInstalled', 'Claude Code not installed');
-      case 'error':
-        return t('navigation:claudeCode.error', 'Error checking Claude Code');
-    }
+    if (status === 'loading') return t('navigation:claudeCode.checking', 'Checking Claude Code...');
+
+    const parts: string[] = [];
+    if (status === 'installed') parts.push(t('navigation:claudeCode.upToDate', 'Claude Code is up to date'));
+    else if (status === 'outdated') parts.push(t('navigation:claudeCode.updateAvailable', 'Claude Code update available'));
+    else if (status === 'not-found') parts.push(t('navigation:claudeCode.notInstalled', 'Claude Code not installed'));
+    else parts.push(t('navigation:claudeCode.error', 'Error checking Claude Code'));
+
+    if (hasToken === false) parts.push(t('navigation:claudeCode.noToken', 'No auth token configured'));
+    else if (hasToken === true) parts.push(t('navigation:claudeCode.tokenOk', 'Auth token configured'));
+
+    return parts.join(' | ');
   };
 
   return (
@@ -181,8 +207,8 @@ export function ClaudeCodeStatusBadge({ className }: ClaudeCodeStatusBadgeProps)
               size="sm"
               className={cn(
                 'w-full justify-start gap-2 text-xs',
-                status === 'not-found' || status === 'error' ? 'text-destructive' : '',
-                status === 'outdated' ? 'text-yellow-600 dark:text-yellow-500' : '',
+                overallHealth === 'bad' ? 'text-destructive' : '',
+                overallHealth === 'partial' ? 'text-yellow-600 dark:text-yellow-500' : '',
                 className
               )}
             >
@@ -202,6 +228,11 @@ export function ClaudeCodeStatusBadge({ className }: ClaudeCodeStatusBadgeProps)
               {status === 'not-found' && (
                 <span className="ml-auto text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded">
                   {t('common:install', 'Install')}
+                </span>
+              )}
+              {hasToken === false && status !== 'not-found' && (
+                <span className="ml-auto text-[10px] bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded">
+                  {t('navigation:claudeCode.noAuth', 'No Auth')}
                 </span>
               )}
             </Button>
@@ -256,6 +287,23 @@ export function ClaudeCodeStatusBadge({ className }: ClaudeCodeStatusBadgeProps)
             </div>
           )}
 
+          {/* Auth token status */}
+          {hasToken !== null && (
+            <div className={cn(
+              'text-xs p-2 rounded-md flex items-center gap-2',
+              hasToken ? 'bg-green-500/10 text-green-700 dark:text-green-400' : 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400'
+            )}>
+              <KeyRound className="h-3.5 w-3.5 shrink-0" />
+              <div className="flex-1">
+                {hasToken ? (
+                  <span>{t('navigation:claudeCode.tokenConfigured', 'Auth token configured')}{authSource ? ` (${authSource})` : ''}</span>
+                ) : (
+                  <span>{t('navigation:claudeCode.noTokenConfigured', 'No auth token configured')}</span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex gap-2">
             {(status === 'not-found' || status === 'outdated') && (
@@ -276,11 +324,28 @@ export function ClaudeCodeStatusBadge({ className }: ClaudeCodeStatusBadgeProps)
                 }
               </Button>
             )}
+            {hasToken === false && onOpenOnboarding && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-1"
+                onClick={() => {
+                  setIsOpen(false);
+                  onOpenOnboarding();
+                }}
+              >
+                <KeyRound className="h-3 w-3" />
+                {t('navigation:claudeCode.setupAuth', 'Set Up Auth')}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
               className="gap-1"
-              onClick={() => checkVersion()}
+              onClick={() => {
+                checkVersion();
+                checkAuth();
+              }}
               disabled={status === 'loading'}
             >
               <RefreshCw className={cn('h-3 w-3', status === 'loading' && 'animate-spin')} />

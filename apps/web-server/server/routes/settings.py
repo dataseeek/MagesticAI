@@ -372,8 +372,10 @@ async def regenerate_api_token():
     import secrets
     from pathlib import Path
 
+    from ..paths import get_data_file
+
     settings = get_settings()
-    token_file = Path.home() / ".auto-claude-web" / ".token"
+    token_file = get_data_file(".token")
 
     # Generate new token
     new_token = secrets.token_urlsafe(32)
@@ -946,73 +948,90 @@ async def initialize_claude_profile(profile_id: str):
         return {"success": False, "error": str(e)}
 
 
-def _poll_token_and_save(profile_id: str, logger: logging.Logger):
+def _poll_token_and_save(profile_id: str, logger: logging.Logger, mtime_before: float = 0):
     """
-    Poll ~/.claude/oauth_token and save it to the specified profile when available.
+    Poll for Claude OAuth token and save it to the specified profile.
+
+    Checks ~/.claude/.credentials.json for a token written AFTER the OAuth
+    flow was initiated (using mtime_before as the baseline).
 
     This runs in a background thread so the HTTP request can return immediately.
+
+    Args:
+        profile_id: The profile to save the token to.
+        logger: Logger instance.
+        mtime_before: The mtime of credentials.json BEFORE launching the CLI.
+            Only tokens from files modified after this time will be accepted.
     """
-    token_path = Path.home() / ".claude" / "oauth_token"
+    credentials_path = Path.home() / ".claude" / ".credentials.json"
+
     for _ in range(90):  # Poll for up to ~3 minutes
+        token = None
         try:
-            if token_path.exists():
-                token = token_path.read_text().strip()
-                if token:
-                    data = load_profiles()
-                    updated = False
-                    for p in data.get("profiles", []):
-                        if p.get("id") == profile_id:
-                            p["oauthToken"] = token
-                            p.pop("token", None)  # remove legacy field if present
-                            updated = True
-                            break
-                    if updated:
-                        save_profiles(data)
-                        if data.get("activeProfileId") == profile_id:
-                            _sync_env_token_for_active_profile(data, profile_id, logger)
-                        logger.info(f"[Claude OAuth] Token saved to profile {profile_id}")
-                    return
+            # Only accept tokens from credentials.json that were written
+            # AFTER the OAuth flow started (mtime > mtime_before)
+            if credentials_path.exists():
+                cred_mtime_now = credentials_path.stat().st_mtime
+                if cred_mtime_now > mtime_before:
+                    cred_data = json.loads(credentials_path.read_text())
+                    t = cred_data.get("claudeAiOauth", {}).get("accessToken")
+                    if t and t.startswith("sk-ant-oat01-"):
+                        token = t
+
+            if token:
+                data = load_profiles()
+                updated = False
+                for p in data.get("profiles", []):
+                    if p.get("id") == profile_id:
+                        # Only save if the profile doesn't already have this token
+                        if p.get("oauthToken") == token:
+                            logger.info(f"[Claude OAuth] Profile {profile_id} already has this token, skipping")
+                            return
+                        p["oauthToken"] = token
+                        p.pop("token", None)  # remove legacy field if present
+                        updated = True
+                        break
+                if updated:
+                    save_profiles(data)
+                    if data.get("activeProfileId") == profile_id:
+                        _sync_env_token_for_active_profile(data, profile_id, logger)
+                    logger.info(f"[Claude OAuth] Token saved to profile {profile_id}")
+                return
         except Exception as e:  # pragma: no cover - best-effort background
             logger.warning(f"[Claude OAuth] Polling error: {e}")
         time.sleep(2)
     logger.warning(f"[Claude OAuth] Token not detected for profile {profile_id} within timeout")
 
 
-def _capture_auth_url(proc: subprocess.Popen, logger: logging.Logger) -> str | None:
+def _capture_auth_url_from_output(output: str, logger: logging.Logger) -> str | None:
     """
-    Capture the Claude OAuth URL from the CLI stdout.
+    Extract the Claude OAuth URL from 'claude auth login' output.
 
-    The Claude CLI prints:
-      Browser didn't open? Use the url below to sign in:
-      <URL>
-    We scan for a line containing 'claude.ai/oauth/authorize' and return it.
+    The CLI prints lines like:
+      Opening browser to sign in...
+      If the browser didn't open, visit: https://claude.ai/oauth/authorize?...
+    We look for a URL containing 'claude.ai/oauth/authorize'.
     """
-    auth_url = None
-    if not proc.stdout:
-        return None
+    import re
+
     try:
-        # Read up to a few lines with a short timeout to allow CLI to print the URL
-        start = time.time()
-        while time.time() - start < 5:  # up to 5 seconds to capture URL
-            line = proc.stdout.readline()
-            if not line:
-                break
-            stripped = line.strip()
-            if "claude.ai/oauth/authorize" in stripped:
-                auth_url = stripped
-                break
+        # Match any URL containing claude.ai/oauth/authorize
+        match = re.search(r'https://claude\.ai/oauth/authorize\S+', output)
+        if match:
+            return match.group(0)
     except Exception as e:  # pragma: no cover - best-effort
         logger.warning(f"[Claude OAuth] Failed to capture auth URL: {e}")
-    return auth_url
+    return None
 
 
 @router.post("/claude-profiles/{profile_id}/start-oauth")
 async def start_claude_profile_oauth(profile_id: str):
     """
-    Start Claude OAuth by invoking the Claude CLI and polling for the token.
+    Start Claude OAuth by invoking `claude auth login` and polling for the token.
 
-    This launches `claude setup-token` in the background and watches ~/.claude/oauth_token.
-    When the token appears, it is written to the specified profile's oauthToken field.
+    Launches the CLI in the background, captures the OAuth URL from its output,
+    and polls ~/.claude/.credentials.json for the token once the user completes
+    the browser flow.
     """
     logger = logging.getLogger(__name__)
 
@@ -1022,13 +1041,24 @@ async def start_claude_profile_oauth(profile_id: str):
     if not profile_exists:
         return {"success": False, "error": f"Profile {profile_id} not found"}
 
-    # Try to launch the Claude CLI setup (capture stdout to surface fallback URL)
+    # Snapshot the credentials file mtime BEFORE launching the CLI so the
+    # poller only accepts tokens written after this point.
+    credentials_path = Path.home() / ".claude" / ".credentials.json"
+    mtime_before = credentials_path.stat().st_mtime if credentials_path.exists() else 0
+
+    # Launch `claude auth login` — it prints the OAuth URL to stdout/stderr
+    # and works without a TTY (unlike `claude setup-token` which needs raw mode)
     try:
+        # Unset CLAUDECODE env var to avoid "nested session" check
+        env = {**os.environ}
+        env.pop("CLAUDECODE", None)
+
         proc = subprocess.Popen(
-            ["claude", "setup-token"],
+            ["claude", "auth", "login"],
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
             text=True,
+            env=env,
         )
     except FileNotFoundError:
         return {
@@ -1038,25 +1068,49 @@ async def start_claude_profile_oauth(profile_id: str):
     except Exception as e:  # pragma: no cover - defensive
         return {"success": False, "error": f"Failed to start Claude OAuth: {e}"}
 
-    # Attempt to capture the “Browser didn't open?” fallback URL from stdout (non-blocking)
-    auth_url_holder = {"url": None}
+    # Read output for up to 5 seconds to capture the OAuth URL
+    auth_url = None
+    output_lines = []
 
-    def _run_capture():
-        auth_url_holder["url"] = _capture_auth_url(proc, logger)
+    def _read_output():
+        nonlocal auth_url
+        if not proc.stdout:
+            return
+        start = time.time()
+        while time.time() - start < 8:
+            line = proc.stdout.readline()
+            if not line:
+                break
+            output_lines.append(line)
+            url = _capture_auth_url_from_output(line, logger)
+            if url:
+                auth_url = url
+                break
 
-    capture_thread = threading.Thread(target=_run_capture, daemon=True)
-    capture_thread.start()
-    capture_thread.join(timeout=5)
+    reader_thread = threading.Thread(target=_read_output, daemon=True)
+    reader_thread.start()
+    reader_thread.join(timeout=8)
 
-    # Start background poller to save the token once written by the CLI
+    if not auth_url:
+        # Try to extract from all collected output
+        full_output = "".join(output_lines)
+        auth_url = _capture_auth_url_from_output(full_output, logger)
+
+    if not auth_url:
+        logger.warning(f"[Claude OAuth] Could not capture auth URL. CLI output: {''.join(output_lines)}")
+
+    # Start background poller to save the token once the CLI writes it.
+    # Pass mtime_before so it only accepts tokens written AFTER we launched the CLI.
     threading.Thread(
-        target=_poll_token_and_save, args=(profile_id, logger), daemon=True
+        target=_poll_token_and_save, args=(profile_id, logger, mtime_before), daemon=True
     ).start()
 
     return {
         "success": True,
-        "message": "Claude OAuth started. Complete the browser flow; token will be saved automatically.",
-        "authUrl": auth_url_holder.get("url"),
+        "data": {
+            "authUrl": auth_url,
+            "message": "Claude OAuth started. Complete the browser flow; token will be saved automatically.",
+        },
     }
 
 
@@ -1934,4 +1988,107 @@ async def get_cli_tools_info():
             "npm": shutil.which("npm") is not None,
             "python": shutil.which("python") is not None,
         }
+    }
+
+
+@router.get("/auth-status")
+async def get_auth_status():
+    """Check if any OAuth token is configured."""
+    from ..paths import get_data_file
+
+    profiles_file = get_data_file("claude-profiles.json")
+    has_token = False
+    profile_count = 0
+
+    if profiles_file.exists():
+        try:
+            data = json.loads(profiles_file.read_text())
+            profiles = data.get("profiles", [])
+            profile_count = len(profiles)
+            has_token = any(p.get("oauthToken") for p in profiles)
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    # Also check env var fallback
+    env_token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
+
+    return {
+        "hasToken": has_token or bool(env_token),
+        "profileCount": profile_count,
+        "source": "profile" if has_token else ("env" if env_token else None),
+    }
+
+
+@router.get("/claude-credentials-exist")
+async def check_claude_credentials_exist():
+    """Check if ~/.claude/.credentials.json exists with a valid token."""
+    cred_path = Path.home() / ".claude" / ".credentials.json"
+    exists = False
+
+    if cred_path.exists():
+        try:
+            data = json.loads(cred_path.read_text())
+            token = data.get("claudeAiOauth", {}).get("accessToken")
+            exists = bool(token and token.startswith("sk-ant-oat01-"))
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    return {"exists": exists}
+
+
+@router.post("/import-claude-credentials")
+async def import_claude_credentials():
+    """Import token from ~/.claude/.credentials.json into Martinica profiles."""
+    from ..paths import get_data_file
+
+    cred_path = Path.home() / ".claude" / ".credentials.json"
+
+    if not cred_path.exists():
+        raise HTTPException(status_code=404, detail="Claude credentials file not found")
+
+    try:
+        data = json.loads(cred_path.read_text())
+        token = data.get("claudeAiOauth", {}).get("accessToken")
+        if not token or not token.startswith("sk-ant-oat01-"):
+            raise HTTPException(status_code=400, detail="No valid OAuth token found in credentials file")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid credentials file format")
+
+    # Create or update profiles file
+    profiles_file = get_data_file("claude-profiles.json")
+    profiles_file.parent.mkdir(parents=True, exist_ok=True)
+
+    if profiles_file.exists():
+        try:
+            profiles_data = json.loads(profiles_file.read_text())
+        except json.JSONDecodeError:
+            profiles_data = {"profiles": [], "activeProfileId": None}
+    else:
+        profiles_data = {"profiles": [], "activeProfileId": None}
+
+    # Create an imported profile
+    import time
+    from datetime import datetime
+    profile_id = f"imported-{int(time.time())}"
+    new_profile = {
+        "id": profile_id,
+        "name": "Claude Code (Imported)",
+        "oauthToken": token,
+        "isDefault": len(profiles_data["profiles"]) == 0,
+        "createdAt": datetime.now().isoformat(),
+    }
+
+    profiles_data["profiles"].append(new_profile)
+    profiles_data["activeProfileId"] = profile_id
+
+    profiles_file.write_text(json.dumps(profiles_data, indent=2))
+    profiles_file.chmod(0o600)
+
+    # Also set env var for immediate use
+    os.environ["CLAUDE_CODE_OAUTH_TOKEN"] = token
+
+    return {
+        "success": True,
+        "profileId": profile_id,
+        "profileName": new_profile["name"],
     }

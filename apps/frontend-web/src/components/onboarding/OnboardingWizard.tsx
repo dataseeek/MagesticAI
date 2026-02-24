@@ -12,11 +12,8 @@ import {
 import { ScrollArea } from '../ui/scroll-area';
 import { WizardProgress, WizardStep } from './WizardProgress';
 import { WelcomeStep } from './WelcomeStep';
-import { AuthChoiceStep } from './AuthChoiceStep';
+import { ImportCredentialsStep } from './ImportCredentialsStep';
 import { OAuthStep } from './OAuthStep';
-import { ClaudeCodeStep } from './ClaudeCodeStep';
-import { DevToolsStep } from './DevToolsStep';
-import { GraphitiStep } from './GraphitiStep';
 import { CompletionStep } from './CompletionStep';
 import { useSettingsStore } from '../../stores/settings-store';
 
@@ -27,30 +24,27 @@ interface OnboardingWizardProps {
   onOpenSettings?: () => void;
 }
 
-// Wizard step identifiers
-type WizardStepId = 'welcome' | 'auth-choice' | 'oauth' | 'claude-code' | 'devtools' | 'graphiti' | 'completion';
+// Wizard step identifiers — simplified to 4 steps
+type WizardStepId = 'welcome' | 'import-credentials' | 'oauth' | 'completion';
 
 // Step configuration with translation keys
 const WIZARD_STEPS: { id: WizardStepId; labelKey: string }[] = [
   { id: 'welcome', labelKey: 'steps.welcome' },
-  { id: 'auth-choice', labelKey: 'steps.authChoice' },
+  { id: 'import-credentials', labelKey: 'steps.importCredentials' },
   { id: 'oauth', labelKey: 'steps.auth' },
-  { id: 'claude-code', labelKey: 'steps.claudeCode' },
-  { id: 'devtools', labelKey: 'steps.devtools' },
-  { id: 'graphiti', labelKey: 'steps.memory' },
   { id: 'completion', labelKey: 'steps.done' }
 ];
 
 /**
  * Main onboarding wizard component.
  * Provides a full-screen, multi-step wizard experience for new users
- * to configure their Auto Claude environment.
+ * to connect their Claude account.
  *
- * Features:
- * - Step progress indicator
- * - Navigation between steps (next, back, skip)
- * - Persists completion state to settings
- * - Can be re-run from settings
+ * Simplified flow:
+ * 1. Welcome — Brief intro to Martinica
+ * 2. Import Credentials (conditional) — Auto-import from ~/.claude/.credentials.json
+ * 3. OAuth — Manual token setup
+ * 4. Completion — Done
  */
 export function OnboardingWizard({
   open,
@@ -62,8 +56,6 @@ export function OnboardingWizard({
   const { updateSettings } = useSettingsStore();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<WizardStepId>>(new Set());
-  // Track if oauth step was bypassed (API key path chosen)
-  const [oauthBypassed, setOauthBypassed] = useState(false);
 
   // Get current step ID
   const currentStepId = WIZARD_STEPS[currentStepIndex].id;
@@ -77,53 +69,38 @@ export function OnboardingWizard({
 
   // Navigation handlers
   const goToNextStep = useCallback(() => {
-    // Mark current step as completed
     setCompletedSteps(prev => new Set(prev).add(currentStepId));
-
-    // If leaving auth-choice, reset oauth bypassed flag
-    if (currentStepId === 'auth-choice') {
-      setOauthBypassed(false);
-    }
-
     if (currentStepIndex < WIZARD_STEPS.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
     }
   }, [currentStepIndex, currentStepId]);
 
   const goToPreviousStep = useCallback(() => {
-    // If going back from graphiti and oauth was bypassed, go back to auth-choice (skip oauth)
-    if (currentStepId === 'graphiti' && oauthBypassed) {
-      // Find index of auth-choice step
-      const authChoiceIndex = WIZARD_STEPS.findIndex(step => step.id === 'auth-choice');
-      setCurrentStepIndex(authChoiceIndex);
-      setOauthBypassed(false);
-      return;
-    }
-
     if (currentStepIndex > 0) {
       setCurrentStepIndex(prev => prev - 1);
     }
-  }, [currentStepIndex, currentStepId, oauthBypassed]);
+  }, [currentStepIndex]);
 
-  // Handler for when API key path is chosen - skips oauth step
-  const handleSkipToGraphiti = useCallback(() => {
-    setOauthBypassed(true);
-    setCompletedSteps(prev => new Set(prev).add('auth-choice'));
-
-    // Find index of graphiti step
-    const graphitiIndex = WIZARD_STEPS.findIndex(step => step.id === 'graphiti');
-    setCurrentStepIndex(graphitiIndex);
+  // Skip directly to completion (used when credentials are imported)
+  const goToCompletion = useCallback(() => {
+    setCompletedSteps(prev => {
+      const next = new Set(prev);
+      next.add('welcome');
+      next.add('import-credentials');
+      next.add('oauth');
+      return next;
+    });
+    const completionIndex = WIZARD_STEPS.findIndex(s => s.id === 'completion');
+    setCurrentStepIndex(completionIndex);
   }, []);
 
-  // Reset wizard state (for re-running) - defined before skipWizard/finishWizard that use it
+  // Reset wizard state
   const resetWizard = useCallback(() => {
     setCurrentStepIndex(0);
     setCompletedSteps(new Set());
-    setOauthBypassed(false);
   }, []);
 
   const skipWizard = useCallback(async () => {
-    // Mark onboarding as completed and close - save to disk AND update local state
     try {
       const result = await window.API.saveSettings({ onboardingCompleted: true });
       if (!result?.success) {
@@ -138,7 +115,6 @@ export function OnboardingWizard({
   }, [updateSettings, onOpenChange, resetWizard]);
 
   const finishWizard = useCallback(async () => {
-    // Mark onboarding as completed - save to disk AND update local state
     try {
       const result = await window.API.saveSettings({ onboardingCompleted: true });
       if (!result?.success) {
@@ -152,19 +128,15 @@ export function OnboardingWizard({
     resetWizard();
   }, [updateSettings, onOpenChange, resetWizard]);
 
-  // Handle opening task creator from within wizard
   const handleOpenTaskCreator = useCallback(() => {
     if (onOpenTaskCreator) {
-      // Close wizard first, then open task creator
       onOpenChange(false);
       onOpenTaskCreator();
     }
   }, [onOpenTaskCreator, onOpenChange]);
 
-  // Handle opening settings from completion step
   const handleOpenSettings = useCallback(() => {
     if (onOpenSettings) {
-      // Finish wizard first, then open settings
       finishWizard();
       onOpenSettings();
     }
@@ -180,41 +152,18 @@ export function OnboardingWizard({
             onSkip={skipWizard}
           />
         );
-      case 'auth-choice':
+      case 'import-credentials':
         return (
-          <AuthChoiceStep
+          <ImportCredentialsStep
             onNext={goToNextStep}
+            onSkipToCompletion={goToCompletion}
             onBack={goToPreviousStep}
             onSkip={skipWizard}
-            onAPIKeyPathComplete={handleSkipToGraphiti}
           />
         );
       case 'oauth':
         return (
           <OAuthStep
-            onNext={goToNextStep}
-            onBack={goToPreviousStep}
-            onSkip={skipWizard}
-          />
-        );
-      case 'claude-code':
-        return (
-          <ClaudeCodeStep
-            onNext={goToNextStep}
-            onBack={goToPreviousStep}
-            onSkip={skipWizard}
-          />
-        );
-      case 'devtools':
-        return (
-          <DevToolsStep
-            onNext={goToNextStep}
-            onBack={goToPreviousStep}
-          />
-        );
-      case 'graphiti':
-        return (
-          <GraphitiStep
             onNext={goToNextStep}
             onBack={goToPreviousStep}
             onSkip={skipWizard}
@@ -233,10 +182,9 @@ export function OnboardingWizard({
     }
   };
 
-  // Handle dialog close - ask for confirmation if not completed
+  // Handle dialog close
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen) {
-      // If closing before completion, skip the wizard
       skipWizard();
     } else {
       onOpenChange(newOpen);
@@ -255,7 +203,7 @@ export function OnboardingWizard({
             {t('wizard.description')}
           </FullScreenDialogDescription>
 
-          {/* Progress indicator - show for all steps except welcome and completion */}
+          {/* Progress indicator - show for auth steps */}
           {currentStepId !== 'welcome' && currentStepId !== 'completion' && (
             <div className="mt-6">
               <WizardProgress currentStep={currentStepIndex} steps={steps} />
