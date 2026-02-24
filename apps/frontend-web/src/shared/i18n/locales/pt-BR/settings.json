@@ -7,7 +7,7 @@
   "sections": {
     "appearance": {
       "title": "Aparência",
-      "description": "Personalize como o CC ManWeb aparece"
+      "description": "Personalize como o Martinica aparece"
     },
     "display": {
       "title": "Exibição",
@@ -39,7 +39,7 @@
     },
     "updates": {
       "title": "Atualizações",
-      "description": "Atualizações do CC ManWeb"
+      "description": "Atualizações do Martinica"
     },
     "notifications": {
       "title": "Notificações",
@@ -68,7 +68,7 @@
     "otherAgentSettingsDescription": "Opções adicionais de configuração do agente",
     "agentFramework": "Framework do Agente",
     "agentFrameworkDescription": "O framework de codificação usado para tarefas autônomas",
-    "agentFrameworkAutoClaude": "CC ManWeb",
+    "agentFrameworkAutoClaude": "Martinica",
     "aiTerminalNaming": "Nomeação de Terminal por IA",
     "aiTerminalNamingDescription": "Nomear terminais automaticamente com base nos comandos (usa Haiku)",
     "featureModelSettings": "Configurações de Modelo de Funcionalidades",
@@ -99,7 +99,7 @@
     "sourceBundled": "Empacotado",
     "sourceFallback": "Fallback",
     "notDetected": "Não detectado",
-    "autoClaudePath": "Caminho do CC ManWeb",
+    "autoClaudePath": "Caminho do Martinica",
     "autoClaudePathDescription": "Caminho relativo para o diretório auto-claude nos projetos",
     "autoClaudePathPlaceholder": "auto-claude (padrão)",
     "autoNameTerminals": "Nomear terminais automaticamente",
@@ -109,7 +109,7 @@
   },
   "theme": {
     "title": "Aparência",
-    "description": "Personalize como o CC ManWeb aparece",
+    "description": "Personalize como o Martinica aparece",
     "mode": "Modo",
     "modeDescription": "Escolha entre temas claro e escuro",
     "light": "Claro",
@@ -125,14 +125,14 @@
     "detectAgain": "Detectar Novamente",
     "ide": {
       "label": "IDE Preferida",
-      "description": "CC ManWeb abrirá worktrees neste editor",
+      "description": "Martinica abrirá worktrees neste editor",
       "placeholder": "Selecione a IDE...",
       "customPath": "Caminho da IDE Personalizada",
       "customPathPlaceholder": "/caminho/para/sua/ide"
     },
     "terminal": {
       "label": "Terminal Preferido",
-      "description": "CC ManWeb abrirá sessões de terminal aqui",
+      "description": "Martinica abrirá sessões de terminal aqui",
       "placeholder": "Selecione o terminal...",
       "customPath": "Caminho do Terminal Personalizado",
       "customPathPlaceholder": "/caminho/para/seu/terminal"
@@ -144,7 +144,7 @@
   },
   "updates": {
     "title": "Atualizações",
-    "description": "Gerencie atualizações do CC ManWeb",
+    "description": "Gerencie atualizações do Martinica",
     "appUpdateReady": "Atualização do App Pronta",
     "newVersion": "Nova Versão",
     "released": "Lançado",
@@ -161,7 +161,7 @@
     "unableToCheck": "Não foi possível verificar atualizações",
     "checkForUpdates": "Verificar Atualizações",
     "autoUpdateProjects": "Auto-Atualizar Projetos",
-    "autoUpdateProjectsDescription": "Atualizar automaticamente CC ManWeb nos projetos quando uma nova versão estiver disponível",
+    "autoUpdateProjectsDescription": "Atualizar automaticamente Martinica nos projetos quando uma nova versão estiver disponível",
     "betaUpdates": "Atualizações Beta",
     "betaUpdatesDescription": "Receber versões beta de pré-lançamento com novos recursos (pode ser menos estável)"
   },
@@ -342,7 +342,7 @@
     "noProjectSelected": "Nenhum Projeto Selecionado",
     "noProjectSelectedDescription": "Selecione um projeto no dropdown para visualizar e configurar servidores MCP.",
     "projectNotInitialized": "Projeto Não Inicializado",
-    "projectNotInitializedDescription": "Inicialize o CC ManWeb para este projeto para configurar servidores MCP.",
+    "projectNotInitializedDescription": "Inicialize o Martinica para este projeto para configurar servidores MCP.",
     "browserAutomation": "Automação de Navegador (somente agentes QA)",
     "alwaysEnabled": "sempre habilitado",
     "addServer": "Adicionar Servidor",

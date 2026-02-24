@@ -1,5 +1,5 @@
 {
-  "name": "auto-claude-web",
+  "name": "martinica-web",
   "version": "1.0.0",
   "type": "module",
   "description": "Web UI for Auto Claude autonomous coding framework",

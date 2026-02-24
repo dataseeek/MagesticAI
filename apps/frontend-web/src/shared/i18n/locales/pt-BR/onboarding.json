@@ -1,11 +1,11 @@
 {
   "wizard": {
     "title": "Assistente de Configuração",
-    "description": "Configure seu ambiente CC ManWeb em poucos passos simples",
+    "description": "Configure seu ambiente Martinica em poucos passos simples",
     "helpText": "Este assistente ajudará você a configurar seu ambiente em apenas alguns passos. Você pode configurar seu token OAuth do Claude, ativar recursos de memória e criar sua primeira tarefa."
   },
   "welcome": {
-    "title": "Bem-vindo ao CC ManWeb",
+    "title": "Bem-vindo ao Martinica",
     "subtitle": "Construa software de forma autônoma com agentes de IA",
     "getStarted": "Começar",
     "skip": "Pular Configuração",
@@ -16,7 +16,7 @@
       },
       "specDriven": {
         "title": "Fluxo Orientado a Specs",
-        "description": "Defina tarefas com especificações claras e deixe o CC ManWeb cuidar da implementação"
+        "description": "Defina tarefas com especificações claras e deixe o Martinica cuidar da implementação"
       },
       "memory": {
         "title": "Memória e Contexto",
@@ -36,17 +36,17 @@
   },
   "memory": {
     "title": "Memória",
-    "description": "A Memória do CC ManWeb ajuda a lembrar o contexto entre suas sessões de codificação"
+    "description": "A Memória do Martinica ajuda a lembrar o contexto entre suas sessões de codificação"
   },
   "completion": {
     "title": "Tudo Pronto!",
-    "subtitle": "CC ManWeb está pronto para ajudá-lo a construir software incrível",
+    "subtitle": "Martinica está pronto para ajudá-lo a construir software incrível",
     "setupComplete": "Configuração Completa",
     "setupCompleteDescription": "Seu ambiente está configurado e pronto. Você pode começar a criar tarefas imediatamente ou explorar o aplicativo no seu ritmo.",
     "whatsNext": "O Que Vem a Seguir?",
     "createTask": {
       "title": "Criar uma Tarefa",
-      "description": "Comece criando sua primeira tarefa para ver o CC ManWeb em ação.",
+      "description": "Comece criando sua primeira tarefa para ver o Martinica em ação.",
       "action": "Abrir Criador de Tarefas"
     },
     "customizeSettings": {
@@ -76,7 +76,7 @@
     "detecting": "Verificando instalação do Claude Code...",
     "info": {
       "title": "O que é Claude Code?",
-      "description": "Claude Code é a CLI oficial da Anthropic que alimenta os recursos de IA do CC ManWeb. Ela fornece autenticação segura e acesso direto aos modelos Claude."
+      "description": "Claude Code é a CLI oficial da Anthropic que alimenta os recursos de IA do Martinica. Ela fornece autenticação segura e acesso direto aos modelos Claude."
     },
     "status": {
       "installed": "Instalado",
@@ -98,19 +98,19 @@
   },
   "devtools": {
     "title": "Ferramentas de Desenvolvimento",
-    "description": "Escolha sua IDE e terminal preferidos para trabalhar com worktrees do CC ManWeb",
+    "description": "Escolha sua IDE e terminal preferidos para trabalhar com worktrees do Martinica",
     "detecting": "Detectando ferramentas instaladas...",
     "detectAgain": "Detectar Novamente",
     "whyConfigure": "Por que configurar isso?",
-    "whyConfigureDescription": "Quando o CC ManWeb constrói funcionalidades em worktrees isoladas, você pode abri-las diretamente na sua IDE ou terminal preferido para testar e revisar as alterações.",
+    "whyConfigureDescription": "Quando o Martinica constrói funcionalidades em worktrees isoladas, você pode abri-las diretamente na sua IDE ou terminal preferido para testar e revisar as alterações.",
     "ide": {
       "label": "IDE Preferida",
-      "description": "CC ManWeb abrirá worktrees neste editor",
+      "description": "Martinica abrirá worktrees neste editor",
       "customPath": "Caminho da IDE Personalizada"
     },
     "terminal": {
       "label": "Terminal Preferido",
-      "description": "CC ManWeb abrirá sessões de terminal aqui",
+      "description": "Martinica abrirá sessões de terminal aqui",
       "customPath": "Caminho do Terminal Personalizado"
     },
     "detectedSummary": "Detectado no seu sistema:",

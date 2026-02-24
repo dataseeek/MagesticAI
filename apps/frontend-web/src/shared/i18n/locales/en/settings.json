@@ -7,7 +7,7 @@
   "sections": {
     "appearance": {
       "title": "Appearance",
-      "description": "Customize how CC ManWeb looks"
+      "description": "Customize how Martinica looks"
     },
     "display": {
       "title": "Display",
@@ -65,7 +65,7 @@
     },
     "updates": {
       "title": "Updates",
-      "description": "CC ManWeb updates"
+      "description": "Martinica updates"
     },
     "notifications": {
       "title": "Notifications",
@@ -94,7 +94,7 @@
     "otherAgentSettingsDescription": "Additional agent configuration options",
     "agentFramework": "Agent Framework",
     "agentFrameworkDescription": "The coding framework used for autonomous tasks",
-    "agentFrameworkAutoClaude": "CC ManWeb",
+    "agentFrameworkAutoClaude": "Martinica",
     "aiTerminalNaming": "AI Terminal Naming",
     "aiTerminalNamingDescription": "Automatically name terminals based on commands (uses Haiku)",
     "featureModelSettings": "Feature Model Settings",
@@ -125,7 +125,7 @@
     "sourceBundled": "Bundled",
     "sourceFallback": "Fallback",
     "notDetected": "Not detected",
-    "autoClaudePath": "CC ManWeb Path",
+    "autoClaudePath": "Martinica Path",
     "autoClaudePathDescription": "Relative path to auto-claude directory in projects",
     "autoClaudePathPlaceholder": "auto-claude (default)",
     "autoNameTerminals": "Automatically name terminals",
@@ -135,7 +135,7 @@
   },
   "theme": {
     "title": "Appearance",
-    "description": "Customize how CC ManWeb looks",
+    "description": "Customize how Martinica looks",
     "mode": "Mode",
     "modeDescription": "Choose between light and dark themes",
     "light": "Light",
@@ -151,14 +151,14 @@
     "detectAgain": "Detect Again",
     "ide": {
       "label": "Preferred IDE",
-      "description": "CC ManWeb will open worktrees in this editor",
+      "description": "Martinica will open worktrees in this editor",
       "placeholder": "Select IDE...",
       "customPath": "Custom IDE Path",
       "customPathPlaceholder": "/path/to/your/ide"
     },
     "terminal": {
       "label": "Preferred Terminal",
-      "description": "CC ManWeb will open terminal sessions here",
+      "description": "Martinica will open terminal sessions here",
       "placeholder": "Select terminal...",
       "customPath": "Custom Terminal Path",
       "customPathPlaceholder": "/path/to/your/terminal"
@@ -170,7 +170,7 @@
   },
   "updates": {
     "title": "Updates",
-    "description": "Manage CC ManWeb updates",
+    "description": "Manage Martinica updates",
     "appUpdateReady": "App Update Ready",
     "newVersion": "New Version",
     "released": "Released",
@@ -187,7 +187,7 @@
     "unableToCheck": "Unable to check for updates",
     "checkForUpdates": "Check for Updates",
     "autoUpdateProjects": "Auto-Update Projects",
-    "autoUpdateProjectsDescription": "Automatically update CC ManWeb in projects when a new version is available",
+    "autoUpdateProjectsDescription": "Automatically update Martinica in projects when a new version is available",
     "betaUpdates": "Beta Updates",
     "betaUpdatesDescription": "Receive pre-release beta versions with new features (may be less stable)"
   },
@@ -368,7 +368,7 @@
     "noProjectSelected": "No Project Selected",
     "noProjectSelectedDescription": "Select a project from the dropdown to view and configure MCP servers.",
     "projectNotInitialized": "Project Not Initialized",
-    "projectNotInitializedDescription": "Initialize CC ManWeb for this project to configure MCP servers.",
+    "projectNotInitializedDescription": "Initialize Martinica for this project to configure MCP servers.",
     "browserAutomation": "Browser Automation (QA agents only)",
     "alwaysEnabled": "always enabled",
     "addServer": "Add Server",

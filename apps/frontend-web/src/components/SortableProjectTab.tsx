@@ -85,8 +85,8 @@ export function SortableProjectTab({
               // Alternating colorful backgrounds (orange/magenta)
               TAB_COLORS[tabIndex % TAB_COLORS.length],
               isActive && [
-                'text-yellow-400 font-semibold',
-                'bg-yellow-500/20 hover:bg-yellow-500/30 border-b-yellow-500'
+                'text-primary font-semibold',
+                'bg-primary/20 hover:bg-primary/30 border-b-primary'
               ],
               !isActive && [
                 'text-foreground/80',

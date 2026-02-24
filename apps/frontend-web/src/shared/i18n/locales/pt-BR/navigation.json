@@ -29,7 +29,7 @@
     "help": "Ajuda e Feedback"
   },
   "messages": {
-    "initializeToCreateTasks": "Inicialize o CC ManWeb para criar tarefas"
+    "initializeToCreateTasks": "Inicialize o Martinica para criar tarefas"
   },
   "claudeCode": {
     "checking": "Verificando Claude Code...",
