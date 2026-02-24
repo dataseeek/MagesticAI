@@ -8,9 +8,7 @@ import { ProjectTabBar } from './components/ProjectTabBar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { TerminalGrid } from './components/TerminalGrid';
 import { Worktrees } from './components/Worktrees';
-import { Roadmap } from './components/Roadmap';
 import { Context } from './components/context/Context';
-import { Ideation } from './components/ideation/Ideation';
 import { GitHubIssues } from './components/GitHubIssues';
 import { GitLabIssues } from './components/GitLabIssues';
 import { Changelog } from './components/changelog/Changelog';
@@ -159,7 +157,7 @@ function AuthenticatedApp() {
     };
 
     const validThemeIds = COLOR_THEMES.map((t) => t.id);
-    const rawColorTheme = settings.colorTheme ?? 'default';
+    const rawColorTheme = settings.colorTheme ?? 'ocean';
     const colorTheme: ColorTheme = validThemeIds.includes(rawColorTheme as ColorTheme)
       ? (rawColorTheme as ColorTheme)
       : 'default';
@@ -251,6 +249,7 @@ function AuthenticatedApp() {
                 }}
                 onProjectClose={(projectId) => closeProjectTab(projectId)}
                 onAddProject={handleAddProject}
+                onProjectAdded={handleProjectAdded}
                 onSettingsClick={() => setIsSettingsDialogOpen(true)}
               />
             )}
@@ -278,20 +277,8 @@ function AuthenticatedApp() {
                   {activeView === 'worktrees' && (
                     <Worktrees projectId={selectedProject?.id || ''} />
                   )}
-                  {activeView === 'roadmap' && (
-                    <Roadmap
-                      projectId={selectedProject?.id || ''}
-                      onGoToTask={(taskId) => setSelectedTaskId(taskId)}
-                    />
-                  )}
                   {activeView === 'context' && (
                     <Context projectId={selectedProject?.id || ''} />
-                  )}
-                  {activeView === 'ideation' && (
-                    <Ideation
-                      projectId={selectedProject?.id || ''}
-                      onGoToTask={(taskId) => setSelectedTaskId(taskId)}
-                    />
                   )}
                   {activeView === 'github-issues' && (
                     <GitHubIssues

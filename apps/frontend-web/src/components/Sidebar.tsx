@@ -2,14 +2,11 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Plus,
-  Settings,
   Trash2,
   Columns3,
   Terminal,
   FolderOpen,
-  Map,
   BookOpen,
-  Lightbulb,
   AlertCircle,
   Download,
   RefreshCw,
@@ -20,7 +17,6 @@ import {
   FileText,
   Sparkles,
   GitBranch,
-  HelpCircle,
   Wrench
 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -49,12 +45,11 @@ import {
 import { useSettingsStore } from '../stores/settings-store';
 import { AddProjectModal } from './AddProjectModal';
 import { GitSetupModal } from './GitSetupModal';
-import { ProjectSelector } from './settings/ProjectSelector';
 import { RateLimitIndicator } from './RateLimitIndicator';
 import { ClaudeCodeStatusBadge } from './ClaudeCodeStatusBadge';
 import type { Project, AutoBuildVersionInfo, GitStatus, ProjectEnvConfig } from '../shared/types';
 
-export type SidebarView = 'kanban' | 'terminals' | 'editor' | 'roadmap' | 'context' | 'ideation' | 'github-issues' | 'gitlab-issues' | 'github-prs' | 'gitlab-merge-requests' | 'changelog' | 'insights' | 'worktrees' | 'agent-tools';
+export type SidebarView = 'kanban' | 'terminals' | 'editor' | 'context' | 'github-issues' | 'gitlab-issues' | 'github-prs' | 'gitlab-merge-requests' | 'changelog' | 'insights' | 'worktrees' | 'agent-tools';
 
 interface SidebarProps {
   onSettingsClick: () => void;
@@ -73,15 +68,13 @@ interface NavItem {
 // Base nav items always shown
 const baseNavItems: NavItem[] = [
   { id: 'kanban', labelKey: 'navigation:items.kanban', icon: Columns3 },
-  { id: 'terminals', labelKey: 'navigation:items.terminals', icon: Terminal },
   { id: 'editor', labelKey: 'navigation:items.editor', icon: FolderOpen },
   { id: 'insights', labelKey: 'navigation:items.chat', icon: Sparkles },
-  { id: 'roadmap', labelKey: 'navigation:items.roadmap', icon: Map },
-  { id: 'ideation', labelKey: 'navigation:items.ideation', icon: Lightbulb },
-  { id: 'changelog', labelKey: 'navigation:items.changelog', icon: FileText },
-  { id: 'context', labelKey: 'navigation:items.context', icon: BookOpen },
+  { id: 'terminals', labelKey: 'navigation:items.terminals', icon: Terminal },
   { id: 'agent-tools', labelKey: 'navigation:items.agentTools', icon: Wrench },
-  { id: 'worktrees', labelKey: 'navigation:items.worktrees', icon: GitBranch }
+  { id: 'changelog', labelKey: 'navigation:items.changelog', icon: FileText },
+  { id: 'worktrees', labelKey: 'navigation:items.worktrees', icon: GitBranch },
+  { id: 'context', labelKey: 'navigation:items.context', icon: BookOpen }
 ];
 
 // GitHub nav items shown when GitHub is enabled
@@ -106,7 +99,6 @@ export function Sidebar({
   const { t } = useTranslation(['navigation', 'dialogs', 'common']);
   const projects = useProjectStore((state) => state.projects);
   const selectedProjectId = useProjectStore((state) => state.selectedProjectId);
-  const selectProject = useProjectStore((state) => state.selectProject);
   const settings = useSettingsStore((state) => state.settings);
 
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
@@ -296,39 +288,19 @@ export function Sidebar({
 
         <Separator className="mt-2" />
 
-        {/* Project Selector Dropdown */}
-        <div className="px-3 py-3">
-          <ProjectSelector
-            selectedProjectId={selectedProjectId}
-            onProjectChange={(projectId) => {
-              if (projectId) {
-                selectProject(projectId);
-                // Also open a tab for the project
-                const { openProjectTab } = useProjectStore.getState();
-                openProjectTab(projectId);
-
-                // Check if project needs initialization
-                const project = projects.find(p => p.id === projectId);
-                if (project && !project.autoBuildPath) {
-                  setPendingProject(project);
-                  setShowInitDialog(true);
-                }
-              }
-            }}
-            onProjectAdded={handleProjectAdded}
-          />
-        </div>
-
-        <Separator />
-
         {/* Navigation */}
         <ScrollArea className="flex-1">
           <div className="px-3 py-4">
             {/* Project Section */}
             <div>
-              <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {t('sections.project')}
+              <h3 className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t('sections.project')}{selectedProject ? ` — ${selectedProject.name}` : ''}
               </h3>
+              {selectedProject && (
+                <p className="mb-2 px-3 text-[10px] text-muted-foreground/60 truncate" title={selectedProject.path}>
+                  {selectedProject.path}
+                </p>
+              )}
               <nav className="space-y-1">
                 {visibleNavItems.map(renderNavItem)}
               </nav>
@@ -341,43 +313,14 @@ export function Sidebar({
         {/* Rate Limit Indicator - shows when Claude is rate limited */}
         <RateLimitIndicator />
 
-        {/* Bottom section with Settings, Help, and New Task */}
+        {/* Bottom section with New Task */}
         <div className="p-4 space-y-3">
           {/* Claude Code Status Badge */}
           <ClaudeCodeStatusBadge onOpenOnboarding={onOpenOnboarding} />
 
-          {/* Settings and Help row */}
-          <div className="flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex-1 justify-start gap-2"
-                  onClick={onSettingsClick}
-                >
-                  <Settings className="h-4 w-4" />
-                  {t('actions.settings')}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">{t('tooltips.settings')}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                >
-                  <HelpCircle className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">{t('tooltips.help')}</TooltipContent>
-            </Tooltip>
-          </div>
-
           {/* New Task button */}
           <Button
-            className="w-full"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
             onClick={onNewTaskClick}
             disabled={!selectedProjectId || !selectedProject?.autoBuildPath}
           >

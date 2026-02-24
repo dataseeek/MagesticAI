@@ -273,14 +273,14 @@ export function AppSettingsDialog({ open, onOpenChange, initialSection, initialP
                             className={cn(
                               'w-full flex items-start gap-3 p-3 rounded-lg text-left transition-all',
                               isActive
-                                ? 'bg-accent text-accent-foreground'
+                                ? 'bg-accent/70 text-accent-foreground'
                                 : 'hover:bg-accent/50 text-muted-foreground hover:text-foreground'
                             )}
                           >
                             <Icon className="h-5 w-5 mt-0.5 shrink-0" />
                             <div className="min-w-0">
                               <div className="font-medium text-sm">{t(`sections.${item.id}.title`)}</div>
-                              <div className="text-xs text-muted-foreground truncate">{t(`sections.${item.id}.description`)}</div>
+                              <div className={cn('text-xs truncate', isActive ? 'text-white/80' : 'text-muted-foreground')}>{t(`sections.${item.id}.description`)}</div>
                             </div>
                           </button>
                         );
@@ -339,7 +339,7 @@ export function AppSettingsDialog({ open, onOpenChange, initialSection, initialP
                             className={cn(
                               'w-full flex items-start gap-3 p-3 rounded-lg text-left transition-all',
                               isActive
-                                ? 'bg-accent text-accent-foreground'
+                                ? 'bg-accent/70 text-accent-foreground'
                                 : projectNavDisabled
                                   ? 'opacity-50 cursor-not-allowed text-muted-foreground'
                                   : 'hover:bg-accent/50 text-muted-foreground hover:text-foreground'
@@ -348,7 +348,7 @@ export function AppSettingsDialog({ open, onOpenChange, initialSection, initialP
                             <Icon className="h-5 w-5 mt-0.5 shrink-0" />
                             <div className="min-w-0">
                               <div className="font-medium text-sm">{t(`projectSections.${item.id}.title`)}</div>
-                              <div className="text-xs text-muted-foreground truncate">{t(`projectSections.${item.id}.description`)}</div>
+                              <div className={cn('text-xs truncate', isActive ? 'text-white/80' : 'text-muted-foreground')}>{t(`projectSections.${item.id}.description`)}</div>
                             </div>
                           </button>
                         );

@@ -27,7 +27,7 @@
     },
     "llmProvider": {
       "title": "Fournisseur LLM",
-      "description": "Choisissez le modèle IA à utiliser pour générer les changelogs, roadmaps et idéations",
+      "description": "Choisissez le modèle IA à utiliser pour générer les changelogs",
       "futureNotice": "Cette fonctionnalité est prévue pour une implémentation future. Les paramètres sont enregistrés mais pas encore actifs.",
       "providerLabel": "Fournisseur",
       "providers": {
@@ -98,7 +98,7 @@
     "aiTerminalNaming": "Nommage IA des terminaux",
     "aiTerminalNamingDescription": "Nommer automatiquement les terminaux en fonction des commandes (utilise Haiku)",
     "featureModelSettings": "Paramètres du modèle de fonctionnalité",
-    "featureModelSettingsDescription": "Modèle et niveau de réflexion pour Chat, Idéation et Roadmap",
+    "featureModelSettingsDescription": "Modèle et niveau de réflexion pour Chat et fonctionnalités GitHub",
     "model": "Modèle",
     "thinkingLevel": "Niveau de réflexion",
     "paths": "Chemins",

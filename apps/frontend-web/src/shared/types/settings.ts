@@ -183,8 +183,6 @@ export interface PhaseThinkingConfig {
 // Feature-specific model configuration (for non-pipeline features)
 export interface FeatureModelConfig {
   insights: ModelTypeShort;    // Insights chat feature
-  ideation: ModelTypeShort;    // Ideation generation
-  roadmap: ModelTypeShort;     // Roadmap generation
   githubIssues: ModelTypeShort; // GitHub Issues automation
   githubPrs: ModelTypeShort;    // GitHub PR review automation
   utility: ModelTypeShort;      // Utility agents (commit message, merge resolver)
@@ -193,8 +191,6 @@ export interface FeatureModelConfig {
 // Feature-specific thinking level configuration
 export interface FeatureThinkingConfig {
   insights: ThinkingLevel;
-  ideation: ThinkingLevel;
-  roadmap: ThinkingLevel;
   githubIssues: ThinkingLevel;
   githubPrs: ThinkingLevel;
   utility: ThinkingLevel;
@@ -246,7 +242,7 @@ export interface AppSettings {
   memoryAzureApiKey?: string;
   memoryAzureBaseUrl?: string;
   memoryAzureEmbeddingDeployment?: string;
-  // LLM Provider Settings (for AI features: changelog, roadmap, ideation)
+  // LLM Provider Settings (for AI features: changelog, insights)
   llmProvider?: 'ollama' | 'anthropic' | 'openai';
   llmOllamaBaseUrl?: string;
   llmOllamaModel?: string;
@@ -260,7 +256,7 @@ export interface AppSettings {
   // Custom phase configuration for Auto profile (overrides defaults)
   customPhaseModels?: PhaseModelConfig;
   customPhaseThinking?: PhaseThinkingConfig;
-  // Feature-specific configuration (insights, ideation, roadmap)
+  // Feature-specific configuration (insights, github, utility)
   featureModels?: FeatureModelConfig;
   featureThinking?: FeatureThinkingConfig;
   // Changelog preferences
@@ -287,7 +283,7 @@ export interface AppSettings {
 
 // Auto-Claude Source Environment Configuration (for auto-claude repo .env)
 export interface SourceEnvConfig {
-  // Claude Authentication (required for ideation, roadmap generation, etc.)
+  // Claude Authentication (required for AI features)
   hasClaudeToken: boolean;
   claudeOAuthToken?: string;
 

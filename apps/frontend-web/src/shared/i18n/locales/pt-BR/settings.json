@@ -72,7 +72,7 @@
     "aiTerminalNaming": "Nomeação de Terminal por IA",
     "aiTerminalNamingDescription": "Nomear terminais automaticamente com base nos comandos (usa Haiku)",
     "featureModelSettings": "Configurações de Modelo de Funcionalidades",
-    "featureModelSettingsDescription": "Modelo e nível de raciocínio para Chat, Ideação e Roadmap",
+    "featureModelSettingsDescription": "Modelo e nível de raciocínio para Chat e funcionalidades do GitHub",
     "model": "Modelo",
     "thinkingLevel": "Nível de Raciocínio",
     "paths": "Caminhos",

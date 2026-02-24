@@ -10,15 +10,15 @@ import type { AgentProfile, PhaseModelConfig, FeatureModelConfig, FeatureThinkin
 // ============================================
 
 export const AVAILABLE_MODELS = [
-  { value: 'opus', label: 'Claude Opus 4.5' },
-  { value: 'sonnet', label: 'Claude Sonnet 4.5' },
+  { value: 'opus', label: 'Claude Opus 4.6' },
+  { value: 'sonnet', label: 'Claude Sonnet 4.6' },
   { value: 'haiku', label: 'Claude Haiku 4.5' }
 ] as const;
 
 // Maps model shorthand to actual Claude model IDs
 export const MODEL_ID_MAP: Record<string, string> = {
-  opus: 'claude-opus-4-5-20251101',
-  sonnet: 'claude-sonnet-4-5-20250929',
+  opus: 'claude-opus-4-6',
+  sonnet: 'claude-sonnet-4-6',
   haiku: 'claude-haiku-4-5-20251001'
 } as const;
 
@@ -69,11 +69,9 @@ export const DEFAULT_PHASE_THINKING: import('../types/settings').PhaseThinkingCo
 // Feature Settings (Non-Pipeline Features)
 // ============================================
 
-// Default feature model configuration (for insights, ideation, roadmap, github, utility)
+// Default feature model configuration (for insights, github, utility)
 export const DEFAULT_FEATURE_MODELS: FeatureModelConfig = {
   insights: 'sonnet',     // Fast, responsive chat
-  ideation: 'opus',       // Creative ideation benefits from Opus
-  roadmap: 'opus',        // Strategic planning benefits from Opus
   githubIssues: 'opus',   // Issue triage and analysis benefits from Opus
   githubPrs: 'opus',      // PR review benefits from thorough Opus analysis
   utility: 'haiku'        // Fast utility operations (commit messages, merge resolution)
@@ -82,8 +80,6 @@ export const DEFAULT_FEATURE_MODELS: FeatureModelConfig = {
 // Default feature thinking configuration
 export const DEFAULT_FEATURE_THINKING: FeatureThinkingConfig = {
   insights: 'medium',     // Balanced thinking for chat
-  ideation: 'high',       // Deep thinking for creative ideas
-  roadmap: 'high',        // Strategic thinking for roadmap
   githubIssues: 'medium', // Moderate thinking for issue analysis
   githubPrs: 'medium',    // Moderate thinking for PR review
   utility: 'low'          // Fast thinking for utility operations
@@ -92,8 +88,6 @@ export const DEFAULT_FEATURE_THINKING: FeatureThinkingConfig = {
 // Feature labels for UI display
 export const FEATURE_LABELS: Record<keyof FeatureModelConfig, { label: string; description: string }> = {
   insights: { label: 'Insights Chat', description: 'Ask questions about your codebase' },
-  ideation: { label: 'Ideation', description: 'Generate feature ideas and improvements' },
-  roadmap: { label: 'Roadmap', description: 'Create strategic feature roadmaps' },
   githubIssues: { label: 'GitHub Issues', description: 'Automated issue triage and labeling' },
   githubPrs: { label: 'GitHub PR Review', description: 'AI-powered pull request reviews' },
   utility: { label: 'Utility', description: 'Commit messages and merge conflict resolution' }

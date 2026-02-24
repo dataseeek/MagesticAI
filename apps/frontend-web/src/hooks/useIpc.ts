@@ -2,10 +2,9 @@ import { useEffect } from 'react';
 import { unstable_batchedUpdates } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useTaskStore } from '../stores/task-store';
-import { useRoadmapStore } from '../stores/roadmap-store';
 import { useRateLimitStore } from '../stores/rate-limit-store';
 import { toast } from './use-toast';
-import type { ImplementationPlan, TaskStatus, ReviewReason, RoadmapGenerationStatus, Roadmap, ExecutionProgress, ExecutionPhase, RateLimitInfo, SDKRateLimitInfo } from '../shared/types';
+import type { ImplementationPlan, TaskStatus, ReviewReason, ExecutionProgress, ExecutionPhase, RateLimitInfo, SDKRateLimitInfo } from '../shared/types';
 
 /**
  * Batched update queue for IPC events.
@@ -291,97 +290,6 @@ export function useIpcListeners(): void {
       }
     ) || (() => {});
 
-    // Roadmap event listeners
-    // Helper to check if event is for the currently viewed project
-    const isCurrentProject = (eventProjectId: string): boolean => {
-      const currentProjectId = useRoadmapStore.getState().currentProjectId;
-      return currentProjectId === eventProjectId;
-    };
-
-    const cleanupRoadmapProgress = window.API.onRoadmapProgress(
-      (projectId: string, status: RoadmapGenerationStatus) => {
-        // Debug logging
-        if (window.DEBUG) {
-          console.warn('[Roadmap] Progress update:', {
-            projectId,
-            currentProjectId: useRoadmapStore.getState().currentProjectId,
-            phase: status.phase,
-            progress: status.progress,
-            message: status.message
-          });
-        }
-        // Only update if this is for the currently viewed project
-        if (isCurrentProject(projectId)) {
-          useRoadmapStore.getState().setGenerationStatus(status);
-        }
-      }
-    );
-
-    const cleanupRoadmapComplete = window.API.onRoadmapComplete(
-      (projectId: string, roadmap: Roadmap) => {
-        // Debug logging
-        if (window.DEBUG) {
-          console.warn('[Roadmap] Generation complete:', {
-            projectId,
-            currentProjectId: useRoadmapStore.getState().currentProjectId,
-            featuresCount: roadmap.features?.length || 0,
-            phasesCount: roadmap.phases?.length || 0
-          });
-        }
-        // Only update if this is for the currently viewed project
-        if (isCurrentProject(projectId)) {
-          useRoadmapStore.getState().setRoadmap(roadmap);
-          useRoadmapStore.getState().setGenerationStatus({
-            phase: 'complete',
-            progress: 100,
-            message: 'Roadmap ready'
-          });
-        }
-      }
-    );
-
-    const cleanupRoadmapError = window.API.onRoadmapError(
-      (projectId: string, error: string) => {
-        // Debug logging
-        if (window.DEBUG) {
-          console.error('[Roadmap] Error received:', {
-            projectId,
-            currentProjectId: useRoadmapStore.getState().currentProjectId,
-            error
-          });
-        }
-        // Only update if this is for the currently viewed project
-        if (isCurrentProject(projectId)) {
-          useRoadmapStore.getState().setGenerationStatus({
-            phase: 'error',
-            progress: 0,
-            message: 'Generation failed',
-            error
-          });
-        }
-      }
-    );
-
-    const cleanupRoadmapStopped = window.API.onRoadmapStopped(
-      (projectId: string) => {
-        // Debug logging
-        if (window.DEBUG) {
-          console.warn('[Roadmap] Generation stopped:', {
-            projectId,
-            currentProjectId: useRoadmapStore.getState().currentProjectId
-          });
-        }
-        // Only update if this is for the currently viewed project
-        if (isCurrentProject(projectId)) {
-          useRoadmapStore.getState().setGenerationStatus({
-            phase: 'idle',
-            progress: 0,
-            message: 'Generation stopped'
-          });
-        }
-      }
-    );
-
     // Terminal rate limit listener
     const showRateLimitModal = useRateLimitStore.getState().showRateLimitModal;
     const cleanupRateLimit = window.API.onTerminalRateLimit(
@@ -396,7 +304,7 @@ export function useIpcListeners(): void {
       }
     );
 
-    // SDK rate limit listener (for changelog, tasks, roadmap, ideation)
+    // SDK rate limit listener (for changelog, tasks)
     const showSDKRateLimitModal = useRateLimitStore.getState().showSDKRateLimitModal;
     const cleanupSDKRateLimit = window.API.onSDKRateLimit(
       (info: SDKRateLimitInfo) => {
@@ -439,10 +347,6 @@ export function useIpcListeners(): void {
       cleanupExecutionProgress();
       cleanupTaskUpdate();
       cleanupSubtaskUpdate();
-      cleanupRoadmapProgress();
-      cleanupRoadmapComplete();
-      cleanupRoadmapError();
-      cleanupRoadmapStopped();
       cleanupRateLimit();
       cleanupSDKRateLimit();
       cleanupProfileSwitch();

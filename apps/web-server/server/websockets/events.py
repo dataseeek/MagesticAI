@@ -230,18 +230,6 @@ async def emit_task_update(task_id: str, task_data: dict):
     await broadcast_event("task:update", {"taskId": task_id, **task_data})
 
 
-async def emit_roadmap_progress(project_id: str, progress: dict):
-    await broadcast_event("roadmap:progress", {"projectId": project_id, **progress})
-
-
-async def emit_roadmap_complete(project_id: str, roadmap: dict):
-    await broadcast_event("roadmap:complete", {"projectId": project_id, "roadmap": roadmap})
-
-
-async def emit_ideation_progress(project_id: str, progress: dict):
-    await broadcast_event("ideation:progress", {"projectId": project_id, **progress})
-
-
 async def emit_changelog_progress(project_id: str, progress: dict):
     await broadcast_event("changelog:progress", {"projectId": project_id, **progress})
 

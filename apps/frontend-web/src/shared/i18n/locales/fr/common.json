@@ -97,8 +97,6 @@
     "sources": {
       "changelog": "Changelog",
       "task": "Tâche",
-      "roadmap": "Feuille de route",
-      "ideation": "Idéation",
       "titleGenerator": "Générateur de titre",
       "claude": "Claude"
     }

@@ -18,7 +18,7 @@ export const UI_SCALE_STEP = 5;
 
 export const DEFAULT_APP_SETTINGS = {
   theme: 'system' as const,
-  colorTheme: 'default' as const,
+  colorTheme: 'ocean' as const,
   defaultModel: 'opus',
   agentFramework: 'auto-claude',
   pythonPath: undefined as string | undefined,
@@ -82,19 +82,12 @@ export const DEFAULT_PROJECT_SETTINGS = {
 // IMPORTANT: All paths use .auto-claude/ (the installed instance), NOT auto-claude/ (source code)
 export const AUTO_BUILD_PATHS = {
   SPECS_DIR: '.auto-claude/specs',
-  ROADMAP_DIR: '.auto-claude/roadmap',
-  IDEATION_DIR: '.auto-claude/ideation',
   IMPLEMENTATION_PLAN: 'implementation_plan.json',
   SPEC_FILE: 'spec.md',
   QA_REPORT: 'qa_report.md',
   BUILD_PROGRESS: 'build-progress.txt',
   CONTEXT: 'context.json',
   REQUIREMENTS: 'requirements.json',
-  ROADMAP_FILE: 'roadmap.json',
-  ROADMAP_DISCOVERY: 'roadmap_discovery.json',
-  COMPETITOR_ANALYSIS: 'competitor_analysis.json',
-  IDEATION_FILE: 'ideation.json',
-  IDEATION_CONTEXT: 'ideation_context.json',
   PROJECT_INDEX: '.auto-claude/project_index.json',
   GRAPHITI_STATE: '.graphiti_state.json'
 } as const;
