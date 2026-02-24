@@ -17,8 +17,8 @@ export const COLOR_THEMES: ColorThemeDefinition[] = [
   {
     id: 'default',
     name: 'Default',
-    description: 'Oscura-inspired with pale yellow accent',
-    previewColors: { bg: '#F2F2ED', accent: '#E6E7A3', darkBg: '#0B0B0F', darkAccent: '#E6E7A3' }
+    description: 'Blue and green professional theme',
+    previewColors: { bg: '#F2F2ED', accent: '#15579d', darkBg: '#0B0B0F', darkAccent: '#3B82F6' }
   },
   {
     id: 'dusk',

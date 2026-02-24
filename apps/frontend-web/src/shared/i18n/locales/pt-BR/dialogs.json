@@ -1,23 +1,23 @@
 {
   "initialize": {
-    "title": "Inicializar CC ManWeb",
-    "description": "Este projeto não tem o CC ManWeb inicializado. Gostaria de configurá-lo agora?",
+    "title": "Inicializar Martinica",
+    "description": "Este projeto não tem o Martinica inicializado. Gostaria de configurá-lo agora?",
     "willDo": "Isso irá:",
     "createFolder": "Criar uma pasta .auto-claude no seu projeto",
-    "copyFramework": "Copiar os arquivos do framework CC ManWeb",
+    "copyFramework": "Copiar os arquivos do framework Martinica",
     "setupSpecs": "Configurar o diretório de specs para suas tarefas",
     "sourcePathNotConfigured": "Caminho de origem não configurado",
-    "sourcePathNotConfiguredDescription": "Por favor, defina o caminho de origem do CC ManWeb nas Configurações do App antes de inicializar.",
+    "sourcePathNotConfiguredDescription": "Por favor, defina o caminho de origem do Martinica nas Configurações do App antes de inicializar.",
     "initFailed": "Falha na Inicialização",
-    "initFailedDescription": "Falha ao inicializar o CC ManWeb. Por favor, tente novamente."
+    "initFailedDescription": "Falha ao inicializar o Martinica. Por favor, tente novamente."
   },
   "gitSetup": {
     "title": "Repositório Git Necessário",
-    "description": "CC ManWeb usa git para construir funcionalidades com segurança em workspaces isolados",
+    "description": "Martinica usa git para construir funcionalidades com segurança em workspaces isolados",
     "notGitRepo": "Esta pasta não é um repositório git",
     "noCommits": "O repositório git não tem commits",
-    "needsInit": "O Git precisa ser inicializado antes que o CC ManWeb possa gerenciar seu código.",
-    "needsCommit": "Pelo menos um commit é necessário para o CC ManWeb criar worktrees.",
+    "needsInit": "O Git precisa ser inicializado antes que o Martinica possa gerenciar seu código.",
+    "needsCommit": "Pelo menos um commit é necessário para o Martinica criar worktrees.",
     "willSetup": "Vamos configurar o git para você:",
     "initRepo": "Inicializar um novo repositório git",
     "createCommit": "Criar um commit inicial com seus arquivos atuais",
@@ -25,33 +25,33 @@
     "settingUp": "Configurando Git",
     "initializingRepo": "Inicializando repositório git e criando commit inicial...",
     "success": "Git Inicializado",
-    "readyToUse": "Seu projeto agora está pronto para usar com o CC ManWeb!"
+    "readyToUse": "Seu projeto agora está pronto para usar com o Martinica!"
   },
   "githubSetup": {
     "connectTitle": "Conectar ao GitHub",
-    "connectDescription": "CC ManWeb requer GitHub para gerenciar seus branches de código e manter as tarefas atualizadas.",
+    "connectDescription": "Martinica requer GitHub para gerenciar seus branches de código e manter as tarefas atualizadas.",
     "claudeTitle": "Conectar ao Claude AI",
-    "claudeDescription": "CC ManWeb usa Claude AI para recursos inteligentes como geração de Roadmap, automação de Tarefas e Ideação.",
+    "claudeDescription": "Martinica usa Claude AI para recursos inteligentes como geração de Roadmap, automação de Tarefas e Ideação.",
     "selectRepo": "Selecionar Repositório",
-    "repoDescription": "CC ManWeb usará este repositório para gerenciar branches de tarefas e manter seu código atualizado.",
+    "repoDescription": "Martinica usará este repositório para gerenciar branches de tarefas e manter seu código atualizado.",
     "selectBranch": "Selecionar Branch Base",
-    "branchDescription": "Escolha qual branch o CC ManWeb deve usar como base para criar branches de tarefas.",
+    "branchDescription": "Escolha qual branch o Martinica deve usar como base para criar branches de tarefas.",
     "whyBranch": "Por que selecionar um branch?",
-    "branchExplanation": "CC ManWeb cria workspaces isolados para cada tarefa. Selecionar o branch base correto garante que suas tarefas comecem com o código mais recente da sua linha de desenvolvimento principal.",
-    "ready": "CC ManWeb está pronto para uso! Agora você pode criar tarefas que serão automaticamente baseadas no branch {{branchName}}."
+    "branchExplanation": "Martinica cria workspaces isolados para cada tarefa. Selecionar o branch base correto garante que suas tarefas comecem com o código mais recente da sua linha de desenvolvimento principal.",
+    "ready": "Martinica está pronto para uso! Agora você pode criar tarefas que serão automaticamente baseadas no branch {{branchName}}."
   },
   "worktrees": {
     "title": "Worktrees",
-    "description": "Gerencie workspaces isolados para suas tarefas do CC ManWeb",
+    "description": "Gerencie workspaces isolados para suas tarefas do Martinica",
     "empty": "Sem Worktrees",
-    "emptyDescription": "Worktrees são criadas automaticamente quando o CC ManWeb constrói funcionalidades. Elas fornecem workspaces isolados para cada tarefa.",
+    "emptyDescription": "Worktrees são criadas automaticamente quando o Martinica constrói funcionalidades. Elas fornecem workspaces isolados para cada tarefa.",
     "merge": "Mesclar Worktree",
     "mergeDescription": "Mesclar alterações desta worktree no branch base.",
     "delete": "Excluir Worktree?",
     "deleteDescription": "Isso excluirá permanentemente a worktree e todas as alterações não commitadas. Esta ação não pode ser desfeita."
   },
   "update": {
-    "title": "CC ManWeb",
+    "title": "Martinica",
     "projectInitialized": "Projeto está inicializado."
   },
   "addFeature": {

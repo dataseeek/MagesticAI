@@ -1,11 +1,11 @@
 {
   "wizard": {
     "title": "Assistant de configuration",
-    "description": "Configurez votre environnement CC ManWeb en quelques étapes simples",
+    "description": "Configurez votre environnement Martinica en quelques étapes simples",
     "helpText": "Cet assistant vous aidera à configurer votre environnement en quelques étapes. Vous pouvez configurer votre token OAuth Claude, activer les fonctionnalités de mémoire et créer votre première tâche."
   },
   "welcome": {
-    "title": "Bienvenue sur CC ManWeb",
+    "title": "Bienvenue sur Martinica",
     "subtitle": "Construisez des logiciels de manière autonome avec des agents IA",
     "getStarted": "Commencer",
     "skip": "Passer la configuration",
@@ -16,7 +16,7 @@
       },
       "specDriven": {
         "title": "Workflow basé sur les specs",
-        "description": "Définissez des tâches avec des spécifications claires et laissez CC ManWeb gérer l'implémentation"
+        "description": "Définissez des tâches avec des spécifications claires et laissez Martinica gérer l'implémentation"
       },
       "memory": {
         "title": "Mémoire & Contexte",
@@ -36,17 +36,17 @@
   },
   "memory": {
     "title": "Mémoire",
-    "description": "La mémoire CC ManWeb aide à retenir le contexte entre vos sessions de code"
+    "description": "La mémoire Martinica aide à retenir le contexte entre vos sessions de code"
   },
   "completion": {
     "title": "Vous êtes prêt !",
-    "subtitle": "CC ManWeb est prêt à vous aider à construire des logiciels incroyables",
+    "subtitle": "Martinica est prêt à vous aider à construire des logiciels incroyables",
     "setupComplete": "Configuration terminée",
     "setupCompleteDescription": "Votre environnement est configuré et prêt. Vous pouvez commencer à créer des tâches immédiatement ou explorer l'application à votre rythme.",
     "whatsNext": "Et maintenant ?",
     "createTask": {
       "title": "Créer une tâche",
-      "description": "Commencez par créer votre première tâche pour voir CC ManWeb en action.",
+      "description": "Commencez par créer votre première tâche pour voir Martinica en action.",
       "action": "Ouvrir le créateur de tâches"
     },
     "customizeSettings": {
@@ -76,7 +76,7 @@
     "detecting": "Vérification de l'installation de Claude Code...",
     "info": {
       "title": "Qu'est-ce que Claude Code ?",
-      "description": "Claude Code est le CLI officiel d'Anthropic qui alimente les fonctionnalités IA de CC ManWeb. Il fournit une authentification sécurisée et un accès direct aux modèles Claude."
+      "description": "Claude Code est le CLI officiel d'Anthropic qui alimente les fonctionnalités IA de Martinica. Il fournit une authentification sécurisée et un accès direct aux modèles Claude."
     },
     "status": {
       "installed": "Installé",
@@ -98,19 +98,19 @@
   },
   "devtools": {
     "title": "Outils de développement",
-    "description": "Choisissez votre IDE et terminal préférés pour travailler avec les worktrees CC ManWeb",
+    "description": "Choisissez votre IDE et terminal préférés pour travailler avec les worktrees Martinica",
     "detecting": "Détection des outils installés...",
     "detectAgain": "Détecter à nouveau",
     "whyConfigure": "Pourquoi configurer ceci ?",
-    "whyConfigureDescription": "Quand CC ManWeb construit des fonctionnalités dans des worktrees isolés, vous pouvez les ouvrir directement dans votre IDE ou terminal préféré pour tester et réviser les changements.",
+    "whyConfigureDescription": "Quand Martinica construit des fonctionnalités dans des worktrees isolés, vous pouvez les ouvrir directement dans votre IDE ou terminal préféré pour tester et réviser les changements.",
     "ide": {
       "label": "IDE préféré",
-      "description": "CC ManWeb ouvrira les worktrees dans cet éditeur",
+      "description": "Martinica ouvrira les worktrees dans cet éditeur",
       "customPath": "Chemin IDE personnalisé"
     },
     "terminal": {
       "label": "Terminal préféré",
-      "description": "CC ManWeb ouvrira les sessions terminal ici",
+      "description": "Martinica ouvrira les sessions terminal ici",
       "customPath": "Chemin terminal personnalisé"
     },
     "detectedSummary": "Détecté sur votre système :",

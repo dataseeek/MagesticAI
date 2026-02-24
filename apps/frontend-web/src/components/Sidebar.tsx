@@ -67,33 +67,32 @@ interface NavItem {
   id: SidebarView;
   labelKey: string;
   icon: React.ElementType;
-  shortcut?: string;
 }
 
 // Base nav items always shown
 const baseNavItems: NavItem[] = [
-  { id: 'kanban', labelKey: 'navigation:items.kanban', icon: LayoutGrid, shortcut: 'K' },
-  { id: 'terminals', labelKey: 'navigation:items.terminals', icon: Terminal, shortcut: 'A' },
-  { id: 'editor', labelKey: 'navigation:items.editor', icon: FileCode, shortcut: 'E' },
-  { id: 'insights', labelKey: 'navigation:items.chat', icon: Sparkles, shortcut: 'N' },
-  { id: 'roadmap', labelKey: 'navigation:items.roadmap', icon: Map, shortcut: 'D' },
-  { id: 'ideation', labelKey: 'navigation:items.ideation', icon: Lightbulb, shortcut: 'I' },
-  { id: 'changelog', labelKey: 'navigation:items.changelog', icon: FileText, shortcut: 'L' },
-  { id: 'context', labelKey: 'navigation:items.context', icon: BookOpen, shortcut: 'C' },
-  { id: 'agent-tools', labelKey: 'navigation:items.agentTools', icon: Wrench, shortcut: 'M' },
-  { id: 'worktrees', labelKey: 'navigation:items.worktrees', icon: GitBranch, shortcut: 'W' }
+  { id: 'kanban', labelKey: 'navigation:items.kanban', icon: LayoutGrid },
+  { id: 'terminals', labelKey: 'navigation:items.terminals', icon: Terminal },
+  { id: 'editor', labelKey: 'navigation:items.editor', icon: FileCode },
+  { id: 'insights', labelKey: 'navigation:items.chat', icon: Sparkles },
+  { id: 'roadmap', labelKey: 'navigation:items.roadmap', icon: Map },
+  { id: 'ideation', labelKey: 'navigation:items.ideation', icon: Lightbulb },
+  { id: 'changelog', labelKey: 'navigation:items.changelog', icon: FileText },
+  { id: 'context', labelKey: 'navigation:items.context', icon: BookOpen },
+  { id: 'agent-tools', labelKey: 'navigation:items.agentTools', icon: Wrench },
+  { id: 'worktrees', labelKey: 'navigation:items.worktrees', icon: GitBranch }
 ];
 
 // GitHub nav items shown when GitHub is enabled
 const githubNavItems: NavItem[] = [
-  { id: 'github-issues', labelKey: 'navigation:items.githubIssues', icon: Github, shortcut: 'G' },
-  { id: 'github-prs', labelKey: 'navigation:items.githubPRs', icon: GitPullRequest, shortcut: 'P' }
+  { id: 'github-issues', labelKey: 'navigation:items.githubIssues', icon: Github },
+  { id: 'github-prs', labelKey: 'navigation:items.githubPRs', icon: GitPullRequest }
 ];
 
 // GitLab nav items shown when GitLab is enabled
 const gitlabNavItems: NavItem[] = [
-  { id: 'gitlab-issues', labelKey: 'navigation:items.gitlabIssues', icon: GitlabIcon, shortcut: 'B' },
-  { id: 'gitlab-merge-requests', labelKey: 'navigation:items.gitlabMRs', icon: GitMerge, shortcut: 'R' }
+  { id: 'gitlab-issues', labelKey: 'navigation:items.gitlabIssues', icon: GitlabIcon },
+  { id: 'gitlab-merge-requests', labelKey: 'navigation:items.gitlabMRs', icon: GitMerge }
 ];
 
 export function Sidebar({
@@ -167,40 +166,6 @@ export function Sidebar({
 
     return items;
   }, [envConfig?.githubEnabled, envConfig?.gitlabEnabled]);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in inputs
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement ||
-        (e.target as HTMLElement)?.isContentEditable
-      ) {
-        return;
-      }
-
-      // Only handle shortcuts when a project is selected
-      if (!selectedProjectId) return;
-
-      // Check for modifier keys - we want plain key presses only
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-
-      const key = e.key.toUpperCase();
-
-      // Find matching nav item from visible items only
-      const matchedItem = visibleNavItems.find((item) => item.shortcut === key);
-
-      if (matchedItem) {
-        e.preventDefault();
-        onViewChange?.(matchedItem.id);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedProjectId, onViewChange, visibleNavItems]);
 
   // Check git status when project changes
   // Use selectedProjectId instead of selectedProject to avoid re-running on every render
@@ -307,18 +272,13 @@ export function Sidebar({
         disabled={!selectedProjectId}
         className={cn(
           'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200',
-          'hover:bg-yellow-500/10 hover:text-yellow-400',
+          'hover:bg-primary/10 hover:text-primary',
           'disabled:pointer-events-none disabled:opacity-50',
-          isActive && 'bg-yellow-500/20 text-yellow-400 font-medium'
+          isActive && 'bg-primary/20 text-primary font-medium'
         )}
       >
         <Icon className="h-4 w-4 shrink-0" />
         <span className="flex-1 text-left">{t(item.labelKey)}</span>
-        {item.shortcut && (
-          <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded-md border border-border bg-secondary px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
-            {item.shortcut}
-          </kbd>
-        )}
       </button>
     );
   };
@@ -328,7 +288,7 @@ export function Sidebar({
       <div className="flex h-full w-64 flex-col bg-sidebar border-r border-border">
         {/* Header with drag area - extra top padding for macOS traffic lights */}
         <div className="electron-drag flex h-14 items-center px-4 pt-6">
-          <span className="electron-no-drag text-lg font-bold text-primary">CC ManWeb</span>
+          <span className="electron-no-drag text-lg font-bold text-primary">Martinica</span>
         </div>
 
         <Separator className="mt-2" />

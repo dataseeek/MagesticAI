@@ -1,11 +1,11 @@
 {
   "wizard": {
     "title": "Setup Wizard",
-    "description": "Configure your CC ManWeb environment in a few simple steps",
+    "description": "Configure your Martinica environment in a few simple steps",
     "helpText": "This wizard will help you set up your environment in just a few steps. You can configure your Claude OAuth token, set up memory features, and create your first task."
   },
   "welcome": {
-    "title": "Welcome to CC ManWeb",
+    "title": "Welcome to Martinica",
     "subtitle": "Build software autonomously with AI-powered agents",
     "getStarted": "Get Started",
     "skip": "Skip Setup",
@@ -16,7 +16,7 @@
       },
       "specDriven": {
         "title": "Spec-Driven Workflow",
-        "description": "Define tasks with clear specifications and let CC ManWeb handle the implementation"
+        "description": "Define tasks with clear specifications and let Martinica handle the implementation"
       },
       "memory": {
         "title": "Memory & Context",
@@ -36,17 +36,17 @@
   },
   "memory": {
     "title": "Memory",
-    "description": "CC ManWeb Memory helps remember context across your coding sessions"
+    "description": "Martinica Memory helps remember context across your coding sessions"
   },
   "completion": {
     "title": "You're All Set!",
-    "subtitle": "CC ManWeb is ready to help you build amazing software",
+    "subtitle": "Martinica is ready to help you build amazing software",
     "setupComplete": "Setup Complete",
     "setupCompleteDescription": "Your environment is configured and ready. You can start creating tasks immediately or explore the application at your own pace.",
     "whatsNext": "What's Next?",
     "createTask": {
       "title": "Create a Task",
-      "description": "Start by creating your first task to see CC ManWeb in action.",
+      "description": "Start by creating your first task to see Martinica in action.",
       "action": "Open Task Creator"
     },
     "customizeSettings": {
@@ -76,7 +76,7 @@
     "detecting": "Checking Claude Code installation...",
     "info": {
       "title": "What is Claude Code?",
-      "description": "Claude Code is Anthropic's official CLI that powers CC ManWeb's AI features. It provides secure authentication and direct access to Claude models."
+      "description": "Claude Code is Anthropic's official CLI that powers Martinica's AI features. It provides secure authentication and direct access to Claude models."
     },
     "status": {
       "installed": "Installed",
@@ -98,19 +98,19 @@
   },
   "devtools": {
     "title": "Developer Tools",
-    "description": "Choose your preferred IDE and terminal for working with CC ManWeb worktrees",
+    "description": "Choose your preferred IDE and terminal for working with Martinica worktrees",
     "detecting": "Detecting installed tools...",
     "detectAgain": "Detect Again",
     "whyConfigure": "Why configure these?",
-    "whyConfigureDescription": "When CC ManWeb builds features in isolated worktrees, you can open them directly in your preferred IDE or terminal to test and review changes.",
+    "whyConfigureDescription": "When Martinica builds features in isolated worktrees, you can open them directly in your preferred IDE or terminal to test and review changes.",
     "ide": {
       "label": "Preferred IDE",
-      "description": "CC ManWeb will open worktrees in this editor",
+      "description": "Martinica will open worktrees in this editor",
       "customPath": "Custom IDE Path"
     },
     "terminal": {
       "label": "Preferred Terminal",
-      "description": "CC ManWeb will open terminal sessions here",
+      "description": "Martinica will open terminal sessions here",
       "customPath": "Custom Terminal Path"
     },
     "detectedSummary": "Detected on your system:",
