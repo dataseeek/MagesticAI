@@ -1,0 +1,46 @@
+{
+  "name": "claude-code-manager-web",
+  "version": "1.0.0",
+  "description": "Web-based AI task management and agent orchestration platform powered by Claude AI",
+  "license": "AGPL-3.0",
+  "author": "DataSeek Team",
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "scripts": {
+    "install:backend": "node scripts/install-backend.js",
+    "install:frontend": "cd apps/frontend-web && npm install",
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "dev": "cd apps/frontend-web && npm run dev",
+    "build": "cd apps/frontend-web && npm run build",
+    "lint": "cd apps/frontend-web && npm run lint",
+    "test": "cd apps/frontend-web && npm test",
+    "test:backend": "node scripts/test-backend.js"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=10.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dataseeek/Claude-Code-Manager-Web.git"
+  },
+  "homepage": "https://github.com/dataseeek/Claude-Code-Manager-Web",
+  "bugs": {
+    "url": "https://github.com/dataseeek/Claude-Code-Manager-Web/issues"
+  },
+  "keywords": [
+    "ai",
+    "claude",
+    "task-management",
+    "agent-orchestration",
+    "web-ui",
+    "fastapi",
+    "react",
+    "autonomous-agents"
+  ],
+  "devDependencies": {
+    "jsdom": "^27.4.0"
+  }
+}

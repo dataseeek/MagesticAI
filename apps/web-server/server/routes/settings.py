@@ -1,0 +1,1937 @@
+"""
+Application settings routes.
+
+Handles reading and writing application configuration.
+"""
+
+import json
+import logging
+import os
+import subprocess
+import threading
+import time
+from pathlib import Path
+from typing import Any, Literal
+
+from fastapi import APIRouter, HTTPException, Query, Body
+from pydantic import BaseModel, ConfigDict, Field, field_validator, AliasChoices
+
+# --------------------------------------------------------------------------
+# Type Definitions for Validation
+# --------------------------------------------------------------------------
+
+# BUG-4.1-005: Theme must be one of these values
+ThemeType = Literal["light", "dark", "system"]
+
+# BUG-4.1-006: Color theme must be one of these values
+ColorThemeType = Literal["default", "dusk", "lime", "ocean", "retro", "neo", "forest"]
+
+# BUG-4.1-011: Memory embedding provider must be one of these values
+MemoryEmbeddingProviderType = Literal[
+    "openai", "voyage", "azure_openai", "ollama", "google", "openrouter"
+]
+
+from ..config import get_settings
+
+router = APIRouter()
+
+
+# --------------------------------------------------------------------------
+# Models
+# --------------------------------------------------------------------------
+
+
+class AppSettings(BaseModel):
+    """Application settings model."""
+
+    # Allow both camelCase field names and snake_case aliases for backward compatibility
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
+
+    # General - with proper type validation
+    # BUG-4.1-005: Validate theme against allowed values
+    theme: ThemeType = Field("dark", description="UI theme (dark/light/system)")
+    # BUG-4.1-006: Validate colorTheme against allowed values
+    colorTheme: ColorThemeType | None = Field("default", description="Color theme (default/dusk/lime/ocean/retro/neo/forest)")
+    language: str = Field("en", description="UI language code")
+    # BUG-4.1-008: uiScale with min/max validation (75-200)
+    uiScale: int | None = Field(100, ge=75, le=200, description="UI scale percentage (75-200)")
+
+    @field_validator("theme", mode="before")
+    @classmethod
+    def validate_theme(cls, v):
+        """Validate and normalize theme value for backward compatibility."""
+        if v is None:
+            return "dark"
+        valid_themes = ["light", "dark", "system"]
+        if v not in valid_themes:
+            # Fall back to dark for invalid values (backward compatibility)
+            return "dark"
+        return v
+
+    @field_validator("colorTheme", mode="before")
+    @classmethod
+    def validate_color_theme(cls, v):
+        """Validate and normalize colorTheme value for backward compatibility."""
+        if v is None:
+            return "default"
+        valid_color_themes = ["default", "dusk", "lime", "ocean", "retro", "neo", "forest"]
+        if v not in valid_color_themes:
+            # Fall back to default for invalid values (backward compatibility)
+            return "default"
+        return v
+
+    @field_validator("uiScale", mode="before")
+    @classmethod
+    def validate_ui_scale(cls, v):
+        """Validate and clamp uiScale to valid range for backward compatibility."""
+        if v is None:
+            return 100
+        try:
+            scale = int(v)
+            # Clamp to valid range instead of rejecting (backward compatibility)
+            return max(75, min(200, scale))
+        except (TypeError, ValueError):
+            return 100
+
+    # Claude settings - using camelCase with snake_case aliases for backward compatibility
+    defaultModel: str = Field(
+        "claude-sonnet-4-5-20250929",
+        alias="default_model",
+        description="Default Claude model for tasks",
+    )
+    agentFramework: str | None = Field("claude-code", description="Agent framework to use")
+    thinkingLevel: str = Field(
+        "extended",
+        alias="thinking_level",
+        description="Thinking level (none, standard, extended)",
+    )
+    maxThinkingTokens: int | None = Field(
+        None,
+        alias="max_thinking_tokens",
+        description="Max thinking tokens (None for unlimited)",
+    )
+    selectedAgentProfile: str | None = Field(None, description="Selected agent profile ID")
+
+    # Task execution - using camelCase with snake_case aliases
+    autoContinue: bool = Field(
+        True,
+        alias="auto_continue",
+        description="Automatically continue to next phase after spec creation",
+    )
+    autoQa: bool = Field(
+        True,
+        alias="auto_qa",
+        description="Automatically run QA after implementation",
+    )
+
+    # Terminal - using camelCase with snake_case aliases
+    defaultShell: str = Field("/bin/bash", alias="default_shell", description="Default shell for terminals")
+    terminalFontSize: int = Field(14, alias="terminal_font_size", description="Terminal font size")
+    autoNameTerminals: bool = Field(True, description="Auto-generate terminal names")
+
+    # Developer tools
+    preferredIDE: str | None = Field(None, description="Preferred IDE")
+    customIDEPath: str | None = Field(None, description="Custom IDE path")
+    preferredTerminal: str | None = Field(None, description="Preferred terminal")
+    customTerminalPath: str | None = Field(None, description="Custom terminal path")
+
+    # Integrations - using camelCase with snake_case aliases
+    githubEnabled: bool = Field(False, alias="github_enabled", description="Enable GitHub integration")
+    gitlabEnabled: bool = Field(False, alias="gitlab_enabled", description="Enable GitLab integration")
+    linearEnabled: bool = Field(False, alias="linear_enabled", description="Enable Linear integration")
+
+    # Memory - using camelCase with snake_case aliases
+    graphitiEnabled: bool = Field(True, alias="graphiti_enabled", description="Enable Graphiti memory")
+    memoryEnabled: bool | None = Field(None, description="Enable memory system")
+    # BUG-4.1-011: Validate memoryEmbeddingProvider against allowed values
+    memoryEmbeddingProvider: MemoryEmbeddingProviderType | None = Field(
+        None, description="Memory embedding provider (openai/voyage/azure_openai/ollama/google/openrouter)"
+    )
+
+    @field_validator("memoryEmbeddingProvider", mode="before")
+    @classmethod
+    def validate_memory_embedding_provider(cls, v):
+        """Validate memoryEmbeddingProvider for backward compatibility."""
+        if v is None:
+            return None
+        valid_providers = ["openai", "voyage", "azure_openai", "ollama", "google", "openrouter"]
+        if v not in valid_providers:
+            # Return None for invalid values (backward compatibility)
+            return None
+        return v
+
+    # Paths
+    pythonPath: str | None = Field(None, description="Python executable path")
+    gitPath: str | None = Field(None, description="Git executable path")
+    claudePath: str | None = Field(None, description="Claude CLI path")
+    autoBuildPath: str | None = Field(
+        None,
+        description="Path to Auto Claude backend (apps/backend directory)",
+    )
+    autoUpdateAutoBuild: bool = Field(True, description="Auto-update Auto Claude source")
+
+    # Global API keys
+    globalClaudeOAuthToken: str | None = Field(None, description="Global Claude OAuth token")
+    globalOpenAIApiKey: str | None = Field(None, description="Global OpenAI API key")
+    globalAnthropicApiKey: str | None = Field(None, description="Global Anthropic API key")
+
+    # Onboarding
+    onboardingCompleted: bool | None = Field(None, description="Whether onboarding is completed")
+
+    # Updates
+    betaUpdates: bool | None = Field(False, description="Opt into beta updates")
+
+    # BMad Method
+    bmadSessionSegmentation: bool | None = Field(False, description="Enable session segmentation")
+
+    # LLM Provider Settings (for AI features: changelog, roadmap, ideation)
+    llmProvider: Literal["ollama", "anthropic", "openai"] | None = Field(
+        default="ollama",
+        alias="llmProvider",
+        validation_alias=AliasChoices("llmProvider", "llm_provider")
+    )
+
+    llmOllamaBaseUrl: str | None = Field(
+        default="http://localhost:11434",
+        alias="llmOllamaBaseUrl",
+        validation_alias=AliasChoices("llmOllamaBaseUrl", "llm_ollama_base_url")
+    )
+
+    llmOllamaModel: str | None = Field(
+        default="qwen3-30b-local:latest",
+        alias="llmOllamaModel",
+        validation_alias=AliasChoices("llmOllamaModel", "llm_ollama_model")
+    )
+
+    llmAnthropicModel: str | None = Field(
+        default="claude-sonnet-4-5-20250929",
+        alias="llmAnthropicModel",
+        validation_alias=AliasChoices("llmAnthropicModel", "llm_anthropic_model")
+    )
+
+    llmOpenaiModel: str | None = Field(
+        default="gpt-4o",
+        alias="llmOpenaiModel",
+        validation_alias=AliasChoices("llmOpenaiModel", "llm_openai_model")
+    )
+
+    llmOpenaiBaseUrl: str | None = Field(
+        default=None,
+        alias="llmOpenaiBaseUrl",
+        validation_alias=AliasChoices("llmOpenaiBaseUrl", "llm_openai_base_url")
+    )
+
+    @field_validator("llmProvider", mode="before")
+    @classmethod
+    def validate_llm_provider(cls, v: Any) -> str | None:
+        """Validate LLM provider."""
+        if v is None:
+            return "ollama"  # Default to Ollama
+        if isinstance(v, str):
+            v = v.lower()
+            if v in ["ollama", "anthropic", "openai"]:
+                return v
+        return "ollama"  # Fallback
+
+
+class SettingsUpdate(BaseModel):
+    """Model for partial settings update."""
+
+    # Allow both camelCase field names and snake_case aliases for backward compatibility
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
+
+    theme: str | None = None
+    colorTheme: str | None = None
+    language: str | None = None
+    uiScale: int | None = None
+    # Using camelCase with snake_case aliases for backward compatibility
+    defaultModel: str | None = Field(None, alias="default_model")
+    agentFramework: str | None = None
+    thinkingLevel: str | None = Field(None, alias="thinking_level")
+    maxThinkingTokens: int | None = Field(None, alias="max_thinking_tokens")
+    selectedAgentProfile: str | None = None
+    autoContinue: bool | None = Field(None, alias="auto_continue")
+    autoQa: bool | None = Field(None, alias="auto_qa")
+    defaultShell: str | None = Field(None, alias="default_shell")
+    terminalFontSize: int | None = Field(None, alias="terminal_font_size")
+    autoNameTerminals: bool | None = None
+    preferredIDE: str | None = None
+    customIDEPath: str | None = None
+    preferredTerminal: str | None = None
+    customTerminalPath: str | None = None
+    githubEnabled: bool | None = Field(None, alias="github_enabled")
+    gitlabEnabled: bool | None = Field(None, alias="gitlab_enabled")
+    linearEnabled: bool | None = Field(None, alias="linear_enabled")
+    graphitiEnabled: bool | None = Field(None, alias="graphiti_enabled")
+    memoryEnabled: bool | None = None
+    memoryEmbeddingProvider: str | None = None
+    pythonPath: str | None = None
+    gitPath: str | None = None
+    claudePath: str | None = None
+    autoBuildPath: str | None = None
+    autoUpdateAutoBuild: bool | None = None
+    globalClaudeOAuthToken: str | None = None
+    globalOpenAIApiKey: str | None = None
+    globalAnthropicApiKey: str | None = None
+    onboardingCompleted: bool | None = None
+    betaUpdates: bool | None = None
+    bmadSessionSegmentation: bool | None = None
+    llmProvider: str | None = None
+    llmOllamaBaseUrl: str | None = None
+    llmOllamaModel: str | None = None
+    llmAnthropicModel: str | None = None
+    llmOpenaiModel: str | None = None
+    llmOpenaiBaseUrl: str | None = None
+
+
+class UpdateApiKeyRequest(BaseModel):
+    """Request model for updating API keys."""
+    keyType: str = Field(..., description="Type of API key (anthropic, openai, claude)")
+    keyValue: str = Field(..., description="The API key value")
+    saveToEnv: bool = Field(True, description="Whether to save to .env file")
+
+
+# --------------------------------------------------------------------------
+# Helper Functions
+# --------------------------------------------------------------------------
+
+
+def get_settings_file() -> Path:
+    """Get path to the settings file."""
+    settings = get_settings()
+    return Path(settings.PROJECTS_DATA_DIR) / "settings.json"
+
+
+def load_app_settings() -> AppSettings:
+    """Load application settings from disk."""
+    settings_file = get_settings_file()
+    if settings_file.exists():
+        try:
+            data = json.loads(settings_file.read_text())
+            return AppSettings(**data)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return AppSettings()
+
+
+def save_app_settings(settings: AppSettings) -> None:
+    """Save application settings to disk."""
+    settings_file = get_settings_file()
+    settings_file.parent.mkdir(parents=True, exist_ok=True)
+    settings_file.write_text(settings.model_dump_json(indent=2))
+
+
+# --------------------------------------------------------------------------
+# Routes
+# --------------------------------------------------------------------------
+
+
+@router.get("", response_model=AppSettings)
+async def get_app_settings():
+    """Get current application settings."""
+    return load_app_settings()
+
+
+@router.put("", response_model=AppSettings)
+async def update_app_settings(update: SettingsUpdate):
+    """Update application settings (partial update)."""
+    current = load_app_settings()
+
+    # Apply updates
+    update_dict = update.model_dump(exclude_unset=True)
+    current_dict = current.model_dump()
+    current_dict.update(update_dict)
+
+    updated = AppSettings(**current_dict)
+    save_app_settings(updated)
+
+    return updated
+
+
+@router.post("/reset", response_model=AppSettings)
+async def reset_app_settings():
+    """Reset application settings to defaults."""
+    default = AppSettings()
+    save_app_settings(default)
+    return default
+
+
+@router.get("/token")
+async def get_api_token():
+    """Get the current API token (for display to user)."""
+    settings = get_settings()
+    return {
+        "token": settings.API_TOKEN,
+        "note": "Use this token in the Authorization header: Bearer <token>",
+    }
+
+
+@router.post("/token/regenerate")
+async def regenerate_api_token():
+    """Regenerate the API token."""
+    import secrets
+    from pathlib import Path
+
+    settings = get_settings()
+    token_file = Path.home() / ".auto-claude-web" / ".token"
+
+    # Generate new token
+    new_token = secrets.token_urlsafe(32)
+    token_file.write_text(new_token)
+    token_file.chmod(0o600)
+
+    # Update settings (note: requires server restart to take effect)
+    return {
+        "token": new_token,
+        "note": "Server restart required for new token to take effect",
+    }
+
+
+@router.post("/api-key")
+async def update_api_key(request: UpdateApiKeyRequest):
+    """Update global API key and optionally save to .env file.
+
+    This endpoint allows updating API keys for various services (Anthropic, OpenAI, Claude)
+    and saving them securely to a .env file with proper validation and permissions.
+    """
+    from pathlib import Path
+
+    # Validate key type
+    valid_key_types = ["anthropic", "openai", "claude"]
+    if request.keyType.lower() not in valid_key_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid keyType. Must be one of: {', '.join(valid_key_types)}"
+        )
+
+    # Validate key format (basic validation)
+    if not request.keyValue or len(request.keyValue) < 20:
+        raise HTTPException(
+            status_code=400,
+            detail="API key appears invalid. Must be at least 20 characters."
+        )
+
+    # Additional format validation based on key type
+    key_type = request.keyType.lower()
+    if key_type == "anthropic" and not request.keyValue.startswith("sk-ant-"):
+        raise HTTPException(
+            status_code=400,
+            detail="Anthropic API keys must start with 'sk-ant-'"
+        )
+    elif key_type == "openai" and not request.keyValue.startswith("sk-"):
+        raise HTTPException(
+            status_code=400,
+            detail="OpenAI API keys must start with 'sk-'"
+        )
+    elif key_type == "claude" and not (request.keyValue.startswith("sk-ant-") or request.keyValue.startswith("sess-")):
+        raise HTTPException(
+            status_code=400,
+            detail="Claude API keys must start with 'sk-ant-' or 'sess-'"
+        )
+
+    try:
+        # Update in-memory settings
+        current = load_app_settings()
+
+        # Map key type to settings field
+        key_field_map = {
+            "anthropic": "globalAnthropicApiKey",
+            "openai": "globalOpenAIApiKey",
+            "claude": "globalClaudeOAuthToken"
+        }
+
+        field_name = key_field_map[key_type]
+        setattr(current, field_name, request.keyValue)
+
+        # Save to settings.json
+        save_app_settings(current)
+
+        # Optionally save to .env file with secure permissions
+        if request.saveToEnv:
+            settings = get_settings()
+            env_path = Path(settings.PROJECTS_DATA_DIR) / ".env"
+
+            # Read existing .env or start fresh
+            existing = {}
+            if env_path.exists():
+                for line in env_path.read_text().split("\n"):
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        key, value = line.split("=", 1)
+                        existing[key.strip()] = value.strip()
+
+            # Update with new key
+            env_key_map = {
+                "anthropic": "ANTHROPIC_API_KEY",
+                "openai": "OPENAI_API_KEY",
+                "claude": "CLAUDE_API_KEY"
+            }
+
+            existing[env_key_map[key_type]] = request.keyValue
+
+            # Write back with secure permissions
+            env_path.parent.mkdir(parents=True, exist_ok=True)
+            content = "\n".join(f"{k}={v}" for k, v in existing.items())
+            env_path.write_text(content)
+
+            # Set secure file permissions (owner read/write only)
+            env_path.chmod(0o600)
+
+        return {
+            "success": True,
+            "message": f"{key_type.title()} API key updated successfully",
+            "savedToEnv": request.saveToEnv
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update API key: {str(e)}"
+        )
+
+
+@router.get("/ollama/models")
+async def list_ollama_models(ollamaBaseUrl: str = Query(default="http://localhost:11434")):
+    """List available Ollama models."""
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{ollamaBaseUrl}/api/tags")
+            response.raise_for_status()
+            data = response.json()
+
+            # Extract model list with metadata
+            models = []
+            for model in data.get("models", []):
+                models.append({
+                    "name": model["name"],
+                    "size": model["size"],
+                    "modified": model["modified_at"],
+                    "details": model.get("details", {})
+                })
+
+            return {"success": True, "models": models}
+    except Exception as e:
+        logger.error(f"Failed to list Ollama models: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/ollama/pull")
+async def pull_ollama_model(
+    modelName: str = Body(..., embed=True),
+    ollamaBaseUrl: str = Body(default="http://localhost:11434", embed=True)
+):
+    """Pull (download) an Ollama model."""
+    try:
+        import httpx
+        import json
+
+        # Stream the pull progress
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            async with client.stream(
+                "POST",
+                f"{ollamaBaseUrl}/api/pull",
+                json={"name": modelName}
+            ) as response:
+                response.raise_for_status()
+
+                # Stream progress updates
+                async for line in response.aiter_lines():
+                    if line:
+                        progress_data = json.loads(line)
+                        # Could emit WebSocket progress here
+                        logger.info(f"Pull progress: {progress_data}")
+
+                return {"success": True, "message": f"Model {modelName} pulled successfully"}
+    except Exception as e:
+        logger.error(f"Failed to pull Ollama model: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/ollama/test")
+async def test_ollama_connection(
+    ollamaBaseUrl: str = Body(..., embed=True),
+    modelName: str = Body(..., embed=True)
+):
+    """Test Ollama connection and model availability."""
+    try:
+        import httpx
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            # Check if server is reachable
+            response = await client.get(f"{ollamaBaseUrl}/api/tags")
+            response.raise_for_status()
+
+            # Check if model exists
+            data = response.json()
+            models = [m["name"] for m in data.get("models", [])]
+
+            if modelName not in models:
+                return {
+                    "success": False,
+                    "error": f"Model '{modelName}' not found. Available models: {', '.join(models)}"
+                }
+
+            # Test model with simple query
+            test_response = await client.post(
+                f"{ollamaBaseUrl}/v1/chat/completions",
+                json={
+                    "model": modelName,
+                    "messages": [{"role": "user", "content": "Test"}],
+                    "max_tokens": 10
+                },
+                timeout=30.0
+            )
+            test_response.raise_for_status()
+
+            return {"success": True, "message": "Connection successful!"}
+    except Exception as e:
+        logger.error(f"Ollama connection test failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# --------------------------------------------------------------------------
+# Tab State
+# --------------------------------------------------------------------------
+
+def get_tab_state_file() -> Path:
+    """Get path to the tab state file."""
+    settings = get_settings()
+    return Path(settings.PROJECTS_DATA_DIR) / "tab-state.json"
+
+
+@router.get("/tab-state")
+async def get_tab_state():
+    """Get saved tab state."""
+    tab_file = get_tab_state_file()
+    if tab_file.exists():
+        try:
+            data = json.loads(tab_file.read_text())
+            return {"success": True, "data": data}
+        except json.JSONDecodeError:
+            pass
+    return {"success": True, "data": {"tabs": [], "activeTabId": None}}
+
+
+@router.put("/tab-state")
+async def save_tab_state(state: dict):
+    """Save tab state."""
+    try:
+        tab_file = get_tab_state_file()
+        tab_file.parent.mkdir(parents=True, exist_ok=True)
+        tab_file.write_text(json.dumps(state, indent=2))
+        return {"success": True}
+    except OSError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to save tab state: {str(e)}"
+        )
+    except (TypeError, ValueError) as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid tab state data: {str(e)}"
+        )
+
+
+# --------------------------------------------------------------------------
+# Claude Profiles
+# --------------------------------------------------------------------------
+
+def get_profiles_file() -> Path:
+    """Get path to the Claude profiles file."""
+    settings = get_settings()
+    return Path(settings.PROJECTS_DATA_DIR) / "claude-profiles.json"
+
+
+def normalize_profile_fields(profile: dict) -> dict:
+    """Normalize profile field names to frontend-compatible camelCase.
+
+    Converts old field names to new ones for backward compatibility:
+    - token -> oauthToken
+    - isActive -> isDefault
+    """
+    result = profile.copy()
+
+    # Migrate token -> oauthToken
+    if "token" in result and "oauthToken" not in result:
+        result["oauthToken"] = result.pop("token")
+    elif "token" in result:
+        result.pop("token")  # Remove old field if new one exists
+
+    # Migrate isActive -> isDefault
+    if "isActive" in result and "isDefault" not in result:
+        result["isDefault"] = result.pop("isActive")
+    elif "isActive" in result:
+        result.pop("isActive")  # Remove old field if new one exists
+
+    return result
+
+
+def load_profiles() -> dict:
+    """Load Claude profiles with field name normalization."""
+    profiles_file = get_profiles_file()
+    if profiles_file.exists():
+        try:
+            data = json.loads(profiles_file.read_text())
+            # Normalize field names for backward compatibility
+            if "profiles" in data:
+                data["profiles"] = [
+                    normalize_profile_fields(p) for p in data["profiles"]
+                ]
+            return data
+        except json.JSONDecodeError:
+            pass
+    return {"profiles": [], "activeProfileId": None}
+
+
+def save_profiles(data: dict) -> None:
+    """Save Claude profiles with secure file permissions."""
+    profiles_file = get_profiles_file()
+    profiles_file.parent.mkdir(parents=True, exist_ok=True)
+    profiles_file.write_text(json.dumps(data, indent=2))
+    # Set secure file permissions (owner read/write only) since profiles contain tokens
+    profiles_file.chmod(0o600)
+
+
+def _sync_env_token_for_active_profile(
+    data: dict,
+    profile_id: str | None,
+    logger: logging.Logger,
+) -> None:
+    """Update CLAUDE_CODE_OAUTH_TOKEN to match the active profile token."""
+    if not profile_id:
+        return
+
+    token = None
+    for profile in data.get("profiles", []):
+        if profile.get("id") == profile_id:
+            token = profile.get("oauthToken") or profile.get("token")
+            break
+
+    if token:
+        os.environ["CLAUDE_CODE_OAUTH_TOKEN"] = token
+        logger.info("[Claude Profiles] Updated CLAUDE_CODE_OAUTH_TOKEN for active profile")
+    else:
+        logger.warning(
+            "[Claude Profiles] Active profile has no token; CLAUDE_CODE_OAUTH_TOKEN not updated"
+        )
+
+
+@router.get("/claude-profiles")
+async def get_claude_profiles():
+    """Get all Claude profiles."""
+    return {"success": True, "data": load_profiles()}
+
+
+class ClaudeProfile(BaseModel):
+    """Claude profile model with frontend-compatible field names.
+
+    Uses camelCase field names with snake_case aliases for backward compatibility
+    with existing stored data.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str | None = None
+    name: str
+    email: str | None = None
+    # Frontend expects oauthToken, backend stored token - alias for backward compat
+    oauthToken: str | None = Field(None, alias="token")
+    # Frontend expects isDefault, backend stored isActive - alias for backward compat
+    isDefault: bool = Field(False, alias="isActive")
+
+
+@router.post("/claude-profiles")
+async def save_claude_profile(profile: ClaudeProfile):
+    """Save a Claude profile.
+
+    Creates a new profile or updates an existing one. Validates name, email, and token
+    to ensure data integrity and prevent duplicates.
+    """
+    import uuid
+
+    # Validate and sanitize profile name
+    if not profile.name or not profile.name.strip():
+        return {"success": False, "error": "Profile name cannot be empty"}
+
+    name = profile.name.strip()
+    if len(name) < 1 or len(name) > 100:
+        return {"success": False, "error": "Profile name must be between 1 and 100 characters"}
+
+    # Sanitize email if provided
+    email = profile.email.strip() if profile.email else None
+    if email and len(email) > 255:
+        return {"success": False, "error": "Email cannot exceed 255 characters"}
+
+    # Validate token if provided (following pattern from set_claude_profile_token)
+    token = profile.oauthToken.strip() if profile.oauthToken else None
+    if token:
+        if len(token) < 20:
+            return {"success": False, "error": "Token must be at least 20 characters"}
+        if not (token.startswith("sess-") or token.startswith("sk-ant-")):
+            return {"success": False, "error": "Invalid token format. Must start with 'sess-' or 'sk-ant-'"}
+
+    data = load_profiles()
+    profiles = data.get("profiles", [])
+
+    # Generate ID for new profiles
+    is_new = not profile.id
+    if is_new:
+        profile.id = str(uuid.uuid4())
+
+    # Check for duplicate names (excluding current profile if updating)
+    for p in profiles:
+        if p.get("name") == name and p.get("id") != profile.id:
+            return {"success": False, "error": f"Profile name '{name}' is already in use"}
+
+    # Create profile dict with sanitized values
+    # Use frontend-compatible field names (oauthToken, isDefault)
+    profile_data = {
+        "id": profile.id,
+        "name": name,
+        "email": email,
+        "oauthToken": token,
+        "isDefault": profile.isDefault
+    }
+
+    # Update or add profile
+    found = False
+    for i, p in enumerate(profiles):
+        if p.get("id") == profile.id:
+            profiles[i] = profile_data
+            found = True
+            break
+    if not found:
+        profiles.append(profile_data)
+
+    data["profiles"] = profiles
+    save_profiles(data)  # This function sets secure file permissions (0o600)
+    return {"success": True, "data": profile_data}
+
+
+@router.delete("/claude-profiles/{profile_id}")
+async def delete_claude_profile(profile_id: str):
+    """Delete a Claude profile.
+
+    BUG-4.3-001: Now validates that the profile exists before deletion.
+    Returns error if profile is not found.
+    """
+    # Validate profile_id is not empty/whitespace
+    if not profile_id or not profile_id.strip():
+        return {"success": False, "error": "Profile ID cannot be empty"}
+
+    profile_id = profile_id.strip()
+    data = load_profiles()
+    profiles = data.get("profiles", [])
+
+    # Check if profile exists before deletion
+    original_count = len(profiles)
+    data["profiles"] = [p for p in profiles if p.get("id") != profile_id]
+
+    # BUG-4.3-001: Return error if profile was not found
+    if len(data["profiles"]) == original_count:
+        return {"success": False, "error": f"Profile {profile_id} not found"}
+
+    # Clear active profile if it was the deleted one
+    if data.get("activeProfileId") == profile_id:
+        data["activeProfileId"] = None
+
+    save_profiles(data)
+    return {"success": True}
+
+
+class ProfileRename(BaseModel):
+    name: str
+
+
+@router.patch("/claude-profiles/{profile_id}")
+async def rename_claude_profile(profile_id: str, update: ProfileRename):
+    """Rename a Claude profile with validation."""
+    try:
+        # Validate name
+        if not update.name or not update.name.strip():
+            return {"success": False, "error": "Profile name cannot be empty"}
+
+        # Strip whitespace and validate length
+        name = update.name.strip()
+        if len(name) < 1:
+            return {"success": False, "error": "Profile name cannot be empty"}
+        if len(name) > 100:
+            return {"success": False, "error": "Profile name cannot exceed 100 characters"}
+
+        # Load profiles and update
+        data = load_profiles()
+        profile_found = False
+
+        # Check for duplicate names (excluding the current profile)
+        for p in data.get("profiles", []):
+            if p.get("id") != profile_id and p.get("name") == name:
+                return {"success": False, "error": f"Profile name '{name}' is already in use"}
+
+        # Find and update the profile
+        for p in data.get("profiles", []):
+            if p.get("id") == profile_id:
+                p["name"] = name
+                profile_found = True
+                break
+
+        if not profile_found:
+            return {"success": False, "error": f"Profile {profile_id} not found"}
+
+        # Save with secure permissions (0o600 set in save_profiles)
+        save_profiles(data)
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+class ActiveProfileRequest(BaseModel):
+    profileId: str
+
+
+@router.post("/claude-profiles/active")
+async def set_active_claude_profile(request: ActiveProfileRequest):
+    """Set the active Claude profile."""
+    try:
+        logger = logging.getLogger(__name__)
+        data = load_profiles()
+
+        # Verify the profile exists
+        profile_found = False
+        for p in data.get("profiles", []):
+            if p.get("id") == request.profileId:
+                profile_found = True
+                break
+
+        if not profile_found:
+            return {"success": False, "error": f"Profile {request.profileId} not found"}
+
+        data["activeProfileId"] = request.profileId
+        save_profiles(data)
+        _sync_env_token_for_active_profile(data, request.profileId, logger)
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/claude-profiles/{profile_id}/initialize")
+async def initialize_claude_profile(profile_id: str):
+    """Initialize a Claude profile.
+
+    Marks a profile as initialized and sets initialization timestamp.
+    This can be used after a profile is created to mark it as ready for use.
+    """
+    try:
+        from datetime import datetime
+
+        data = load_profiles()
+        profile_found = False
+
+        for p in data.get("profiles", []):
+            if p.get("id") == profile_id:
+                # Mark profile as initialized with timestamp
+                p["initialized"] = True
+                p["initializedAt"] = datetime.now().isoformat()
+                profile_found = True
+                break
+
+        if not profile_found:
+            return {"success": False, "error": f"Profile {profile_id} not found"}
+
+        save_profiles(data)
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def _poll_token_and_save(profile_id: str, logger: logging.Logger):
+    """
+    Poll ~/.claude/oauth_token and save it to the specified profile when available.
+
+    This runs in a background thread so the HTTP request can return immediately.
+    """
+    token_path = Path.home() / ".claude" / "oauth_token"
+    for _ in range(90):  # Poll for up to ~3 minutes
+        try:
+            if token_path.exists():
+                token = token_path.read_text().strip()
+                if token:
+                    data = load_profiles()
+                    updated = False
+                    for p in data.get("profiles", []):
+                        if p.get("id") == profile_id:
+                            p["oauthToken"] = token
+                            p.pop("token", None)  # remove legacy field if present
+                            updated = True
+                            break
+                    if updated:
+                        save_profiles(data)
+                        if data.get("activeProfileId") == profile_id:
+                            _sync_env_token_for_active_profile(data, profile_id, logger)
+                        logger.info(f"[Claude OAuth] Token saved to profile {profile_id}")
+                    return
+        except Exception as e:  # pragma: no cover - best-effort background
+            logger.warning(f"[Claude OAuth] Polling error: {e}")
+        time.sleep(2)
+    logger.warning(f"[Claude OAuth] Token not detected for profile {profile_id} within timeout")
+
+
+def _capture_auth_url(proc: subprocess.Popen, logger: logging.Logger) -> str | None:
+    """
+    Capture the Claude OAuth URL from the CLI stdout.
+
+    The Claude CLI prints:
+      Browser didn't open? Use the url below to sign in:
+      <URL>
+    We scan for a line containing 'claude.ai/oauth/authorize' and return it.
+    """
+    auth_url = None
+    if not proc.stdout:
+        return None
+    try:
+        # Read up to a few lines with a short timeout to allow CLI to print the URL
+        start = time.time()
+        while time.time() - start < 5:  # up to 5 seconds to capture URL
+            line = proc.stdout.readline()
+            if not line:
+                break
+            stripped = line.strip()
+            if "claude.ai/oauth/authorize" in stripped:
+                auth_url = stripped
+                break
+    except Exception as e:  # pragma: no cover - best-effort
+        logger.warning(f"[Claude OAuth] Failed to capture auth URL: {e}")
+    return auth_url
+
+
+@router.post("/claude-profiles/{profile_id}/start-oauth")
+async def start_claude_profile_oauth(profile_id: str):
+    """
+    Start Claude OAuth by invoking the Claude CLI and polling for the token.
+
+    This launches `claude setup-token` in the background and watches ~/.claude/oauth_token.
+    When the token appears, it is written to the specified profile's oauthToken field.
+    """
+    logger = logging.getLogger(__name__)
+
+    # Validate profile exists
+    data = load_profiles()
+    profile_exists = any(p.get("id") == profile_id for p in data.get("profiles", []))
+    if not profile_exists:
+        return {"success": False, "error": f"Profile {profile_id} not found"}
+
+    # Try to launch the Claude CLI setup (capture stdout to surface fallback URL)
+    try:
+        proc = subprocess.Popen(
+            ["claude", "setup-token"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+    except FileNotFoundError:
+        return {
+            "success": False,
+            "error": "Claude CLI not found. Install Claude Code CLI and try again.",
+        }
+    except Exception as e:  # pragma: no cover - defensive
+        return {"success": False, "error": f"Failed to start Claude OAuth: {e}"}
+
+    # Attempt to capture the “Browser didn't open?” fallback URL from stdout (non-blocking)
+    auth_url_holder = {"url": None}
+
+    def _run_capture():
+        auth_url_holder["url"] = _capture_auth_url(proc, logger)
+
+    capture_thread = threading.Thread(target=_run_capture, daemon=True)
+    capture_thread.start()
+    capture_thread.join(timeout=5)
+
+    # Start background poller to save the token once written by the CLI
+    threading.Thread(
+        target=_poll_token_and_save, args=(profile_id, logger), daemon=True
+    ).start()
+
+    return {
+        "success": True,
+        "message": "Claude OAuth started. Complete the browser flow; token will be saved automatically.",
+        "authUrl": auth_url_holder.get("url"),
+    }
+
+
+class SetTokenRequest(BaseModel):
+    token: str
+    email: str | None = None
+
+
+@router.post("/claude-profiles/{profile_id}/token")
+async def set_claude_profile_token(profile_id: str, request: SetTokenRequest):
+    """Set token for a Claude profile with validation and secure storage."""
+    try:
+        logger = logging.getLogger(__name__)
+        # Validate token
+        if not request.token or not request.token.strip():
+            return {"success": False, "error": "Token cannot be empty"}
+
+        # Validate token length (Claude tokens are typically > 20 characters)
+        if len(request.token) < 20:
+            return {"success": False, "error": "Token appears invalid. Must be at least 20 characters."}
+
+        # Validate token format (Claude session tokens start with 'sess-' or API keys with 'sk-ant-')
+        token = request.token.strip()
+        if not (token.startswith("sess-") or token.startswith("sk-ant-")):
+            return {
+                "success": False,
+                "error": "Invalid Claude token format. Must start with 'sess-' or 'sk-ant-'"
+            }
+
+        # Load profiles and update
+        data = load_profiles()
+        profile_found = False
+
+        for p in data.get("profiles", []):
+            if p.get("id") == profile_id:
+                # Use frontend-compatible field name
+                p["oauthToken"] = token
+                # Remove old field name if present (migration)
+                p.pop("token", None)
+                if request.email:
+                    p["email"] = request.email.strip()
+                profile_found = True
+                break
+
+        if not profile_found:
+            return {"success": False, "error": f"Profile {profile_id} not found"}
+
+        # Save with secure permissions (0o600 set in save_profiles)
+        save_profiles(data)
+        _sync_env_token_for_active_profile(data, data.get("activeProfileId"), logger)
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/claude-profiles/best")
+async def get_best_available_profile(exclude: str | None = None):
+    """Get the best available Claude profile with a valid token.
+
+    BUG-4.3-003: Now validates that the profile has a token before returning.
+    Prioritizes the active profile if it has a valid token and is not excluded.
+    """
+    data = load_profiles()
+    active_id = data.get("activeProfileId")
+
+    # Filter to usable profiles (has token, not excluded)
+    # Check both oauthToken (new field name) and token (old field name)
+    usable = [
+        p for p in data.get("profiles", [])
+        if p.get("id") != exclude and (p.get("oauthToken") or p.get("token"))
+    ]
+
+    if not usable:
+        return {"success": True, "data": None}
+
+    # Prefer active profile if it's in the usable list
+    for p in usable:
+        if p.get("id") == active_id:
+            return {"success": True, "data": p}
+
+    # Return first usable profile
+    return {"success": True, "data": usable[0]}
+
+
+# --------------------------------------------------------------------------
+# Auto-Switch Settings
+# --------------------------------------------------------------------------
+
+class AutoSwitchSettingsUpdate(BaseModel):
+    """Model for updating auto-switch settings."""
+    enabled: bool | None = None
+    threshold: int | None = Field(None, ge=0, le=100, description="Usage threshold percentage (0-100)")
+    proactiveSwapEnabled: bool | None = None  # Proactive monitoring toggle
+    autoSwitchOnRateLimit: bool | None = None  # Reactive recovery on rate limit/errors
+    usageCheckInterval: int | None = Field(None, ge=0, description="Usage polling interval in ms (0 disables)")
+    sessionThreshold: int | None = Field(None, ge=0, le=100, description="Percent threshold for session usage")
+    weeklyThreshold: int | None = Field(None, ge=0, le=100, description="Percent threshold for weekly usage")
+
+
+def get_auto_switch_file() -> Path:
+    """Get path to the auto-switch settings file."""
+    settings = get_settings()
+    return Path(settings.PROJECTS_DATA_DIR) / "auto-switch.json"
+
+
+@router.get("/auto-switch")
+async def get_auto_switch_settings():
+    """Get auto-switch settings."""
+    auto_switch_file = get_auto_switch_file()
+    if auto_switch_file.exists():
+        try:
+            data = json.loads(auto_switch_file.read_text())
+            return {"success": True, "data": data}
+        except json.JSONDecodeError:
+            pass
+    return {
+        "success": True,
+        "data": {
+            "enabled": False,
+            "threshold": 80,
+            "proactiveSwapEnabled": True,
+            "autoSwitchOnRateLimit": False,
+            "usageCheckInterval": 30000,
+            "sessionThreshold": 95,
+            "weeklyThreshold": 99,
+        },
+    }
+
+
+@router.patch("/auto-switch")
+async def update_auto_switch_settings(settings_update: AutoSwitchSettingsUpdate):
+    """Update auto-switch settings with validation and secure storage.
+    
+    Updates the auto-switch configuration which controls automatic profile switching
+    based on usage thresholds. Settings are stored in auto-switch.json with secure
+    file permissions.
+    
+    Args:
+        settings_update: Auto-switch settings update with optional enabled and threshold fields
+        
+    Returns:
+        Success response with updated settings or error details
+    """
+    try:
+        auto_switch_file = get_auto_switch_file()
+        # Load current settings (with defaults)
+        current = {
+            "enabled": False,
+            "threshold": 80,
+            "proactiveSwapEnabled": True,
+            "autoSwitchOnRateLimit": False,
+            "usageCheckInterval": 30000,
+            "sessionThreshold": 95,
+            "weeklyThreshold": 99,
+        }
+        if auto_switch_file.exists():
+            try:
+                current = json.loads(auto_switch_file.read_text())
+            except json.JSONDecodeError as e:
+                return {
+                    "success": False,
+                    "error": f"Failed to parse existing auto-switch.json: {str(e)}"
+                }
+        
+        # Update with new values (only non-None values from Pydantic model)
+        update_dict = settings_update.model_dump(exclude_none=True)
+        current.update(update_dict)
+        
+        # Ensure parent directory exists
+        auto_switch_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Write updated settings with pretty formatting
+        auto_switch_file.write_text(json.dumps(current, indent=2))
+        
+        # Set secure file permissions (owner read/write only)
+        # Following security pattern from save_profiles() and other Phase 2/3 endpoints
+        auto_switch_file.chmod(0o600)
+        
+        return {"success": True, "data": current}
+        
+    except Exception as e:
+        return {"success": False, "error": f"Failed to update auto-switch settings: {str(e)}"}
+
+
+class RetryWithProfileRequest(BaseModel):
+    """Request model for retrying with a different profile."""
+    profileId: str = Field(..., min_length=1, description="ID of the profile to switch to")
+    reason: str | None = Field(None, description="Reason for the switch (e.g., 'rate_limit', 'error')")
+    operationContext: dict | None = Field(None, description="Optional context about the failed operation")
+
+
+@router.post("/retry-with-profile")
+async def retry_with_profile(request: RetryWithProfileRequest):
+    """Switch to a different Claude profile and prepare for operation retry.
+
+    This endpoint facilitates profile switching when an operation fails due to
+    rate limits or other profile-specific issues. It switches the active profile
+    and returns information needed for the user/frontend to retry the operation.
+
+    Common use case:
+    1. User hits rate limit with current profile
+    2. Frontend calls this endpoint with a different profileId
+    3. Profile is switched
+    4. User manually retries the operation (or frontend auto-retries)
+
+    Args:
+        request: Profile switch request with profileId, optional reason, and operation context
+
+    Returns:
+        Success response with profile switch details including:
+        - previousProfileId: The profile that was active before the switch
+        - newProfileId: The newly activated profile
+        - profileName: Name of the new profile for display
+        - reason: Switch reason if provided
+    """
+    try:
+        logger = logging.getLogger(__name__)
+        # Validate profileId is not empty/whitespace
+        profile_id = request.profileId.strip() if request.profileId else ""
+        if not profile_id:
+            return {"success": False, "error": "profileId cannot be empty"}
+
+        # Load profiles
+        data = load_profiles()
+
+        # Store previous active profile for return data
+        previous_profile_id = data.get("activeProfileId")
+
+        # Check if trying to switch to the same profile
+        if previous_profile_id == profile_id:
+            # Find profile name for better error message
+            profile_name = None
+            for p in data.get("profiles", []):
+                if p.get("id") == profile_id:
+                    profile_name = p.get("name", "Unknown")
+                    break
+            return {
+                "success": False,
+                "error": f"Profile '{profile_name or profile_id}' is already active"
+            }
+
+        # Verify the target profile exists and get profile details
+        target_profile = None
+        for p in data.get("profiles", []):
+            if p.get("id") == profile_id:
+                target_profile = p
+                break
+
+        if not target_profile:
+            return {"success": False, "error": f"Profile {profile_id} not found"}
+
+        # Get previous profile name for logging/response
+        previous_profile_name = None
+        if previous_profile_id:
+            for p in data.get("profiles", []):
+                if p.get("id") == previous_profile_id:
+                    previous_profile_name = p.get("name")
+                    break
+
+        # Set the new profile as active
+        data["activeProfileId"] = profile_id
+
+        # Save profiles with secure permissions (via save_profiles function)
+        save_profiles(data)
+        _sync_env_token_for_active_profile(data, profile_id, logger)
+
+        # Build response with comprehensive information
+        response = {
+            "success": True,
+            "previousProfileId": previous_profile_id,
+            "previousProfileName": previous_profile_name,
+            "newProfileId": profile_id,
+            "profileName": target_profile.get("name"),
+            "profileEmail": target_profile.get("email"),
+        }
+
+        # Include reason if provided
+        if request.reason:
+            response["reason"] = request.reason
+
+        # Include operation context if provided (for frontend to use in retry)
+        if request.operationContext:
+            response["operationContext"] = request.operationContext
+
+        return response
+
+    except Exception as e:
+        return {"success": False, "error": f"Failed to switch profile: {str(e)}"}
+
+
+@router.post("/usage-update")
+async def request_usage_update():
+    """Request a usage update.
+
+    Reads local Claude stats from ~/.claude/stats-cache.json and calculates
+    approximate usage percentages based on typical daily limits.
+
+    Note: Returns raw data object (not wrapped in {success, data}) because
+    the frontend api-client.ts automatically adds that wrapper.
+    """
+    from datetime import datetime, timedelta
+
+    stats_file = Path.home() / ".claude" / "stats-cache.json"
+
+    # Default response
+    default_response = {
+        "sessionPercent": 0,
+        "weeklyPercent": 0,
+        "sessionResetTime": None,
+        "weeklyResetTime": None,
+        "profileId": "local",
+        "profileName": "Local Stats",
+        "fetchedAt": datetime.now().isoformat(),
+        "limitType": None
+    }
+
+    if not stats_file.exists():
+        return default_response
+
+    try:
+        stats = json.loads(stats_file.read_text())
+
+        # Get today's date
+        today = datetime.now().strftime("%Y-%m-%d")
+        week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+        # Calculate today's usage
+        daily_activity = stats.get("dailyActivity", [])
+        today_messages = 0
+        weekly_messages = 0
+
+        for day in daily_activity:
+            if day.get("date") == today:
+                today_messages = day.get("messageCount", 0)
+            if day.get("date") >= week_ago:
+                weekly_messages += day.get("messageCount", 0)
+
+        # Usage limits (actual confirmed values)
+        # Daily limit: 10,000 messages
+        # Weekly limit: 10,000 × 7 = 70,000 messages
+        # Resets on Thursday weekly
+        DAILY_LIMIT_ESTIMATE = 10000
+        WEEKLY_LIMIT_ESTIMATE = 70000
+
+        session_percent = min(100, int((today_messages / DAILY_LIMIT_ESTIMATE) * 100))
+        weekly_percent = min(100, int((weekly_messages / WEEKLY_LIMIT_ESTIMATE) * 100))
+
+        # Get model usage info
+        model_usage = stats.get("modelUsage", {})
+        total_output_tokens = sum(m.get("outputTokens", 0) for m in model_usage.values())
+
+        return {
+            "sessionPercent": session_percent,
+            "weeklyPercent": weekly_percent,
+            "sessionResetTime": "Midnight",
+            "weeklyResetTime": "Weekly",
+            "profileId": "local",
+            "profileName": f"Local ({today_messages} msgs today)",
+            "fetchedAt": datetime.now().isoformat(),
+            "limitType": "session" if session_percent > weekly_percent else "weekly",
+            # Extra stats for tooltip
+            "todayMessages": today_messages,
+            "weeklyMessages": weekly_messages,
+            "totalOutputTokens": total_output_tokens
+        }
+
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return default_response
+
+
+# --------------------------------------------------------------------------
+# API Profiles (OpenAI-compatible endpoints)
+# --------------------------------------------------------------------------
+
+def get_api_profiles_file() -> Path:
+    """Get path to the API profiles file."""
+    settings = get_settings()
+    return Path(settings.PROJECTS_DATA_DIR) / "api-profiles.json"
+
+
+def load_api_profiles() -> dict:
+    """Load API profiles."""
+    profiles_file = get_api_profiles_file()
+    if profiles_file.exists():
+        try:
+            return json.loads(profiles_file.read_text())
+        except json.JSONDecodeError:
+            pass
+    return {"profiles": [], "activeProfileId": None}
+
+
+def save_api_profiles(data: dict) -> None:
+    """Save API profiles.
+
+    Security: Sets file permissions to 0o600 (owner read/write only) to protect
+    sensitive API keys and tokens stored in the profiles.
+    """
+    profiles_file = get_api_profiles_file()
+    profiles_file.parent.mkdir(parents=True, exist_ok=True)
+    profiles_file.write_text(json.dumps(data, indent=2))
+    # Set secure file permissions to protect API keys (owner read/write only)
+    profiles_file.chmod(0o600)
+
+
+@router.get("/api-profiles")
+async def get_api_profiles():
+    """Get all API profiles."""
+    return {"success": True, "data": load_api_profiles()}
+
+
+@router.post("/api-profiles")
+async def save_api_profile(profile: dict):
+    """Save an API profile."""
+    import uuid
+    data = load_api_profiles()
+    if not profile.get("id"):
+        profile["id"] = str(uuid.uuid4())
+
+    profiles = data.get("profiles", [])
+    found = False
+    for i, p in enumerate(profiles):
+        if p.get("id") == profile["id"]:
+            profiles[i] = profile
+            found = True
+            break
+    if not found:
+        profiles.append(profile)
+
+    data["profiles"] = profiles
+    save_api_profiles(data)
+    return {"success": True, "data": profile}
+
+
+class ApiProfileModels(BaseModel):
+    """Optional model mappings for API profile."""
+    default: str | None = Field(None, description="Default model (maps to ANTHROPIC_MODEL)")
+    haiku: str | None = Field(None, description="Haiku model (maps to ANTHROPIC_DEFAULT_HAIKU_MODEL)")
+    sonnet: str | None = Field(None, description="Sonnet model (maps to ANTHROPIC_DEFAULT_SONNET_MODEL)")
+    opus: str | None = Field(None, description="Opus model (maps to ANTHROPIC_DEFAULT_OPUS_MODEL)")
+
+
+class ApiProfileUpdate(BaseModel):
+    """Model for updating API profile configuration.
+
+    All fields are optional to support partial updates. Only provided fields
+    will be updated in the profile.
+    """
+    name: str | None = Field(None, min_length=1, max_length=100, description="Profile name (1-100 characters)")
+    baseUrl: str | None = Field(None, min_length=1, description="API endpoint URL")
+    apiKey: str | None = Field(None, min_length=20, description="API key (minimum 20 characters)")
+    models: ApiProfileModels | None = Field(None, description="Optional model mappings")
+
+
+@router.put("/api-profiles/{profile_id}")
+async def update_api_profile(profile_id: str, profile_update: ApiProfileUpdate):
+    """Update an API profile.
+
+    Supports partial updates - only provided fields will be updated.
+    Validates all inputs and maintains secure file storage.
+
+    Validation:
+    - name: 1-100 characters, no duplicates
+    - baseUrl: Non-empty, valid URL format (http:// or https://)
+    - apiKey: Minimum 20 characters
+    - Automatically updates updatedAt timestamp
+    - Maintains secure file permissions (0o600)
+    """
+    try:
+        # Validate profile_id
+        if not profile_id or not profile_id.strip():
+            return {"success": False, "error": "Profile ID cannot be empty"}
+
+        profile_id = profile_id.strip()
+
+        # Load existing profiles
+        data = load_api_profiles()
+        profiles = data.get("profiles", [])
+
+        # Find the profile to update
+        profile_index = None
+        current_profile = None
+        for i, p in enumerate(profiles):
+            if p.get("id") == profile_id:
+                profile_index = i
+                current_profile = p
+                break
+
+        if profile_index is None:
+            return {"success": False, "error": f"Profile {profile_id} not found"}
+
+        # Get update data (exclude None values for partial update)
+        update_data = profile_update.model_dump(exclude_none=True)
+
+        # Validate and sanitize name if provided
+        if "name" in update_data:
+            name = update_data["name"].strip()
+            if not name:
+                return {"success": False, "error": "Profile name cannot be empty"}
+            if len(name) < 1 or len(name) > 100:
+                return {"success": False, "error": "Profile name must be between 1 and 100 characters"}
+
+            # Check for duplicate names (excluding current profile)
+            for p in profiles:
+                if p.get("id") != profile_id and p.get("name", "").strip().lower() == name.lower():
+                    return {"success": False, "error": f"Profile name '{name}' is already in use"}
+
+            update_data["name"] = name
+
+        # Validate and sanitize baseUrl if provided
+        if "baseUrl" in update_data:
+            base_url = update_data["baseUrl"].strip()
+            if not base_url:
+                return {"success": False, "error": "Base URL cannot be empty"}
+            if not (base_url.startswith("http://") or base_url.startswith("https://")):
+                return {"success": False, "error": "Base URL must start with http:// or https://"}
+
+            update_data["baseUrl"] = base_url
+
+        # Validate and sanitize apiKey if provided
+        if "apiKey" in update_data:
+            api_key = update_data["apiKey"].strip()
+            if not api_key:
+                return {"success": False, "error": "API key cannot be empty"}
+            if len(api_key) < 20:
+                return {"success": False, "error": "API key must be at least 20 characters"}
+
+            update_data["apiKey"] = api_key
+
+        # Update timestamp
+        import time
+        update_data["updatedAt"] = int(time.time() * 1000)  # Unix timestamp in milliseconds
+
+        # Merge updates into current profile (preserving id and createdAt)
+        updated_profile = {**current_profile, **update_data, "id": profile_id}
+
+        # Preserve createdAt if it exists
+        if "createdAt" in current_profile:
+            updated_profile["createdAt"] = current_profile["createdAt"]
+
+        # Update profile in list
+        profiles[profile_index] = updated_profile
+        data["profiles"] = profiles
+
+        # Save with secure permissions (0o600 - owner read/write only)
+        save_api_profiles(data)
+
+        return {
+            "success": True,
+            "data": updated_profile
+        }
+
+    except Exception as e:
+        return {"success": False, "error": f"Failed to update API profile: {str(e)}"}
+
+
+@router.delete("/api-profiles/{profile_id}")
+async def delete_api_profile(profile_id: str):
+    """
+    Delete an API profile.
+
+    Validates:
+    - Profile ID is not empty
+    - Profile exists in api-profiles.json
+    - Profile is NOT the currently active profile (deletion prevented)
+
+    Args:
+        profile_id: The ID of the profile to delete
+
+    Returns:
+        Success response on deletion, or error response with details
+
+    Security:
+        Uses save_api_profiles() which sets secure file permissions (0o600)
+    """
+    try:
+        # Validate profile_id is not empty
+        if not profile_id or not profile_id.strip():
+            return {"success": False, "error": "Profile ID cannot be empty"}
+
+        # Strip whitespace from profile_id
+        profile_id = profile_id.strip()
+
+        # Load current API profiles
+        data = load_api_profiles()
+
+        # Find the profile to delete and get its name for error messages
+        profile_to_delete = None
+        for p in data.get("profiles", []):
+            if p.get("id") == profile_id:
+                profile_to_delete = p
+                break
+
+        # Check if profile exists
+        if not profile_to_delete:
+            return {"success": False, "error": f"Profile {profile_id} not found"}
+
+        # CRITICAL: Prevent deletion of the active profile
+        # This ensures users don't accidentally delete the profile they're currently using
+        active_profile_id = data.get("activeProfileId")
+        if active_profile_id and active_profile_id == profile_id:
+            profile_name = profile_to_delete.get("name", profile_id)
+            return {
+                "success": False,
+                "error": f"Cannot delete active profile '{profile_name}'. Please switch to a different profile first."
+            }
+
+        # Remove the profile from the profiles array
+        data["profiles"] = [p for p in data.get("profiles", []) if p.get("id") != profile_id]
+
+        # Save updated profiles (with secure 0o600 permissions)
+        save_api_profiles(data)
+
+        return {
+            "success": True,
+            "message": "Profile deleted successfully",
+            "deletedProfileId": profile_id
+        }
+
+    except Exception as e:
+        return {"success": False, "error": f"Failed to delete API profile: {str(e)}"}
+
+
+@router.post("/api-profiles/active")
+async def set_active_api_profile(request: dict):
+    """Set the active API profile."""
+    try:
+        profile_id = request.get("profileId")
+
+        if not profile_id:
+            return {"success": False, "error": "profileId is required"}
+
+        data = load_api_profiles()
+
+        # Verify the profile exists
+        profile_found = False
+        for p in data.get("profiles", []):
+            if p.get("id") == profile_id:
+                profile_found = True
+                break
+
+        if not profile_found:
+            return {"success": False, "error": f"Profile {profile_id} not found"}
+
+        data["activeProfileId"] = profile_id
+        save_api_profiles(data)
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+class TestConnectionRequest(BaseModel):
+    baseUrl: str
+    apiKey: str
+
+
+@router.post("/api-profiles/test")
+async def test_api_connection(request: TestConnectionRequest):
+    """Test connection to an API endpoint."""
+    import urllib.request
+    try:
+        req = urllib.request.Request(
+            f"{request.baseUrl}/models",
+            headers={"Authorization": f"Bearer {request.apiKey}"}
+        )
+        urllib.request.urlopen(req, timeout=10)
+        return {"success": True, "data": {"connected": True}}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/api-profiles/discover-models")
+async def discover_api_models(request: TestConnectionRequest):
+    """Discover available models from an API endpoint."""
+    import json as json_module
+    import urllib.request
+    try:
+        req = urllib.request.Request(
+            f"{request.baseUrl}/models",
+            headers={"Authorization": f"Bearer {request.apiKey}"}
+        )
+        response = urllib.request.urlopen(req, timeout=10)
+        data = json_module.loads(response.read().decode())
+        models = [m.get("id") for m in data.get("data", [])]
+        return {"success": True, "data": models}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# --------------------------------------------------------------------------
+# Source Environment
+# --------------------------------------------------------------------------
+
+class SourceEnvUpdate(BaseModel):
+    """Model for updating Auto-Claude source environment configuration."""
+    claudeToken: str | None = Field(None, description="Claude Code OAuth token (CLAUDE_CODE_OAUTH_TOKEN)")
+    anthropicBaseUrl: str | None = Field(None, description="Custom Anthropic API endpoint (ANTHROPIC_BASE_URL)")
+    graphitiEnabled: bool | None = Field(None, description="Enable Graphiti memory system (GRAPHITI_ENABLED)")
+    linearApiKey: str | None = Field(None, description="Linear API key (LINEAR_API_KEY)")
+    gitlabToken: str | None = Field(None, description="GitLab personal access token (GITLAB_TOKEN)")
+    githubToken: str | None = Field(None, description="GitHub personal access token (GITHUB_TOKEN)")
+    openaiApiKey: str | None = Field(None, description="OpenAI API key for Graphiti (OPENAI_API_KEY)")
+    debug: bool | None = Field(None, description="Enable debug mode (DEBUG)")
+
+
+@router.get("/source-env")
+async def get_source_env():
+    """Get source environment configuration."""
+    return {"success": True, "data": {}}
+
+
+@router.patch("/source-env")
+async def update_source_env(config: SourceEnvUpdate):
+    """
+    Update Auto-Claude source environment configuration.
+
+    Updates the apps/backend/.env file with environment variables for:
+    - Claude authentication (CLAUDE_CODE_OAUTH_TOKEN)
+    - Custom API endpoints (ANTHROPIC_BASE_URL)
+    - Graphiti memory system (GRAPHITI_ENABLED)
+    - Linear integration (LINEAR_API_KEY)
+    - GitLab integration (GITLAB_TOKEN)
+    - GitHub integration (GITHUB_TOKEN)
+    - OpenAI integration for Graphiti (OPENAI_API_KEY)
+    - Debug mode (DEBUG)
+
+    Only updates fields that are provided (partial updates supported).
+    Sets secure file permissions (0o600) to protect sensitive tokens.
+
+    Args:
+        config: Environment update configuration with optional fields
+
+    Returns:
+        Success response with confirmation message
+
+    Raises:
+        HTTPException: For validation errors or file system errors
+    """
+    try:
+        settings = get_settings()
+        backend_path = Path(settings.AUTO_CLAUDE_BACKEND_PATH)
+        env_path = backend_path / ".env"
+
+        # Read existing .env or start fresh
+        existing = {}
+        if env_path.exists():
+            for line in env_path.read_text().split("\n"):
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    existing[key.strip()] = value.strip()
+
+        # Get only provided fields (exclude None values)
+        config_dict = config.model_dump(exclude_none=True)
+
+        # Map configuration fields to environment variables
+        # Token fields (string values that need validation)
+        token_mapping = {
+            "claudeToken": "CLAUDE_CODE_OAUTH_TOKEN",
+            "linearApiKey": "LINEAR_API_KEY",
+            "gitlabToken": "GITLAB_TOKEN",
+            "githubToken": "GITHUB_TOKEN",
+            "openaiApiKey": "OPENAI_API_KEY",
+        }
+
+        for config_key, env_key in token_mapping.items():
+            if config_key in config_dict:
+                value = config_dict[config_key]
+                if value:
+                    # Strip whitespace and validate token is not empty
+                    value = value.strip()
+                    if not value:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"{config_key} cannot be empty"
+                        )
+                    # Validate minimum token length for security
+                    if len(value) < 10:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"{config_key} must be at least 10 characters"
+                        )
+                    existing[env_key] = value
+                else:
+                    # Remove token if explicitly set to empty string
+                    existing.pop(env_key, None)
+
+        # Map URL fields (string values)
+        if "anthropicBaseUrl" in config_dict:
+            value = config_dict["anthropicBaseUrl"]
+            if value:
+                value = value.strip()
+                # Validate URL format
+                if not value.startswith(("http://", "https://")):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="anthropicBaseUrl must start with http:// or https://"
+                    )
+                existing["ANTHROPIC_BASE_URL"] = value
+            else:
+                # Remove if explicitly set to empty string
+                existing.pop("ANTHROPIC_BASE_URL", None)
+
+        # Map boolean fields (convert to "true"/"false" strings)
+        bool_mapping = {
+            "graphitiEnabled": "GRAPHITI_ENABLED",
+            "debug": "DEBUG",
+        }
+
+        for config_key, env_key in bool_mapping.items():
+            if config_key in config_dict:
+                value = config_dict[config_key]
+                existing[env_key] = "true" if value else "false"
+
+        # Write updated .env file
+        env_lines = []
+
+        # Add header comment
+        env_lines.append("# Auto-Claude Environment Configuration")
+        env_lines.append("# Updated via Auto-Claude web interface")
+        env_lines.append("")
+
+        # Write all environment variables
+        for key, value in sorted(existing.items()):
+            env_lines.append(f"{key}={value}")
+
+        env_content = "\n".join(env_lines)
+        env_path.write_text(env_content)
+
+        # Set secure file permissions (owner read/write only)
+        # CRITICAL: .env files often contain sensitive API keys and tokens
+        env_path.chmod(0o600)
+
+        return {
+            "success": True,
+            "message": "Source environment configuration updated successfully",
+            "updated_fields": list(config_dict.keys())
+        }
+
+    except HTTPException:
+        raise
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to parse existing .env file: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update source environment: {str(e)}"
+        )
+
+
+@router.get("/source-token-check")
+async def check_source_token():
+    """Check source token status."""
+    return {"success": True, "data": {"valid": False}}
+
+
+# --------------------------------------------------------------------------
+# CLI Tools Info
+# --------------------------------------------------------------------------
+
+@router.get("/cli-tools")
+async def get_cli_tools_info():
+    """Get information about installed CLI tools."""
+    import shutil
+    return {
+        "success": True,
+        "data": {
+            "git": shutil.which("git") is not None,
+            "gh": shutil.which("gh") is not None,
+            "glab": shutil.which("glab") is not None,
+            "claude": shutil.which("claude") is not None,
+            "node": shutil.which("node") is not None,
+            "npm": shutil.which("npm") is not None,
+            "python": shutil.which("python") is not None,
+        }
+    }

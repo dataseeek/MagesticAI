@@ -1,0 +1,363 @@
+{
+  "total_endpoints": 10,
+  "verified": 10,
+  "failed": 0,
+  "endpoints": [
+    {
+      "id": "7.1",
+      "title": "update_merge_request",
+      "file": "gitlab.py",
+      "function": "update_merge_request",
+      "cli_tool": "glab",
+      "phase": "Phase 7: GitLab CLI Operations",
+      "checks": {
+        "exists": {
+          "passed": true,
+          "message": "Function exists"
+        },
+        "not_stub": {
+          "passed": true,
+          "message": "Not a stub"
+        },
+        "cli_execution": {
+          "passed": true,
+          "message": "CLI execution found: run_glab_command"
+        },
+        "error_handling": {
+          "passed": true,
+          "message": "Error handling present (5 patterns)"
+        },
+        "input_validation": {
+          "passed": true,
+          "message": "Input validation present (4 patterns)"
+        }
+      },
+      "status": "verified",
+      "issues": []
+    },
+    {
+      "id": "7.2",
+      "title": "assign_merge_request",
+      "file": "gitlab.py",
+      "function": "assign_merge_request",
+      "cli_tool": "glab",
+      "phase": "Phase 7: GitLab CLI Operations",
+      "checks": {
+        "exists": {
+          "passed": true,
+          "message": "Function exists"
+        },
+        "not_stub": {
+          "passed": true,
+          "message": "Not a stub"
+        },
+        "cli_execution": {
+          "passed": true,
+          "message": "CLI execution found: run_glab_command"
+        },
+        "error_handling": {
+          "passed": true,
+          "message": "Error handling present (5 patterns)"
+        },
+        "input_validation": {
+          "passed": true,
+          "message": "Input validation present (4 patterns)"
+        }
+      },
+      "status": "verified",
+      "issues": []
+    },
+    {
+      "id": "7.3",
+      "title": "approve_merge_request",
+      "file": "gitlab.py",
+      "function": "approve_merge_request",
+      "cli_tool": "glab",
+      "phase": "Phase 7: GitLab CLI Operations",
+      "checks": {
+        "exists": {
+          "passed": true,
+          "message": "Function exists"
+        },
+        "not_stub": {
+          "passed": true,
+          "message": "Not a stub"
+        },
+        "cli_execution": {
+          "passed": true,
+          "message": "CLI execution found: run_glab_command"
+        },
+        "error_handling": {
+          "passed": true,
+          "message": "Error handling present (5 patterns)"
+        },
+        "input_validation": {
+          "passed": true,
+          "message": "Input validation present (4 patterns)"
+        }
+      },
+      "status": "verified",
+      "issues": []
+    },
+    {
+      "id": "7.4",
+      "title": "merge_merge_request",
+      "file": "gitlab.py",
+      "function": "merge_merge_request",
+      "cli_tool": "glab",
+      "phase": "Phase 7: GitLab CLI Operations",
+      "checks": {
+        "exists": {
+          "passed": true,
+          "message": "Function exists"
+        },
+        "not_stub": {
+          "passed": true,
+          "message": "Not a stub"
+        },
+        "cli_execution": {
+          "passed": true,
+          "message": "CLI execution found: run_glab_command"
+        },
+        "error_handling": {
+          "passed": true,
+          "message": "Error handling present (5 patterns)"
+        },
+        "input_validation": {
+          "passed": true,
+          "message": "Input validation present (4 patterns)"
+        }
+      },
+      "status": "verified",
+      "issues": []
+    },
+    {
+      "id": "7.5",
+      "title": "post_merge_request_note",
+      "file": "gitlab.py",
+      "function": "post_mr_note",
+      "cli_tool": "glab",
+      "phase": "Phase 7: GitLab CLI Operations",
+      "checks": {
+        "exists": {
+          "passed": true,
+          "message": "Function exists"
+        },
+        "not_stub": {
+          "passed": true,
+          "message": "Not a stub"
+        },
+        "cli_execution": {
+          "passed": true,
+          "message": "CLI execution found: run_glab_command"
+        },
+        "error_handling": {
+          "passed": true,
+          "message": "Error handling present (5 patterns)"
+        },
+        "input_validation": {
+          "passed": true,
+          "message": "Input validation present (4 patterns)"
+        }
+      },
+      "status": "verified",
+      "issues": []
+    },
+    {
+      "id": "9.3",
+      "title": "invoke_claude_setup",
+      "file": "context.py",
+      "function": "invoke_claude_setup",
+      "cli_tool": "claude",
+      "phase": "Phase 9: Context Management",
+      "checks": {
+        "exists": {
+          "passed": true,
+          "message": "Function exists"
+        },
+        "not_stub": {
+          "passed": true,
+          "message": "Not a stub"
+        },
+        "cli_execution": {
+          "passed": true,
+          "message": "CLI execution found: subprocess\\.run"
+        },
+        "error_handling": {
+          "passed": true,
+          "message": "Error handling present (3 patterns)"
+        },
+        "input_validation": {
+          "passed": true,
+          "message": "Input validation present (2 patterns)"
+        }
+      },
+      "status": "verified",
+      "issues": []
+    },
+    {
+      "id": "10.1",
+      "title": "squash_commits",
+      "file": "git.py",
+      "function": "squash_commits",
+      "cli_tool": "git",
+      "phase": "Phase 10: Git Operations",
+      "checks": {
+        "exists": {
+          "passed": true,
+          "message": "Function exists"
+        },
+        "not_stub": {
+          "passed": true,
+          "message": "Not a stub"
+        },
+        "cli_execution": {
+          "passed": true,
+          "message": "CLI execution found: run_git_command"
+        },
+        "error_handling": {
+          "passed": true,
+          "message": "Error handling present (5 patterns)"
+        },
+        "input_validation": {
+          "passed": true,
+          "message": "Input validation present (2 patterns)"
+        }
+      },
+      "status": "verified",
+      "issues": []
+    },
+    {
+      "id": "10.2",
+      "title": "create_worktree",
+      "file": "git.py",
+      "function": "create_worktree",
+      "cli_tool": "git",
+      "phase": "Phase 10: Git Operations",
+      "checks": {
+        "exists": {
+          "passed": true,
+          "message": "Function exists"
+        },
+        "not_stub": {
+          "passed": true,
+          "message": "Not a stub"
+        },
+        "cli_execution": {
+          "passed": true,
+          "message": "CLI execution found: run_git_command"
+        },
+        "error_handling": {
+          "passed": true,
+          "message": "Error handling present (5 patterns)"
+        },
+        "input_validation": {
+          "passed": true,
+          "message": "Input validation present (2 patterns)"
+        }
+      },
+      "status": "verified",
+      "issues": []
+    },
+    {
+      "id": "14.1",
+      "title": "download_source_update",
+      "file": "git.py",
+      "function": "download_source_update",
+      "cli_tool": "git",
+      "phase": "Phase 14: Git Maintenance & Reviews",
+      "checks": {
+        "exists": {
+          "passed": true,
+          "message": "Function exists"
+        },
+        "not_stub": {
+          "passed": true,
+          "message": "Not a stub"
+        },
+        "cli_execution": {
+          "passed": true,
+          "message": "CLI execution found: run_git_command"
+        },
+        "error_handling": {
+          "passed": true,
+          "message": "Error handling present (3 patterns)"
+        },
+        "input_validation": {
+          "passed": true,
+          "message": "Input validation present (3 patterns)"
+        }
+      },
+      "status": "verified",
+      "issues": []
+    },
+    {
+      "id": "14.2",
+      "title": "create_release",
+      "file": "git.py",
+      "function": "create_release",
+      "cli_tool": "gh/glab",
+      "phase": "Phase 14: Git Maintenance & Reviews",
+      "checks": {
+        "exists": {
+          "passed": true,
+          "message": "Function exists"
+        },
+        "not_stub": {
+          "passed": true,
+          "message": "Not a stub"
+        },
+        "cli_execution": {
+          "passed": true,
+          "message": "CLI execution found: run_glab_command, run_gh_command"
+        },
+        "error_handling": {
+          "passed": true,
+          "message": "Error handling present (5 patterns)"
+        },
+        "input_validation": {
+          "passed": true,
+          "message": "Input validation present (2 patterns)"
+        }
+      },
+      "status": "verified",
+      "issues": []
+    }
+  ],
+  "by_phase": {
+    "Phase 7: GitLab CLI Operations": {
+      "total": 5,
+      "verified": 5
+    },
+    "Phase 9: Context Management": {
+      "total": 1,
+      "verified": 1
+    },
+    "Phase 10: Git Operations": {
+      "total": 2,
+      "verified": 2
+    },
+    "Phase 14: Git Maintenance & Reviews": {
+      "total": 2,
+      "verified": 2
+    }
+  },
+  "by_cli_tool": {
+    "glab": {
+      "total": 5,
+      "verified": 5
+    },
+    "claude": {
+      "total": 1,
+      "verified": 1
+    },
+    "git": {
+      "total": 3,
+      "verified": 3
+    },
+    "gh/glab": {
+      "total": 1,
+      "verified": 1
+    }
+  }
+}
