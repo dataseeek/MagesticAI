@@ -41,31 +41,31 @@ Copy `.env.example` to `.env` and customize:
 
 ```bash
 # Server settings
-AUTO_CLAUDE_HOST=0.0.0.0
-AUTO_CLAUDE_PORT=8000
-AUTO_CLAUDE_DEBUG=true
+APP_HOST=0.0.0.0
+APP_PORT=8000
+APP_DEBUG=true
 
 # SSL/HTTPS (optional)
-AUTO_CLAUDE_SSL_ENABLED=false
-# AUTO_CLAUDE_SSL_CERTFILE=/path/to/cert.pem
-# AUTO_CLAUDE_SSL_KEYFILE=/path/to/key.pem
+APP_SSL_ENABLED=false
+# APP_SSL_CERTFILE=/path/to/cert.pem
+# APP_SSL_KEYFILE=/path/to/key.pem
 
 # Authentication (auto-generated if not set)
-# AUTO_CLAUDE_API_TOKEN=your-secure-token-here
+# APP_API_TOKEN=your-secure-token-here
 
 # CORS origins (for frontend access)
-AUTO_CLAUDE_CORS_ORIGINS=["http://localhost:5173"]
+APP_CORS_ORIGINS=["http://localhost:5173"]
 
 # Paths
-# AUTO_CLAUDE_BACKEND_PATH=/path/to/apps/backend
-# AUTO_CLAUDE_PROJECTS_DATA_DIR=/path/to/data
+# APP_BACKEND_PATH=/path/to/apps/backend
+# APP_PROJECTS_DATA_DIR=/path/to/data
 
 # Terminal
-AUTO_CLAUDE_DEFAULT_SHELL=/bin/bash
-AUTO_CLAUDE_MAX_TERMINALS=20
+APP_DEFAULT_SHELL=/bin/bash
+APP_MAX_TERMINALS=20
 
 # Task execution
-AUTO_CLAUDE_MAX_CONCURRENT_TASKS=5
+APP_MAX_CONCURRENT_TASKS=5
 ```
 
 ## HTTPS Support
@@ -74,12 +74,12 @@ Enable HTTPS for secure connections:
 
 ```bash
 # Using auto-generated self-signed certificate
-AUTO_CLAUDE_SSL_ENABLED=true python -m server.main
+APP_SSL_ENABLED=true python -m server.main
 
 # Using custom certificates
-AUTO_CLAUDE_SSL_ENABLED=true \
-AUTO_CLAUDE_SSL_CERTFILE=/path/to/cert.pem \
-AUTO_CLAUDE_SSL_KEYFILE=/path/to/key.pem \
+APP_SSL_ENABLED=true \
+APP_SSL_CERTFILE=/path/to/cert.pem \
+APP_SSL_KEYFILE=/path/to/key.pem \
 python -m server.main
 ```
 
@@ -87,7 +87,7 @@ When SSL is enabled without custom certificates, self-signed certificates are au
 
 ## API Documentation
 
-When `AUTO_CLAUDE_DEBUG=true`, API docs are available at:
+When `APP_DEBUG=true`, API docs are available at:
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
 
@@ -233,7 +233,7 @@ Project data is stored in `~/.auto-claude-web/`:
 
 ```bash
 # Run with auto-reload
-AUTO_CLAUDE_DEBUG=true python -m server.main
+APP_DEBUG=true python -m server.main
 
 # Run tests
 pytest tests/

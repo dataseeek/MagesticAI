@@ -17,7 +17,8 @@ import {
   FileText,
   Sparkles,
   GitBranch,
-  Wrench
+  Wrench,
+  LogOut
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
@@ -43,6 +44,7 @@ import {
   initializeProject
 } from '../stores/project-store';
 import { useSettingsStore } from '../stores/settings-store';
+import { useAuthStore } from '../stores/auth-store';
 import { AddProjectModal } from './AddProjectModal';
 import { GitSetupModal } from './GitSetupModal';
 import { RateLimitIndicator } from './RateLimitIndicator';
@@ -100,6 +102,7 @@ export function Sidebar({
   const projects = useProjectStore((state) => state.projects);
   const selectedProjectId = useProjectStore((state) => state.selectedProjectId);
   const settings = useSettingsStore((state) => state.settings);
+  const logout = useAuthStore((state) => state.logout);
 
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const [showInitDialog, setShowInitDialog] = useState(false);
@@ -108,6 +111,7 @@ export function Sidebar({
   const [pendingProject, setPendingProject] = useState<Project | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [envConfig, setEnvConfig] = useState<ProjectEnvConfig | null>(null);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   // Persist skipped git setup in localStorage so it survives page refresh
   const [skippedGitSetup, setSkippedGitSetup] = useState<Set<string>>(() => {
@@ -332,6 +336,22 @@ export function Sidebar({
               {t('messages.initializeToCreateTasks')}
             </p>
           )}
+
+          {/* Logout */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setShowLogoutDialog(true)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                {t('actions.logout')}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {t('tooltips.logout')}
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -423,6 +443,30 @@ export function Sidebar({
           }
         }}
       />
+
+      {/* Logout Confirmation Dialog */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LogOut className="h-5 w-5" />
+              {t('logoutDialog.title')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('logoutDialog.description')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>
+              {t('logoutDialog.cancel')}
+            </Button>
+            <Button variant="destructive" onClick={() => { setShowLogoutDialog(false); logout(); }}>
+              <LogOut className="mr-2 h-4 w-4" />
+              {t('logoutDialog.confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }

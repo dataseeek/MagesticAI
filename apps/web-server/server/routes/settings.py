@@ -1003,35 +1003,15 @@ def _poll_token_and_save(profile_id: str, logger: logging.Logger, mtime_before: 
     logger.warning(f"[Claude OAuth] Token not detected for profile {profile_id} within timeout")
 
 
-def _capture_auth_url_from_output(output: str, logger: logging.Logger) -> str | None:
-    """
-    Extract the Claude OAuth URL from 'claude auth login' output.
-
-    The CLI prints lines like:
-      Opening browser to sign in...
-      If the browser didn't open, visit: https://claude.ai/oauth/authorize?...
-    We look for a URL containing 'claude.ai/oauth/authorize'.
-    """
-    import re
-
-    try:
-        # Match any URL containing claude.ai/oauth/authorize
-        match = re.search(r'https://claude\.ai/oauth/authorize\S+', output)
-        if match:
-            return match.group(0)
-    except Exception as e:  # pragma: no cover - best-effort
-        logger.warning(f"[Claude OAuth] Failed to capture auth URL: {e}")
-    return None
-
-
 @router.post("/claude-profiles/{profile_id}/start-oauth")
 async def start_claude_profile_oauth(profile_id: str):
     """
-    Start Claude OAuth by invoking `claude auth login` and polling for the token.
+    Start OAuth token polling for a profile.
 
-    Launches the CLI in the background, captures the OAuth URL from its output,
-    and polls ~/.claude/.credentials.json for the token once the user completes
-    the browser flow.
+    The actual `claude auth login` command runs in the app's interactive
+    terminal (frontend creates a PTY terminal and sends the command).
+    This endpoint just starts a background poller that watches
+    ~/.claude/.credentials.json for a new token and saves it to the profile.
     """
     logger = logging.getLogger(__name__)
 
@@ -1041,66 +1021,12 @@ async def start_claude_profile_oauth(profile_id: str):
     if not profile_exists:
         return {"success": False, "error": f"Profile {profile_id} not found"}
 
-    # Snapshot the credentials file mtime BEFORE launching the CLI so the
-    # poller only accepts tokens written after this point.
+    # Snapshot the credentials file mtime BEFORE the user runs `claude auth login`
+    # so the poller only accepts tokens written after this point.
     credentials_path = Path.home() / ".claude" / ".credentials.json"
     mtime_before = credentials_path.stat().st_mtime if credentials_path.exists() else 0
 
-    # Launch `claude auth login` — it prints the OAuth URL to stdout/stderr
-    # and works without a TTY (unlike `claude setup-token` which needs raw mode)
-    try:
-        # Unset CLAUDECODE env var to avoid "nested session" check
-        env = {**os.environ}
-        env.pop("CLAUDECODE", None)
-
-        proc = subprocess.Popen(
-            ["claude", "auth", "login"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            env=env,
-        )
-    except FileNotFoundError:
-        return {
-            "success": False,
-            "error": "Claude CLI not found. Install Claude Code CLI and try again.",
-        }
-    except Exception as e:  # pragma: no cover - defensive
-        return {"success": False, "error": f"Failed to start Claude OAuth: {e}"}
-
-    # Read output for up to 5 seconds to capture the OAuth URL
-    auth_url = None
-    output_lines = []
-
-    def _read_output():
-        nonlocal auth_url
-        if not proc.stdout:
-            return
-        start = time.time()
-        while time.time() - start < 8:
-            line = proc.stdout.readline()
-            if not line:
-                break
-            output_lines.append(line)
-            url = _capture_auth_url_from_output(line, logger)
-            if url:
-                auth_url = url
-                break
-
-    reader_thread = threading.Thread(target=_read_output, daemon=True)
-    reader_thread.start()
-    reader_thread.join(timeout=8)
-
-    if not auth_url:
-        # Try to extract from all collected output
-        full_output = "".join(output_lines)
-        auth_url = _capture_auth_url_from_output(full_output, logger)
-
-    if not auth_url:
-        logger.warning(f"[Claude OAuth] Could not capture auth URL. CLI output: {''.join(output_lines)}")
-
     # Start background poller to save the token once the CLI writes it.
-    # Pass mtime_before so it only accepts tokens written AFTER we launched the CLI.
     threading.Thread(
         target=_poll_token_and_save, args=(profile_id, logger, mtime_before), daemon=True
     ).start()
@@ -1108,9 +1034,20 @@ async def start_claude_profile_oauth(profile_id: str):
     return {
         "success": True,
         "data": {
-            "authUrl": auth_url,
-            "message": "Claude OAuth started. Complete the browser flow; token will be saved automatically.",
+            "message": "Token polling started. Run 'claude auth login' in the terminal to authenticate.",
         },
+    }
+
+
+@router.post("/claude-profiles/{profile_id}/complete-oauth")
+async def complete_claude_profile_oauth(profile_id: str, body: dict):
+    """
+    Legacy endpoint — no longer needed since auth happens in the terminal.
+    Kept for backward compatibility; returns success immediately.
+    """
+    return {
+        "success": True,
+        "data": {"message": "Auth is handled via the terminal. Token will be saved automatically."},
     }
 
 

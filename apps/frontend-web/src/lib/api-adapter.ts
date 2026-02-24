@@ -468,6 +468,8 @@ export const webAPI: API & { _isWebMode: boolean } = {
     post(`/settings/claude-profiles/${profileId}/initialize`),
   startClaudeProfileOAuth: (profileId: string) =>
     post(`/settings/claude-profiles/${profileId}/start-oauth`),
+  completeClaudeProfileOAuth: (profileId: string, code: string) =>
+    post(`/settings/claude-profiles/${profileId}/complete-oauth`, { code }),
   setClaudeProfileToken: (profileId: string, token: string, email?: string) =>
     post(`/settings/claude-profiles/${profileId}/token`, { token, email }),
   getAutoSwitchSettings: () => get<ClaudeAutoSwitchSettings>('/settings/auto-switch'),

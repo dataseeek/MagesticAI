@@ -204,13 +204,13 @@ nano apps/web-server/.env
 # =============================================================================
 
 # Bind address (0.0.0.0 allows remote access)
-AUTO_CLAUDE_HOST=0.0.0.0
+APP_HOST=0.0.0.0
 
 # Server port
-AUTO_CLAUDE_PORT=8000
+APP_PORT=8000
 
 # Enable debug mode
-AUTO_CLAUDE_DEBUG=true
+APP_DEBUG=true
 ```
 
 ### Authentication
@@ -221,7 +221,7 @@ AUTO_CLAUDE_DEBUG=true
 # =============================================================================
 
 # API token - auto-generated if not set
-# AUTO_CLAUDE_API_TOKEN=your-secure-token-here
+# APP_API_TOKEN=your-secure-token-here
 ```
 
 The API token is automatically generated on first run and saved to `~/.auto-claude-web/.token`.
@@ -234,12 +234,12 @@ The API token is automatically generated on first run and saved to `~/.auto-clau
 # =============================================================================
 
 # Enable HTTPS
-AUTO_CLAUDE_SSL_ENABLED=false
+APP_SSL_ENABLED=false
 
 # Custom certificate paths (optional)
 # If not provided, self-signed certificates are generated
-AUTO_CLAUDE_SSL_CERTFILE=/path/to/cert.pem
-AUTO_CLAUDE_SSL_KEYFILE=/path/to/key.pem
+APP_SSL_CERTFILE=/path/to/cert.pem
+APP_SSL_KEYFILE=/path/to/key.pem
 ```
 
 ### CORS Settings
@@ -250,7 +250,7 @@ AUTO_CLAUDE_SSL_KEYFILE=/path/to/key.pem
 # =============================================================================
 
 # Allowed origins (JSON array format)
-AUTO_CLAUDE_CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
+APP_CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
 ```
 
 ### Terminal Settings
@@ -261,10 +261,10 @@ AUTO_CLAUDE_CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
 # =============================================================================
 
 # Default shell for terminals
-AUTO_CLAUDE_DEFAULT_SHELL=/bin/bash
+APP_DEFAULT_SHELL=/bin/bash
 
 # Maximum concurrent terminals
-AUTO_CLAUDE_MAX_TERMINALS=20
+APP_MAX_TERMINALS=20
 ```
 
 ### Task Execution
@@ -275,7 +275,7 @@ AUTO_CLAUDE_MAX_TERMINALS=20
 # =============================================================================
 
 # Maximum concurrent AI tasks
-AUTO_CLAUDE_MAX_CONCURRENT_TASKS=5
+APP_MAX_CONCURRENT_TASKS=5
 ```
 
 ### Path Configuration
@@ -286,10 +286,10 @@ AUTO_CLAUDE_MAX_CONCURRENT_TASKS=5
 # =============================================================================
 
 # Path to backend agents
-AUTO_CLAUDE_BACKEND_PATH=/path/to/apps/backend
+APP_BACKEND_PATH=/path/to/apps/backend
 
 # Directory for project data storage
-AUTO_CLAUDE_PROJECTS_DATA_DIR=/path/to/data/directory
+APP_PROJECTS_DATA_DIR=/path/to/data/directory
 ```
 
 ---
@@ -549,11 +549,11 @@ For production deployments, enable HTTPS:
 
 ```bash
 # Enable SSL
-AUTO_CLAUDE_SSL_ENABLED=true
+APP_SSL_ENABLED=true
 
 # Use custom certificates (recommended for production)
-AUTO_CLAUDE_SSL_CERTFILE=/etc/ssl/certs/your-cert.pem
-AUTO_CLAUDE_SSL_KEYFILE=/etc/ssl/private/your-key.pem
+APP_SSL_CERTFILE=/etc/ssl/certs/your-cert.pem
+APP_SSL_KEYFILE=/etc/ssl/private/your-key.pem
 ```
 
 Self-signed certificates are automatically generated if custom paths aren't provided.
@@ -578,21 +578,21 @@ echo ".env.*" >> .gitignore
 
 ```bash
 # Production server settings
-AUTO_CLAUDE_HOST=0.0.0.0
-AUTO_CLAUDE_PORT=8000
-AUTO_CLAUDE_DEBUG=false
+APP_HOST=0.0.0.0
+APP_PORT=8000
+APP_DEBUG=false
 
 # Enable HTTPS
-AUTO_CLAUDE_SSL_ENABLED=true
-AUTO_CLAUDE_SSL_CERTFILE=/etc/ssl/certs/production.pem
-AUTO_CLAUDE_SSL_KEYFILE=/etc/ssl/private/production-key.pem
+APP_SSL_ENABLED=true
+APP_SSL_CERTFILE=/etc/ssl/certs/production.pem
+APP_SSL_KEYFILE=/etc/ssl/private/production-key.pem
 
 # Restricted CORS origins
-AUTO_CLAUDE_CORS_ORIGINS=["https://your-domain.com"]
+APP_CORS_ORIGINS=["https://your-domain.com"]
 
 # Resource limits
-AUTO_CLAUDE_MAX_TERMINALS=50
-AUTO_CLAUDE_MAX_CONCURRENT_TASKS=10
+APP_MAX_TERMINALS=50
+APP_MAX_CONCURRENT_TASKS=10
 ```
 
 #### Backend (apps/backend/.env)
@@ -656,7 +656,7 @@ server {
 | Setting | Development | Production |
 |---------|-------------|------------|
 | `DEBUG` | `true` | `false` |
-| `AUTO_CLAUDE_DEBUG` | `true` | `false` |
+| `APP_DEBUG` | `true` | `false` |
 | `SSL_ENABLED` | `false` | `true` |
 | `CORS_ORIGINS` | `localhost:*` | Specific domains |
 | `MAX_CONCURRENT_TASKS` | `5` | `10+` |
@@ -672,9 +672,9 @@ CLAUDE_CODE_OAUTH_TOKEN=your-token
 GRAPHITI_ENABLED=true
 
 # Web Server .env
-AUTO_CLAUDE_DEBUG=true
-AUTO_CLAUDE_HOST=127.0.0.1
-AUTO_CLAUDE_PORT=8000
+APP_DEBUG=true
+APP_HOST=127.0.0.1
+APP_PORT=8000
 ```
 
 ### Production Checklist
@@ -780,19 +780,19 @@ Available models:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `AUTO_CLAUDE_HOST` | No | `0.0.0.0` | Server bind address |
-| `AUTO_CLAUDE_PORT` | No | `8000` | Server port |
-| `AUTO_CLAUDE_DEBUG` | No | `false` | Debug mode |
-| `AUTO_CLAUDE_API_TOKEN` | No | Auto-generated | API token |
-| `AUTO_CLAUDE_CORS_ORIGINS` | No | `localhost:*` | CORS origins |
-| `AUTO_CLAUDE_SSL_ENABLED` | No | `false` | Enable HTTPS |
-| `AUTO_CLAUDE_SSL_CERTFILE` | No | Auto-generated | SSL certificate |
-| `AUTO_CLAUDE_SSL_KEYFILE` | No | Auto-generated | SSL private key |
-| `AUTO_CLAUDE_DEFAULT_SHELL` | No | `/bin/bash` | Default shell |
-| `AUTO_CLAUDE_MAX_TERMINALS` | No | `20` | Max terminals |
-| `AUTO_CLAUDE_MAX_CONCURRENT_TASKS` | No | `5` | Max concurrent tasks |
-| `AUTO_CLAUDE_BACKEND_PATH` | No | Auto-detect | Backend path |
-| `AUTO_CLAUDE_PROJECTS_DATA_DIR` | No | `~/.auto-claude-web` | Data directory |
+| `APP_HOST` | No | `0.0.0.0` | Server bind address |
+| `APP_PORT` | No | `8000` | Server port |
+| `APP_DEBUG` | No | `false` | Debug mode |
+| `APP_API_TOKEN` | No | Auto-generated | API token |
+| `APP_CORS_ORIGINS` | No | `localhost:*` | CORS origins |
+| `APP_SSL_ENABLED` | No | `false` | Enable HTTPS |
+| `APP_SSL_CERTFILE` | No | Auto-generated | SSL certificate |
+| `APP_SSL_KEYFILE` | No | Auto-generated | SSL private key |
+| `APP_DEFAULT_SHELL` | No | `/bin/bash` | Default shell |
+| `APP_MAX_TERMINALS` | No | `20` | Max terminals |
+| `APP_MAX_CONCURRENT_TASKS` | No | `5` | Max concurrent tasks |
+| `APP_BACKEND_PATH` | No | Auto-detect | Backend path |
+| `APP_PROJECTS_DATA_DIR` | No | `~/.auto-claude-web` | Data directory |
 
 ---
 

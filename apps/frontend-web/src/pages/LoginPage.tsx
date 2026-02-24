@@ -49,7 +49,7 @@ export function LoginPage() {
               required
             />
             <p className="mt-2 text-xs text-muted-foreground">
-              Set your token in the server's .env file (AUTO_CLAUDE_TOKEN)
+              Set your token in the server's .env file (APP_API_TOKEN)
             </p>
           </div>
 

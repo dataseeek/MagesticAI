@@ -138,6 +138,15 @@ function AuthenticatedApp() {
     }
   }, [activeProjectId, selectedProjectId]);
 
+  // Safety timeout: auto-clear stuck switching state after 10 seconds
+  useEffect(() => {
+    if (!isSwitchingProject) return;
+    const timeout = setTimeout(() => {
+      useProjectStore.getState().clearSwitchingState();
+    }, 10_000);
+    return () => clearTimeout(timeout);
+  }, [isSwitchingProject]);
+
   // Apply theme
   useEffect(() => {
     const root = document.documentElement;

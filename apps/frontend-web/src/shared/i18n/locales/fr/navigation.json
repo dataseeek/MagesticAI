@@ -20,11 +20,19 @@
   "actions": {
     "settings": "Paramètres",
     "help": "Aide & Feedback",
-    "newTask": "Tâche"
+    "newTask": "Tâche",
+    "logout": "Déconnexion"
   },
   "tooltips": {
     "settings": "Paramètres de l'application",
-    "help": "Aide & Feedback"
+    "help": "Aide & Feedback",
+    "logout": "Se déconnecter et revenir à l'écran de connexion"
+  },
+  "logoutDialog": {
+    "title": "Déconnexion",
+    "description": "Êtes-vous sûr de vouloir vous déconnecter ? Vous devrez entrer votre jeton API à nouveau.",
+    "confirm": "Déconnexion",
+    "cancel": "Annuler"
   },
   "messages": {
     "initializeToCreateTasks": "Initialisez Martinica pour créer des tâches"

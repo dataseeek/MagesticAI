@@ -104,7 +104,12 @@
       "updating": "Update Claude Code",
       "inProgress": "Installing...",
       "success": "Installation command sent to terminal. Please complete the installation there.",
-      "instructions": "The installer will open in your terminal. Follow the prompts to complete installation."
+      "successComplete": "Claude Code CLI installed successfully!",
+      "instructions": "The installer will open in your terminal. Follow the prompts to complete installation.",
+      "stepClaude": "Installing Claude Code CLI...",
+      "stepDone": "Installation complete",
+      "nodeRequired": "Node.js is required",
+      "nodeRequiredDescription": "Install Node.js first, then run the following command:"
     },
     "learnMore": "Learn more about Claude Code"
   },

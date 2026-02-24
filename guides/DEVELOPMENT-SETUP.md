@@ -252,26 +252,26 @@ python -m server.main
 
 ```bash
 # Server settings
-AUTO_CLAUDE_HOST=0.0.0.0        # Listen on all interfaces
-AUTO_CLAUDE_PORT=8000           # Server port
-AUTO_CLAUDE_DEBUG=true          # Enable debug mode (required for API docs)
+APP_HOST=0.0.0.0        # Listen on all interfaces
+APP_PORT=8000           # Server port
+APP_DEBUG=true          # Enable debug mode (required for API docs)
 
 # Authentication (auto-generated if not set)
-# AUTO_CLAUDE_API_TOKEN=your-secure-token
+# APP_API_TOKEN=your-secure-token
 
 # CORS origins (frontend URLs allowed to connect)
-AUTO_CLAUDE_CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
+APP_CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
 
 # Paths (auto-detected if not set)
-# AUTO_CLAUDE_BACKEND_PATH=/path/to/apps/backend
-# AUTO_CLAUDE_PROJECTS_DATA_DIR=/path/to/data
+# APP_BACKEND_PATH=/path/to/apps/backend
+# APP_PROJECTS_DATA_DIR=/path/to/data
 
 # Terminal settings
-AUTO_CLAUDE_DEFAULT_SHELL=/bin/bash
-AUTO_CLAUDE_MAX_TERMINALS=20
+APP_DEFAULT_SHELL=/bin/bash
+APP_MAX_TERMINALS=20
 
 # Task execution
-AUTO_CLAUDE_MAX_CONCURRENT_TASKS=5
+APP_MAX_CONCURRENT_TASKS=5
 ```
 
 ### Project Structure
@@ -306,7 +306,7 @@ apps/web-server/
 
 ### API Documentation
 
-When `AUTO_CLAUDE_DEBUG=true`, API documentation is available at:
+When `APP_DEBUG=true`, API documentation is available at:
 
 | URL | Documentation |
 |-----|---------------|
@@ -317,7 +317,7 @@ When `AUTO_CLAUDE_DEBUG=true`, API documentation is available at:
 
 ```bash
 # The server auto-reloads when DEBUG is enabled
-AUTO_CLAUDE_DEBUG=true python -m server.main
+APP_DEBUG=true python -m server.main
 ```
 
 For manual uvicorn control with specific reload options:
@@ -452,7 +452,7 @@ Create `.vscode/launch.json` in the project root:
       "module": "server.main",
       "cwd": "${workspaceFolder}/apps/web-server",
       "env": {
-        "AUTO_CLAUDE_DEBUG": "true"
+        "APP_DEBUG": "true"
       },
       "console": "integratedTerminal"
     },
@@ -527,7 +527,7 @@ Create `.vscode/settings.json`:
 3. **Run Configuration for Web Server:**
    - Script path: `-m server.main`
    - Working directory: `apps/web-server`
-   - Environment variables: `AUTO_CLAUDE_DEBUG=true`
+   - Environment variables: `APP_DEBUG=true`
 
 ### Chrome DevTools
 
@@ -829,14 +829,14 @@ app.include_router(new_feature.router)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `AUTO_CLAUDE_HOST` | `0.0.0.0` | Server bind address |
-| `AUTO_CLAUDE_PORT` | `8000` | Server port |
-| `AUTO_CLAUDE_DEBUG` | `false` | Enable debug mode and API docs |
-| `AUTO_CLAUDE_API_TOKEN` | Auto-generated | Authentication token |
-| `AUTO_CLAUDE_CORS_ORIGINS` | `["http://localhost:5173"]` | Allowed CORS origins |
-| `AUTO_CLAUDE_DEFAULT_SHELL` | `/bin/bash` | Default terminal shell |
-| `AUTO_CLAUDE_MAX_TERMINALS` | `20` | Maximum terminal sessions |
-| `AUTO_CLAUDE_MAX_CONCURRENT_TASKS` | `5` | Maximum parallel tasks |
+| `APP_HOST` | `0.0.0.0` | Server bind address |
+| `APP_PORT` | `8000` | Server port |
+| `APP_DEBUG` | `false` | Enable debug mode and API docs |
+| `APP_API_TOKEN` | Auto-generated | Authentication token |
+| `APP_CORS_ORIGINS` | `["http://localhost:5173"]` | Allowed CORS origins |
+| `APP_DEFAULT_SHELL` | `/bin/bash` | Default terminal shell |
+| `APP_MAX_TERMINALS` | `20` | Maximum terminal sessions |
+| `APP_MAX_CONCURRENT_TASKS` | `5` | Maximum parallel tasks |
 
 ### Backend (apps/backend/.env)
 

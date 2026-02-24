@@ -177,14 +177,14 @@ Open `apps/web-server/.env` and verify or customize:
 
 ```bash
 # Server binding (0.0.0.0 allows remote access)
-AUTO_CLAUDE_HOST=0.0.0.0
-AUTO_CLAUDE_PORT=8000
+APP_HOST=0.0.0.0
+APP_PORT=8000
 
 # Enable debug mode for development
-AUTO_CLAUDE_DEBUG=true
+APP_DEBUG=true
 
 # API token is auto-generated if not set
-# AUTO_CLAUDE_API_TOKEN=your-custom-token
+# APP_API_TOKEN=your-custom-token
 ```
 
 ### Step 4: Start the Servers

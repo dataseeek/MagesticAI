@@ -265,7 +265,7 @@ curl http://127.0.0.1:3456/health
 2. **Wrong port:**
    ```bash
    # Check which port is configured
-   grep AUTO_CLAUDE_PORT apps/web-server/.env
+   grep APP_PORT apps/web-server/.env
 
    # Default is 8000, ensure frontend uses the same
    ```
@@ -291,7 +291,7 @@ curl http://127.0.0.1:3456/health
 # Common fixes:
 # 1. Disable browser extensions that block WebSockets
 # 2. Check CORS settings in apps/web-server/.env:
-AUTO_CLAUDE_CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
+APP_CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
 
 # 3. Try a different browser
 # 4. Clear browser cache and cookies
@@ -304,7 +304,7 @@ AUTO_CLAUDE_CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
 **Solution:**
 ```bash
 # Edit apps/web-server/.env
-AUTO_CLAUDE_CORS_ORIGINS=["http://localhost:5173", "http://127.0.0.1:5173"]
+APP_CORS_ORIGINS=["http://localhost:5173", "http://127.0.0.1:5173"]
 
 # Restart web server
 pkill -f "server.main"
@@ -337,7 +337,7 @@ HTTPS_PROXY=http://your-proxy:8080
 **Solution:**
 ```bash
 # Check maximum terminals limit
-grep AUTO_CLAUDE_MAX_TERMINALS apps/web-server/.env
+grep APP_MAX_TERMINALS apps/web-server/.env
 # Default is 20, increase if needed
 
 # Check for shell availability
@@ -345,7 +345,7 @@ which bash  # or which zsh
 
 # Set explicit shell path
 # In apps/web-server/.env:
-AUTO_CLAUDE_DEFAULT_SHELL=/bin/bash
+APP_DEFAULT_SHELL=/bin/bash
 ```
 
 ### Terminal Output Garbled
@@ -419,7 +419,7 @@ python -c "import os; print('OAuth Token:', 'SET' if os.getenv('CLAUDE_CODE_OAUT
 curl http://localhost:8000/api/settings
 
 # Check for maximum concurrent task limits
-grep AUTO_CLAUDE_MAX_CONCURRENT_TASKS apps/web-server/.env
+grep APP_MAX_CONCURRENT_TASKS apps/web-server/.env
 ```
 
 ### Task Fails Immediately
@@ -737,10 +737,10 @@ npm run typecheck
 ```bash
 # Reduce concurrent tasks
 # In apps/web-server/.env:
-AUTO_CLAUDE_MAX_CONCURRENT_TASKS=2
+APP_MAX_CONCURRENT_TASKS=2
 
 # Reduce terminal count
-AUTO_CLAUDE_MAX_TERMINALS=10
+APP_MAX_TERMINALS=10
 
 # Use lighter model for simple tasks
 # In apps/backend/.env:
@@ -827,7 +827,7 @@ DEBUG_LOG_FILE=debug.log
 **Web Server Debug:**
 ```bash
 # In apps/web-server/.env:
-AUTO_CLAUDE_DEBUG=true
+APP_DEBUG=true
 
 # This enables:
 # - Detailed error messages
@@ -858,7 +858,7 @@ grep -i error apps/backend/debug.log
 
 ### API Request Debugging
 
-When `AUTO_CLAUDE_DEBUG=true`:
+When `APP_DEBUG=true`:
 
 1. Open `http://localhost:8000/docs` for Swagger UI
 2. Test endpoints interactively
@@ -949,10 +949,10 @@ npm run install:all
 A: Yes, but use different ports:
 ```bash
 # Instance 1
-AUTO_CLAUDE_PORT=8000 python -m server.main
+APP_PORT=8000 python -m server.main
 
 # Instance 2 (different terminal)
-AUTO_CLAUDE_PORT=8001 python -m server.main
+APP_PORT=8001 python -m server.main
 ```
 
 ### Authentication

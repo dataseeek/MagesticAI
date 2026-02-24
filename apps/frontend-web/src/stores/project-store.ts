@@ -161,6 +161,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   setActiveProject: (projectId) => {
+    const state = get();
+    // If already on this project, no-op (avoids stuck switching modal)
+    if (state.activeProjectId === projectId) return;
+
     set({ activeProjectId: projectId, isSwitchingProject: true });
     // Also update selectedProjectId for backward compatibility
     get().selectProject(projectId);
