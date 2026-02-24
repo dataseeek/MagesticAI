@@ -88,22 +88,12 @@ import type {
   ReleaseProgress
 } from './changelog';
 import type {
-  IdeationSession,
-  IdeationConfig,
-  IdeationStatus,
-  IdeationGenerationStatus,
-  Idea,
   InsightsSession,
   InsightsSessionSummary,
   InsightsChatStatus,
   InsightsStreamChunk,
   InsightsModelConfig
 } from './insights';
-import type {
-  Roadmap,
-  RoadmapFeatureStatus,
-  RoadmapGenerationStatus
-} from './roadmap';
 import type {
   LinearTeam,
   LinearProject,
@@ -313,37 +303,6 @@ export interface API {
   // App info
   getAppVersion: () => Promise<string>;
 
-  // Roadmap operations
-  getRoadmap: (projectId: string) => Promise<IPCResult<Roadmap | null>>;
-  getRoadmapStatus: (projectId: string) => Promise<IPCResult<{ isRunning: boolean }>>;
-  saveRoadmap: (projectId: string, roadmap: Roadmap) => Promise<IPCResult>;
-  generateRoadmap: (projectId: string, enableCompetitorAnalysis?: boolean, refreshCompetitorAnalysis?: boolean) => void;
-  refreshRoadmap: (projectId: string, enableCompetitorAnalysis?: boolean, refreshCompetitorAnalysis?: boolean) => void;
-  stopRoadmap: (projectId: string) => Promise<IPCResult>;
-  updateFeatureStatus: (
-    projectId: string,
-    featureId: string,
-    status: RoadmapFeatureStatus
-  ) => Promise<IPCResult>;
-  convertFeatureToSpec: (
-    projectId: string,
-    featureId: string
-  ) => Promise<IPCResult<Task>>;
-
-  // Roadmap event listeners
-  onRoadmapProgress: (
-    callback: (projectId: string, status: RoadmapGenerationStatus) => void
-  ) => () => void;
-  onRoadmapComplete: (
-    callback: (projectId: string, roadmap: Roadmap) => void
-  ) => () => void;
-  onRoadmapError: (
-    callback: (projectId: string, error: string) => void
-  ) => () => void;
-  onRoadmapStopped: (
-    callback: (projectId: string) => void
-  ) => () => void;
-
   // Context operations
   getProjectContext: (projectId: string) => Promise<IPCResult<ProjectContextData>>;
   refreshProjectIndex: (projectId: string) => Promise<IPCResult<ProjectIndex>>;
@@ -546,42 +505,6 @@ export interface API {
   ) => () => void;
   onReleaseError: (
     callback: (projectId: string, error: string) => void
-  ) => () => void;
-
-  // Ideation operations
-  getIdeation: (projectId: string) => Promise<IPCResult<IdeationSession | null>>;
-  generateIdeation: (projectId: string, config: IdeationConfig) => void;
-  refreshIdeation: (projectId: string, config: IdeationConfig) => void;
-  stopIdeation: (projectId: string) => Promise<IPCResult>;
-  updateIdeaStatus: (projectId: string, ideaId: string, status: IdeationStatus) => Promise<IPCResult>;
-  convertIdeaToTask: (projectId: string, ideaId: string) => Promise<IPCResult<Task>>;
-  dismissIdea: (projectId: string, ideaId: string) => Promise<IPCResult>;
-  dismissAllIdeas: (projectId: string) => Promise<IPCResult>;
-  archiveIdea: (projectId: string, ideaId: string) => Promise<IPCResult>;
-  deleteIdea: (projectId: string, ideaId: string) => Promise<IPCResult>;
-  deleteMultipleIdeas: (projectId: string, ideaIds: string[]) => Promise<IPCResult>;
-
-  // Ideation event listeners
-  onIdeationProgress: (
-    callback: (projectId: string, status: IdeationGenerationStatus) => void
-  ) => () => void;
-  onIdeationLog: (
-    callback: (projectId: string, log: string) => void
-  ) => () => void;
-  onIdeationComplete: (
-    callback: (projectId: string, session: IdeationSession) => void
-  ) => () => void;
-  onIdeationError: (
-    callback: (projectId: string, error: string) => void
-  ) => () => void;
-  onIdeationStopped: (
-    callback: (projectId: string) => void
-  ) => () => void;
-  onIdeationTypeComplete: (
-    callback: (projectId: string, ideationType: string, ideas: Idea[]) => void
-  ) => () => void;
-  onIdeationTypeFailed: (
-    callback: (projectId: string, ideationType: string) => void
   ) => () => void;
 
   // Auto Claude source update operations

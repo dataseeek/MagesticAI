@@ -8,16 +8,14 @@
     "terminals": "Terminais de Agentes",
     "editor": "Editor de Arquivos",
     "chat": "Chat",
-    "roadmap": "Roadmap",
-    "ideation": "Ideação",
     "changelog": "Changelog",
-    "context": "Contexto",
+    "context": "Índice & Memória",
     "githubIssues": "Issues do GitHub",
     "githubPRs": "PRs do GitHub",
     "gitlabIssues": "Issues do GitLab",
     "gitlabMRs": "MRs do GitLab",
     "worktrees": "Worktrees",
-    "agentTools": "Visão Geral MCP"
+    "agentTools": "MCP"
   },
   "actions": {
     "settings": "Configurações",

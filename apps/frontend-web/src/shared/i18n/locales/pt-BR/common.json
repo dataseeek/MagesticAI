@@ -93,8 +93,6 @@
     "sources": {
       "changelog": "Changelog",
       "task": "Tarefa",
-      "roadmap": "Roadmap",
-      "ideation": "Ideação",
       "titleGenerator": "Gerador de Títulos",
       "claude": "Claude"
     }

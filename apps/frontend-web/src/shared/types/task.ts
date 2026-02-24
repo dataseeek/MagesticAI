@@ -153,7 +153,7 @@ export interface TaskDraft {
   savedAt: Date;
 }
 
-// Task metadata from ideation or manual entry
+// Task metadata
 export type TaskComplexity = 'trivial' | 'small' | 'medium' | 'large' | 'complex';
 export type TaskImpact = 'low' | 'medium' | 'high' | 'critical';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -173,10 +173,7 @@ export type TaskCategory =
 
 export interface TaskMetadata {
   // Origin tracking
-  sourceType?: 'ideation' | 'manual' | 'imported' | 'insights' | 'roadmap' | 'linear' | 'github' | 'gitlab';
-  ideationType?: string;  // e.g., 'code_improvements', 'security_hardening'
-  ideaId?: string;  // Reference to original idea if converted
-  featureId?: string;  // Reference to roadmap feature if from roadmap
+  sourceType?: 'manual' | 'imported' | 'insights' | 'linear' | 'github' | 'gitlab';
   linearIssueId?: string;  // Reference to Linear issue if from Linear
   linearIdentifier?: string;  // Linear issue identifier (e.g., 'ABC-123')
   linearUrl?: string;  // Linear issue URL
@@ -251,7 +248,7 @@ export interface Task {
   subtasks: Subtask[];
   qaReport?: QAReport;
   logs: string[];
-  metadata?: TaskMetadata;  // Rich metadata from ideation or manual entry
+  metadata?: TaskMetadata;
   executionProgress?: ExecutionProgress;  // Real-time execution progress
   releasedInVersion?: string;  // Version in which this task was released
   stagedInMainProject?: boolean;  // True if changes were staged to main project (worktree merged with --no-commit)

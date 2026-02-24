@@ -156,16 +156,16 @@ export function LLMProviderSettings({ settings, onSettingsChange }: LLMProviderS
         <div className="space-y-2">
           <Label>{t('settings:sections.llmProvider.anthropic.model')}</Label>
           <Select
-            value={settings.llmAnthropicModel || 'claude-sonnet-4-5-20250929'}
+            value={settings.llmAnthropicModel || 'claude-sonnet-4-6'}
             onValueChange={(value) => onSettingsChange({ llmAnthropicModel: value })}
           >
             <SelectTrigger className="w-full max-w-md">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</SelectItem>
-              <SelectItem value="claude-opus-4-5-20251101">Claude Opus 4.5</SelectItem>
-              <SelectItem value="claude-haiku-4-20250131">Claude Haiku 4</SelectItem>
+              <SelectItem value="claude-opus-4-6">Claude Opus 4.6</SelectItem>
+              <SelectItem value="claude-sonnet-4-6">Claude Sonnet 4.6</SelectItem>
+              <SelectItem value="claude-haiku-4-5-20251001">Claude Haiku 4.5</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-sm text-muted-foreground">

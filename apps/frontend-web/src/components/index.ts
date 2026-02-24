@@ -6,7 +6,6 @@ export * from './TaskCreationWizard';
 export * from './TaskEditDialog';
 export * from './AppSettings';
 export * from './Context';
-export * from './Ideation';
 export * from './GitHubIssues';
 export * from './Changelog';
 export * from './WelcomeScreen';

@@ -12,12 +12,6 @@ export * from './ipc';
 // Task-related constants
 export * from './task';
 
-// Roadmap constants
-export * from './roadmap';
-
-// Ideation constants
-export * from './ideation';
-
 // Changelog constants
 export * from './changelog';
 

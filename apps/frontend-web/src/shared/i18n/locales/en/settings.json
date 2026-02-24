@@ -27,7 +27,7 @@
     },
     "llmProvider": {
       "title": "LLM Provider",
-      "description": "Choose which AI model to use for changelog, roadmap, and ideation generation",
+      "description": "Choose which AI model to use for changelog generation",
       "futureNotice": "This feature is planned for future implementation. Settings are saved but not yet active.",
       "providerLabel": "Provider",
       "providers": {
@@ -98,7 +98,7 @@
     "aiTerminalNaming": "AI Terminal Naming",
     "aiTerminalNamingDescription": "Automatically name terminals based on commands (uses Haiku)",
     "featureModelSettings": "Feature Model Settings",
-    "featureModelSettingsDescription": "Model and thinking level for Chat, Ideation, and Roadmap",
+    "featureModelSettingsDescription": "Model and thinking level for Chat and GitHub features",
     "model": "Model",
     "thinkingLevel": "Thinking Level",
     "paths": "Paths",

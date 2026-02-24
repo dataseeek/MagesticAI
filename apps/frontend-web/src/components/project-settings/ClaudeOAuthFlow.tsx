@@ -131,8 +131,8 @@ export function ClaudeOAuthFlow({ onSuccess, onCancel }: ClaudeOAuthFlowProps) {
                     Authenticate with Claude
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Auto Claude requires Claude AI authentication for AI-powered features like
-                    Roadmap generation, Task automation, and Ideation.
+                    Martinica requires Claude AI authentication for AI-powered features like
+                    Task automation and Insights.
                   </p>
                   <p className="text-sm text-muted-foreground">
                     This will open a browser window to authenticate with your Claude account.

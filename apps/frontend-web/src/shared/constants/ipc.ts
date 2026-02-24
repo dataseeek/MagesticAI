@@ -139,23 +139,6 @@ export const IPC_CHANNELS = {
   SHELL_OPEN_EXTERNAL: 'shell:openExternal',
   SHELL_OPEN_TERMINAL: 'shell:openTerminal',
 
-  // Roadmap operations
-  ROADMAP_GET: 'roadmap:get',
-  ROADMAP_GET_STATUS: 'roadmap:getStatus',
-  ROADMAP_SAVE: 'roadmap:save',
-  ROADMAP_GENERATE: 'roadmap:generate',
-  ROADMAP_GENERATE_WITH_COMPETITOR: 'roadmap:generateWithCompetitor',
-  ROADMAP_REFRESH: 'roadmap:refresh',
-  ROADMAP_STOP: 'roadmap:stop',
-  ROADMAP_UPDATE_FEATURE: 'roadmap:updateFeature',
-  ROADMAP_CONVERT_TO_SPEC: 'roadmap:convertToSpec',
-
-  // Roadmap events (main -> renderer)
-  ROADMAP_PROGRESS: 'roadmap:progress',
-  ROADMAP_COMPLETE: 'roadmap:complete',
-  ROADMAP_ERROR: 'roadmap:error',
-  ROADMAP_STOPPED: 'roadmap:stopped',
-
   // Context operations
   CONTEXT_GET: 'context:get',
   CONTEXT_REFRESH_INDEX: 'context:refreshIndex',
@@ -168,28 +151,6 @@ export const IPC_CHANNELS = {
   ENV_UPDATE: 'env:update',
   ENV_CHECK_CLAUDE_AUTH: 'env:checkClaudeAuth',
   ENV_INVOKE_CLAUDE_SETUP: 'env:invokeClaudeSetup',
-
-  // Ideation operations
-  IDEATION_GET: 'ideation:get',
-  IDEATION_GENERATE: 'ideation:generate',
-  IDEATION_REFRESH: 'ideation:refresh',
-  IDEATION_STOP: 'ideation:stop',
-  IDEATION_UPDATE_IDEA: 'ideation:updateIdea',
-  IDEATION_CONVERT_TO_TASK: 'ideation:convertToTask',
-  IDEATION_DISMISS: 'ideation:dismiss',
-  IDEATION_DISMISS_ALL: 'ideation:dismissAll',
-  IDEATION_ARCHIVE: 'ideation:archive',
-  IDEATION_DELETE: 'ideation:delete',
-  IDEATION_DELETE_MULTIPLE: 'ideation:deleteMultiple',
-
-  // Ideation events (main -> renderer)
-  IDEATION_PROGRESS: 'ideation:progress',
-  IDEATION_LOG: 'ideation:log',
-  IDEATION_COMPLETE: 'ideation:complete',
-  IDEATION_ERROR: 'ideation:error',
-  IDEATION_STOPPED: 'ideation:stopped',
-  IDEATION_TYPE_COMPLETE: 'ideation:typeComplete',
-  IDEATION_TYPE_FAILED: 'ideation:typeFailed',
 
   // Linear integration
   LINEAR_GET_TEAMS: 'linear:getTeams',

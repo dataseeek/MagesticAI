@@ -13,7 +13,6 @@ import {
   Code,
   Search,
   FileCheck,
-  Lightbulb,
   ChevronDown,
   ChevronRight,
   CheckCircle2,
@@ -76,7 +75,7 @@ interface AgentConfig {
     phase: 'spec' | 'planning' | 'coding' | 'qa';
   } | {
     type: 'feature';
-    feature: 'insights' | 'ideation' | 'roadmap' | 'githubIssues' | 'githubPrs' | 'utility';
+    feature: 'insights' | 'githubIssues' | 'githubPrs' | 'utility';
   } | {
     type: 'fixed';  // For agents not yet configurable
     model: ModelTypeShort;
@@ -247,23 +246,6 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
     settingsSource: { type: 'feature', feature: 'githubIssues' },
   },
 
-  // Ideation & Roadmap - use feature settings
-  ideation: {
-    label: 'Ideation',
-    description: 'Generates feature ideas',
-    category: 'ideation',
-    tools: ['Read', 'Glob', 'Grep', 'WebFetch', 'WebSearch'],
-    mcp_servers: [],
-    settingsSource: { type: 'feature', feature: 'ideation' },
-  },
-  roadmap_discovery: {
-    label: 'Roadmap Discovery',
-    description: 'Discovers roadmap items',
-    category: 'ideation',
-    tools: ['Read', 'Glob', 'Grep', 'WebFetch', 'WebSearch'],
-    mcp_servers: ['context7'],
-    settingsSource: { type: 'feature', feature: 'roadmap' },
-  },
 };
 
 // MCP Server descriptions - accurate per backend models.py
@@ -344,7 +326,6 @@ const CATEGORIES = {
   build: { label: 'Build', icon: Code },
   qa: { label: 'QA', icon: CheckCircle2 },
   utility: { label: 'Utility', icon: Wrench },
-  ideation: { label: 'Ideation', icon: Lightbulb },
 };
 
 interface AgentCardProps {

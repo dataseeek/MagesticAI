@@ -21,7 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 MemoryBackendType = Literal["graphiti", "file"]
 
 from ..config import get_settings
-from . import changelog, context, files, git, github, gitlab, roadmap
+from . import changelog, context, files, git, github, gitlab
 
 router = APIRouter()
 
@@ -29,8 +29,6 @@ router = APIRouter()
 # These will be available under /api/projects/{projectId}/...
 router.include_router(github.project_router, prefix="/{projectId}/github", tags=["GitHub"])
 router.include_router(gitlab.project_router, prefix="/{projectId}/gitlab", tags=["GitLab"])
-router.include_router(roadmap.router, prefix="/{projectId}/roadmap", tags=["Roadmap"])
-router.include_router(roadmap.ideation_router, prefix="/{projectId}/ideation", tags=["Ideation"])
 router.include_router(changelog.router, prefix="/{projectId}/changelog", tags=["Changelog"])
 router.include_router(changelog.insights_router, prefix="/{projectId}/insights", tags=["Insights"])
 router.include_router(files.insights_router, prefix="/{projectId}/files/insights", tags=["Files Insights"])

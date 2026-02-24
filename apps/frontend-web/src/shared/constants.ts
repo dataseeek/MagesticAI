@@ -15,8 +15,6 @@
  * Domain-specific modules:
  *   - constants/ipc.ts - IPC channel names
  *   - constants/task.ts - Task status, categories, complexity, priority
- *   - constants/roadmap.ts - Roadmap priority, complexity, impact
- *   - constants/ideation.ts - Ideation types, categories, configuration
  *   - constants/changelog.ts - Changelog formats, audiences, configuration
  *   - constants/models.ts - Claude models, thinking levels, agent profiles
  *   - constants/github.ts - GitHub integration constants

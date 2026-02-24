@@ -25,10 +25,6 @@ import type {
   TerminalSession,
   TerminalRestoreResult,
   AppSettings,
-  Roadmap,
-  RoadmapFeatureStatus,
-  IdeationConfig,
-  IdeationStatus,
   InsightsModelConfig,
   ChangelogGenerationRequest,
   ChangelogSaveRequest,
@@ -520,50 +516,6 @@ export const webAPI: API & { _isWebMode: boolean } = {
   // App info
   getAppVersion: async () => '1.0.0-web',
 
-  // ========== Roadmap Operations ==========
-  getRoadmap: (projectId: string) => get<Roadmap | null>(`/projects/${projectId}/roadmap`),
-  getRoadmapStatus: (projectId: string) => get(`/projects/${projectId}/roadmap/status`),
-  saveRoadmap: (projectId: string, roadmap: Roadmap) =>
-    put(`/projects/${projectId}/roadmap`, roadmap),
-  generateRoadmap: (projectId: string, enableCompetitorAnalysis?: boolean, refreshCompetitorAnalysis?: boolean) => {
-    post(`/projects/${projectId}/roadmap/generate`, { enableCompetitorAnalysis, refreshCompetitorAnalysis });
-  },
-  refreshRoadmap: (projectId: string, enableCompetitorAnalysis?: boolean, refreshCompetitorAnalysis?: boolean) => {
-    post(`/projects/${projectId}/roadmap/refresh`, { enableCompetitorAnalysis, refreshCompetitorAnalysis });
-  },
-  stopRoadmap: (projectId: string) => post(`/projects/${projectId}/roadmap/stop`),
-  updateFeatureStatus: (projectId: string, featureId: string, status: RoadmapFeatureStatus) =>
-    patch(`/projects/${projectId}/roadmap/features/${featureId}`, { status }),
-  convertFeatureToSpec: (projectId: string, featureId: string) =>
-    post(`/projects/${projectId}/roadmap/features/${featureId}/convert`),
-
-  // Roadmap event listeners
-  // Note: WebSocket events come as {projectId, ...data} but callbacks expect (projectId, data)
-  // Phase mapping: Backend uses 'project_analysis', 'discovery', etc.
-  // Frontend expects: 'idle', 'analyzing', 'discovering', 'generating', 'complete', 'error'
-  onRoadmapProgress: (callback) => registerCallback('roadmap:progress',
-    (payload: { projectId: string; phase?: string; [key: string]: unknown }) => {
-      const { projectId, phase, ...rest } = payload;
-      // Map backend phase names to frontend phase names
-      const phaseMapping: Record<string, string> = {
-        'starting': 'analyzing',
-        'project_analysis': 'analyzing',
-        'discovery': 'discovering',
-        'competitor_analysis': 'discovering',
-        'feature_generation': 'generating',
-        'complete': 'complete',
-        'failed': 'error',
-      };
-      const mappedPhase = phase ? (phaseMapping[phase] || phase) : phase;
-      callback(projectId, { phase: mappedPhase, ...rest } as never);
-    }),
-  onRoadmapComplete: (callback) => registerCallback('roadmap:complete',
-    (payload: { projectId: string; roadmap?: unknown }) => callback(payload.projectId, payload.roadmap as never)),
-  onRoadmapError: (callback) => registerCallback('roadmap:error',
-    (payload: { projectId: string; error?: string }) => callback(payload.projectId, payload.error ?? '')),
-  onRoadmapStopped: (callback) => registerCallback('roadmap:stopped',
-    (payload: { projectId: string }) => callback(payload.projectId)),
-
   // ========== Context Operations ==========
   getProjectContext: (projectId: string) => get(`/projects/${projectId}/context`),
   refreshProjectIndex: (projectId: string) => post(`/projects/${projectId}/context/refresh`),
@@ -749,37 +701,6 @@ export const webAPI: API & { _isWebMode: boolean } = {
   onReleaseProgress: (callback) => registerCallback('release:progress', callback),
   onReleaseComplete: (callback) => registerCallback('release:complete', callback),
   onReleaseError: (callback) => registerCallback('release:error', callback),
-
-  // ========== Ideation Operations ==========
-  getIdeation: (projectId: string) => get(`/projects/${projectId}/ideation`),
-  generateIdeation: (projectId: string, config: IdeationConfig) => {
-    post(`/projects/${projectId}/ideation/generate`, config);
-  },
-  refreshIdeation: (projectId: string, config: IdeationConfig) => {
-    post(`/projects/${projectId}/ideation/refresh`, config);
-  },
-  stopIdeation: (projectId: string) => post(`/projects/${projectId}/ideation/stop`),
-  updateIdeaStatus: (projectId: string, ideaId: string, status: IdeationStatus) =>
-    patch(`/projects/${projectId}/ideation/ideas/${ideaId}`, { status }),
-  convertIdeaToTask: (projectId: string, ideaId: string) =>
-    post(`/projects/${projectId}/ideation/ideas/${ideaId}/convert`),
-  dismissIdea: (projectId: string, ideaId: string) =>
-    post(`/projects/${projectId}/ideation/ideas/${ideaId}/dismiss`),
-  dismissAllIdeas: (projectId: string) =>
-    post(`/projects/${projectId}/ideation/dismiss-all`),
-  archiveIdea: (projectId: string, ideaId: string) =>
-    post(`/projects/${projectId}/ideation/ideas/${ideaId}/archive`),
-  deleteIdea: (projectId: string, ideaId: string) =>
-    del(`/projects/${projectId}/ideation/ideas/${ideaId}`),
-  deleteMultipleIdeas: (projectId: string, ideaIds: string[]) =>
-    post(`/projects/${projectId}/ideation/ideas/delete`, { ideaIds }),
-  onIdeationProgress: (callback) => registerCallback('ideation:progress', callback),
-  onIdeationLog: (callback) => registerCallback('ideation:log', callback),
-  onIdeationComplete: (callback) => registerCallback('ideation:complete', callback),
-  onIdeationError: (callback) => registerCallback('ideation:error', callback),
-  onIdeationStopped: (callback) => registerCallback('ideation:stopped', callback),
-  onIdeationTypeComplete: (callback) => registerCallback('ideation:type-complete', callback),
-  onIdeationTypeFailed: (callback) => registerCallback('ideation:type-failed', callback),
 
   // ========== Auto Claude Source Updates ==========
   checkAutoBuildSourceUpdate: () => get('/updates/source/check'),

@@ -184,7 +184,7 @@ class AppSettings(BaseModel):
     # BMad Method
     bmadSessionSegmentation: bool | None = Field(False, description="Enable session segmentation")
 
-    # LLM Provider Settings (for AI features: changelog, roadmap, ideation)
+    # LLM Provider Settings (for AI features: changelog, insights)
     llmProvider: Literal["ollama", "anthropic", "openai"] | None = Field(
         default="ollama",
         alias="llmProvider",

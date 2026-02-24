@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Settings, HelpCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import { SortableProjectTab } from './SortableProjectTab';
-import { UsageIndicator } from './UsageIndicator';
+import { ProjectSelector } from './settings/ProjectSelector';
+import { useProjectStore } from '../stores/project-store';
 import type { Project } from '../shared/types';
 
 interface ProjectTabBarProps {
@@ -12,6 +13,7 @@ interface ProjectTabBarProps {
   onProjectSelect: (projectId: string) => void;
   onProjectClose: (projectId: string) => void;
   onAddProject: () => void;
+  onProjectAdded?: (project: Project, needsInit: boolean) => void;
   className?: string;
   // Control props for active tab
   onSettingsClick?: () => void;
@@ -23,9 +25,13 @@ export function ProjectTabBar({
   onProjectSelect,
   onProjectClose,
   onAddProject,
+  onProjectAdded,
   className,
   onSettingsClick
 }: ProjectTabBarProps) {
+  const allProjects = useProjectStore((state) => state.projects);
+  const selectedProjectId = useProjectStore((state) => state.selectedProjectId);
+  const selectProject = useProjectStore((state) => state.selectProject);
   // Keyboard shortcuts for tab navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -109,7 +115,21 @@ export function ProjectTabBar({
       </div>
 
       <div className="flex items-center gap-2 px-2 py-1">
-        <UsageIndicator />
+        <div className="w-48">
+          <ProjectSelector
+            selectedProjectId={selectedProjectId}
+            onProjectChange={(projectId) => {
+              if (projectId) {
+                selectProject(projectId);
+                const { openProjectTab } = useProjectStore.getState();
+                openProjectTab(projectId);
+                onProjectSelect(projectId);
+              }
+            }}
+            onProjectAdded={onProjectAdded}
+            showPath={false}
+          />
+        </div>
         <Button
           variant="ghost"
           size="icon"
@@ -118,6 +138,23 @@ export function ProjectTabBar({
           title="Add Project"
         >
           <Plus className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 hover:bg-accent/50 active:bg-accent/70"
+          onClick={onSettingsClick}
+          title="Settings"
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          title="Help"
+        >
+          <HelpCircle className="h-4 w-4" />
         </Button>
       </div>
     </div>
