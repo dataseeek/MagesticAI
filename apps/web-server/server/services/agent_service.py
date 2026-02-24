@@ -1724,6 +1724,11 @@ class AgentService:
         env["CLAUDE_CODE_ENTRYPOINT"] = "cli"  # Signal non-interactive mode
         env["CI"] = "true"  # Many CLI tools use this to detect non-interactive mode
 
+        # Quick Mode for simple tasks (safety net if simple task reaches spec creation)
+        if complexity == "simple":
+            env["QUICK_MODE"] = "true"
+            logger.info(f"[AgentService] Quick Mode enabled for spec creation task {task_id}")
+
         # Load backend .env file for graphiti and other settings
         backend_env_file = self.backend_path / ".env"
         if backend_env_file.exists():
@@ -1887,6 +1892,11 @@ class AgentService:
 
         if base_branch:
             cmd.extend(["--base-branch", base_branch])
+
+        # Skip QA for quick mode (simple tasks) - coder_quick.md validates inline
+        if mode == "quick":
+            cmd.append("--skip-qa")
+            logger.info(f"[AgentService] Skipping QA for quick mode task {task_id}")
 
         # Set environment
         env = os.environ.copy()
