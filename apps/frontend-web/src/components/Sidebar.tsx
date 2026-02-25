@@ -120,6 +120,20 @@ export function Sidebar({
   const skippedGitSetupRef = useRef(skippedGitSetup);
   skippedGitSetupRef.current = skippedGitSetup;
 
+  // Persist skipped init in localStorage so it survives page refresh
+  const [skippedInit, setSkippedInit] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('skippedInit');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  // Use ref to access skippedInit in effect without re-running
+  const skippedInitRef = useRef(skippedInit);
+  skippedInitRef.current = skippedInit;
+
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
   // Load env config when project changes to check GitHub enabled state
@@ -183,6 +197,17 @@ export function Sidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProjectId]);
 
+  // Check if selected project needs initialization
+  useEffect(() => {
+    const project = projects.find((p) => p.id === selectedProjectId);
+    if (project && !project.autoBuildPath && !skippedInitRef.current.has(project.id)) {
+      setPendingProject(project);
+      setShowInitDialog(true);
+    }
+    // Only re-run when selectedProjectId changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProjectId]);
+
   const handleAddProject = () => {
     setShowAddProjectModal(true);
   };
@@ -213,6 +238,13 @@ export function Sidebar({
   };
 
   const handleSkipInit = () => {
+    if (pendingProject) {
+      setSkippedInit(prev => {
+        const newSet = new Set(prev).add(pendingProject.id);
+        localStorage.setItem('skippedInit', JSON.stringify([...newSet]));
+        return newSet;
+      });
+    }
     setShowInitDialog(false);
     setPendingProject(null);
   };
@@ -323,9 +355,18 @@ export function Sidebar({
             {t('actions.newTask')}
           </Button>
           {selectedProject && !selectedProject.autoBuildPath && (
-            <p className="mt-2 text-xs text-muted-foreground text-center">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mt-2"
+              onClick={() => {
+                setPendingProject(selectedProject);
+                setShowInitDialog(true);
+              }}
+            >
+              <Download className="mr-2 h-3.5 w-3.5" />
               {t('messages.initializeToCreateTasks')}
-            </p>
+            </Button>
           )}
 
           {/* Logout */}

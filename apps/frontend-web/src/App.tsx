@@ -294,6 +294,7 @@ function AuthenticatedApp() {
                       tasks={tasks}
                       onTaskClick={handleTaskClick}
                       onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
+                      isInitialized={!!selectedProject?.autoBuildPath}
                     />
                   )}
                   {activeView === 'terminals' && (
