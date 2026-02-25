@@ -200,7 +200,7 @@ class DiscoveredProject(BaseModel):
     has_git: bool = False
     has_package_json: bool = False
     has_requirements: bool = False
-    has_auto_claude: bool = False
+    has_magestic_ai: bool = False
     has_claude_md: bool = False
 
 
@@ -243,7 +243,7 @@ async def discover_projects(
                 has_git = (entry / '.git').exists()
                 has_package = (entry / 'package.json').exists()
                 has_requirements = (entry / 'requirements.txt').exists() or (entry / 'pyproject.toml').exists()
-                has_auto_claude = (entry / '.auto-claude').exists()
+                has_magestic_ai = (entry / '.magestic-ai').exists()
                 has_claude_md = (entry / 'CLAUDE.md').exists()
 
                 # If it looks like a project, add it
@@ -254,7 +254,7 @@ async def discover_projects(
                         has_git=has_git,
                         has_package_json=has_package,
                         has_requirements=has_requirements,
-                        has_auto_claude=has_auto_claude,
+                        has_magestic_ai=has_magestic_ai,
                         has_claude_md=has_claude_md,
                     ))
                 elif current_depth < max_depth:

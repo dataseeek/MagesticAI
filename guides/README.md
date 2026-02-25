@@ -1,10 +1,10 @@
-# Claude Code Manager Web - Documentation
+# MagesticAI - Documentation
 
-Welcome to the **Claude Code Manager Web** documentation! This guides section provides comprehensive documentation for users, developers, and contributors working with our web-based AI task management platform.
+Welcome to the **MagesticAI** documentation! This guides section provides comprehensive documentation for users, developers, and contributors working with our web-based AI task management platform.
 
-## What is Claude Code Manager Web?
+## What is MagesticAI?
 
-Claude Code Manager Web is a **browser-based platform** for managing AI-powered coding tasks through coordinated autonomous agents. It provides a modern web interface for:
+MagesticAI is a **browser-based platform** for managing AI-powered coding tasks through coordinated autonomous agents. It provides a modern web interface for:
 
 - **Task Creation & Management** - Create and track coding tasks through an intuitive Kanban board
 - **AI Agent Orchestration** - Coordinate Planner, Coder, and QA agents to implement features
@@ -58,7 +58,7 @@ Access the application from any modern browser - no desktop installation require
 
 ## Application Views at a Glance
 
-Claude Code Manager Web provides multiple specialized views accessible from the sidebar:
+MagesticAI provides multiple specialized views accessible from the sidebar:
 
 | View | Purpose |
 |------|---------|
@@ -86,7 +86,7 @@ Claude Code Manager Web provides multiple specialized views accessible from the 
 
 ## Prerequisites Summary
 
-Before using Claude Code Manager Web, ensure you have:
+Before using MagesticAI, ensure you have:
 
 - **Node.js 24+** with npm 10+
 - **Python 3.12+**
@@ -98,4 +98,4 @@ For detailed installation instructions, see [Getting Started](GETTING-STARTED.md
 
 ---
 
-**Claude Code Manager Web** - Orchestrate AI coding agents from your browser.
+**MagesticAI** - Orchestrate AI coding agents from your browser.

@@ -30,10 +30,10 @@ def register_provider(
         factory: Factory function that creates provider instances
 
     Example:
-        def create_gitlab(repo: str, **kwargs) -> GitLabProvider:
-            return GitLabProvider(repo=repo, **kwargs)
+        def create_custom(repo: str, **kwargs) -> GitProvider:
+            return CustomProvider(repo=repo, **kwargs)
 
-        register_provider(ProviderType.GITLAB, create_gitlab)
+        register_provider(ProviderType.BITBUCKET, create_custom)
     """
     _PROVIDER_REGISTRY[provider_type] = factory
 
@@ -47,7 +47,7 @@ def get_provider(
     Get a provider instance by type.
 
     Args:
-        provider_type: The provider type (github, gitlab, etc.)
+        provider_type: The provider type (github, bitbucket, etc.)
         repo: Repository in owner/repo format
         **kwargs: Additional provider-specific arguments
 
@@ -80,12 +80,6 @@ def get_provider(
         return GitHubProvider(_repo=repo, **kwargs)
 
     # Future providers (not yet implemented)
-    if provider_type == ProviderType.GITLAB:
-        raise NotImplementedError(
-            "GitLab provider not yet implemented. "
-            "See providers/gitlab_provider.py.stub for interface."
-        )
-
     if provider_type == ProviderType.BITBUCKET:
         raise NotImplementedError(
             "Bitbucket provider not yet implemented. "

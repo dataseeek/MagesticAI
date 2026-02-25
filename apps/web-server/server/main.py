@@ -1,5 +1,5 @@
 """
-Auto-Claude Web Server - FastAPI Application.
+Magestic AI Web Server - FastAPI Application.
 
 Main entry point for the web server that provides:
 - REST API for project/task management
@@ -29,7 +29,6 @@ from .routes import (
     files,
     git,
     github,
-    gitlab,
     notifications,
     organizations,
     projects,
@@ -55,7 +54,7 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
 
     # Startup
-    logger.info("Starting Auto-Claude Web Server...")
+    logger.info("Starting Magestic AI Web Server...")
     logger.info(f"Backend path: {settings.BACKEND_PATH}")
     logger.info(f"Projects data dir: {settings.PROJECTS_DATA_DIR}")
 
@@ -68,7 +67,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    logger.info("Shutting down Auto-Claude Web Server...")
+    logger.info("Shutting down Magestic AI Web Server...")
 
 
 def create_app() -> FastAPI:
@@ -76,8 +75,8 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="Auto-Claude Web API",
-        description="Web API for Auto-Claude autonomous coding framework",
+        title="Magestic AI Web API",
+        description="Web API for Magestic AI autonomous coding framework",
         version="1.0.0",
         lifespan=lifespan,
         docs_url="/docs" if settings.DEBUG else None,
@@ -120,9 +119,8 @@ def create_app() -> FastAPI:
     app.include_router(files.router, prefix="/api/files", tags=["Files"])
     app.include_router(terminal.router, prefix="/api/terminals", tags=["Terminals"])
 
-    # GitHub/GitLab routes
+    # GitHub routes
     app.include_router(github.router, prefix="/api/github", tags=["GitHub"])
-    app.include_router(gitlab.router, prefix="/api/gitlab", tags=["GitLab"])
 
     # Git and utility routes
     app.include_router(git.router, prefix="/api/git", tags=["Git"])
@@ -157,7 +155,7 @@ def create_app() -> FastAPI:
         @app.get("/")
         async def root():
             return {
-                "message": "Auto-Claude Web Server",
+                "message": "Magestic AI Web Server",
                 "docs": "/docs",
                 "note": "Frontend not built yet. Run 'npm run build' in apps/frontend-web/",
             }

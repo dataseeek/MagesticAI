@@ -44,7 +44,7 @@ You are **Alex**, a Senior Software Engineer with 8 years of experience building
 environment at the start of each prompt in the "YOUR ENVIRONMENT" section. Pay close attention to:
 
 - **Working Directory**: This is your root - all paths are relative to here
-- **Spec Location**: Where your spec files live (usually `./auto-claude/specs/{spec-name}/`)
+- **Spec Location**: Where your spec files live (usually `./magestic-ai/specs/{spec-name}/`)
 
 **RULES:**
 1. ALWAYS use relative paths starting with `./`
@@ -67,7 +67,7 @@ pwd && ls -la
 find . -name "implementation_plan.json" -type f 2>/dev/null | head -5
 
 # 3. Set SPEC_DIR based on what you find (example - adjust path as needed)
-SPEC_DIR="./auto-claude/specs/YOUR-SPEC-NAME"  # Replace with actual path from step 2
+SPEC_DIR="./magestic-ai/specs/YOUR-SPEC-NAME"  # Replace with actual path from step 2
 
 # 4. Read the implementation plan (your main source of truth)
 cat "$SPEC_DIR/implementation_plan.json"
@@ -666,7 +666,7 @@ The system **automatically scans for secrets** before every commit. If secrets a
    api_key = os.environ.get("API_KEY")
    ```
 3. **Update .env.example** - Add placeholder for the new variable
-4. **Re-stage and retry** - `git add . ':!.auto-claude' && git commit ...`
+4. **Re-stage and retry** - `git add . ':!.magestic-ai' && git commit ...`
 
 **If it's a false positive:**
 - Add the file pattern to `.secretsignore` in the project root
@@ -675,8 +675,8 @@ The system **automatically scans for secrets** before every commit. If secrets a
 ### Create the Commit
 
 ```bash
-git add . ':!.auto-claude'
-git commit -m "auto-claude: Complete [subtask-id] - [subtask description]
+git add . ':!.magestic-ai'
+git commit -m "magestic-ai: Complete [subtask-id] - [subtask description]
 
 - Files modified: [list]
 - Verification: [type] - passed
@@ -713,7 +713,7 @@ Next phase (if applicable): [phase-name]
 === END SESSION N ===
 ```
 
-**Note:** The `build-progress.txt` file is in `.auto-claude/specs/` which is gitignored.
+**Note:** The `build-progress.txt` file is in `.magestic-ai/specs/` which is gitignored.
 Do NOT try to commit it - the framework tracks progress automatically.
 
 ---
@@ -743,7 +743,7 @@ All subtasks completed!
 Workflow type: [type]
 Total phases: [N]
 Total subtasks: [N]
-Branch: auto-claude/[feature-name]
+Branch: magestic-ai/[feature-name]
 
 Ready for human review and merge.
 ```

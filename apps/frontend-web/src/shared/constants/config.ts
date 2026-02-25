@@ -20,7 +20,7 @@ export const DEFAULT_APP_SETTINGS = {
   theme: 'system' as const,
   colorTheme: 'ocean' as const,
   defaultModel: 'opus',
-  agentFramework: 'auto-claude',
+  agentFramework: 'magestic-ai',
   pythonPath: undefined as string | undefined,
   gitPath: undefined as string | undefined,
   githubCLIPath: undefined as string | undefined,
@@ -60,7 +60,6 @@ export const DEFAULT_APP_SETTINGS = {
 export const DEFAULT_PROJECT_SETTINGS = {
   model: 'opus',
   memoryBackend: 'file' as const,
-  linearSync: false,
   notifications: {
     onTaskComplete: true,
     onTaskFailed: true,
@@ -79,24 +78,24 @@ export const DEFAULT_PROJECT_SETTINGS = {
 // ============================================
 
 // File paths relative to project
-// IMPORTANT: All paths use .auto-claude/ (the installed instance), NOT auto-claude/ (source code)
+// IMPORTANT: All paths use .magestic-ai/ (the installed instance), NOT magestic-ai/ (source code)
 export const AUTO_BUILD_PATHS = {
-  SPECS_DIR: '.auto-claude/specs',
+  SPECS_DIR: '.magestic-ai/specs',
   IMPLEMENTATION_PLAN: 'implementation_plan.json',
   SPEC_FILE: 'spec.md',
   QA_REPORT: 'qa_report.md',
   BUILD_PROGRESS: 'build-progress.txt',
   CONTEXT: 'context.json',
   REQUIREMENTS: 'requirements.json',
-  PROJECT_INDEX: '.auto-claude/project_index.json',
+  PROJECT_INDEX: '.magestic-ai/project_index.json',
   GRAPHITI_STATE: '.graphiti_state.json'
 } as const;
 
 /**
  * Get the specs directory path.
- * All specs go to .auto-claude/specs/ (the project's data directory).
+ * All specs go to .magestic-ai/specs/ (the project's data directory).
  */
 export function getSpecsDir(autoBuildPath: string | undefined): string {
-  const basePath = autoBuildPath || '.auto-claude';
+  const basePath = autoBuildPath || '.magestic-ai';
   return `${basePath}/specs`;
 }

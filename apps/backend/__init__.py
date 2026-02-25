@@ -1,5 +1,5 @@
 """
-Auto Claude Backend - Autonomous Coding Framework
+Magestic AI Backend - Autonomous Coding Framework
 ==================================================
 
 Multi-agent autonomous coding framework that builds software through
@@ -10,7 +10,7 @@ This package provides:
 - Workspace isolation via git worktrees
 - QA validation loops
 - Memory management (Graphiti + file-based)
-- Linear integration for project management
+- GitHub integration
 
 Quick Start:
     python run.py --spec 001    # Run a spec
@@ -20,4 +20,4 @@ See README.md for full documentation.
 """
 
 __version__ = "2.7.2"
-__author__ = "Auto Claude Team"
+__author__ = "Magestic AI Team"

@@ -1,4 +1,4 @@
-# Auto-Claude Web Server Dependencies
+# Magestic AI Web Server Dependencies
 
 # Web Framework
 fastapi>=0.109.0

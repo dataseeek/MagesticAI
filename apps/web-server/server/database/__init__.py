@@ -1,5 +1,5 @@
 """
-Database package for Claude Code Manager Web multi-user system.
+Database package for MagesticAI multi-user system.
 
 Provides SQLAlchemy 2.x async models and engine configuration
 backed by SQLite (aiosqlite) with WAL mode for concurrent access.

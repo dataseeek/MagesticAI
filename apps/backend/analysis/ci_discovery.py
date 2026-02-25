@@ -4,7 +4,7 @@ CI Discovery Module
 ===================
 
 Parses CI/CD configuration files to extract test commands and workflows.
-Supports GitHub Actions, GitLab CI, CircleCI, and Jenkins.
+Supports GitHub Actions, CircleCI, and Jenkins.
 
 The CI discovery results are used by:
 - QA Agent: To understand existing CI test patterns
@@ -68,7 +68,7 @@ class CIConfig:
     Result of CI configuration discovery.
 
     Attributes:
-        ci_system: Name of CI system (github_actions, gitlab, circleci, jenkins)
+        ci_system: Name of CI system (github_actions, circleci, jenkins)
         config_files: List of CI config files found
         test_commands: Extracted test commands by type
         coverage_command: Coverage command if found
@@ -95,7 +95,6 @@ class CIDiscovery:
 
     Analyzes:
     - GitHub Actions (.github/workflows/*.yml)
-    - GitLab CI (.gitlab-ci.yml)
     - CircleCI (.circleci/config.yml)
     - Jenkins (Jenkinsfile)
     """
@@ -127,12 +126,6 @@ class CIDiscovery:
         github_workflows = project_dir / ".github" / "workflows"
         if github_workflows.exists():
             result = self._parse_github_actions(github_workflows)
-
-        # GitLab CI
-        if not result:
-            gitlab_ci = project_dir / ".gitlab-ci.yml"
-            if gitlab_ci.exists():
-                result = self._parse_gitlab_ci(gitlab_ci)
 
         # CircleCI
         if not result:
@@ -231,76 +224,6 @@ class CIDiscovery:
 
             except Exception:
                 continue
-
-        return result
-
-    def _parse_gitlab_ci(self, config_file: Path) -> CIConfig:
-        """Parse GitLab CI configuration."""
-        result = CIConfig(
-            ci_system="gitlab",
-            config_files=[".gitlab-ci.yml"],
-        )
-
-        try:
-            content = config_file.read_text()
-            data = self._parse_yaml(content)
-
-            if not data:
-                return result
-
-            # Parse jobs (top-level keys that aren't special keywords)
-            special_keys = {
-                "stages",
-                "variables",
-                "image",
-                "services",
-                "before_script",
-                "after_script",
-                "cache",
-                "include",
-                "default",
-                "workflow",
-            }
-
-            for key, value in data.items():
-                if key.startswith(".") or key in special_keys:
-                    continue
-
-                if not isinstance(value, dict):
-                    continue
-
-                job_config = value
-                script = job_config.get("script", [])
-                if isinstance(script, str):
-                    script = [script]
-
-                test_related = any(
-                    kw in str(script).lower()
-                    for kw in ["test", "pytest", "jest", "vitest", "coverage"]
-                )
-
-                result.workflows.append(
-                    CIWorkflow(
-                        name=key,
-                        trigger=job_config.get("only", [])
-                        or job_config.get("rules", []),
-                        steps=script,
-                        test_related=test_related,
-                    )
-                )
-
-                # Extract test commands
-                for cmd in script:
-                    if isinstance(cmd, str):
-                        self._extract_test_commands(cmd, result)
-
-            # Extract variables
-            variables = data.get("variables", {})
-            if isinstance(variables, dict):
-                result.environment_variables.extend(variables.keys())
-
-        except Exception:
-            pass
 
         return result
 

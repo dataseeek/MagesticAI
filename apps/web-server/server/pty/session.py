@@ -53,6 +53,8 @@ class PTYSession:
         env = os.environ.copy()
         env["TERM"] = "xterm-256color"
         env["COLORTERM"] = "truecolor"
+        # Remove CLAUDECODE to allow launching claude CLI from the terminal
+        env.pop("CLAUDECODE", None)
         if self.env:
             env.update(self.env)
 

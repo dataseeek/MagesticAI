@@ -8,19 +8,19 @@ Analyzes project structure, understands target audience, and generates
 a strategic feature roadmap.
 
 Usage:
-    python auto-claude/roadmap_runner.py --project /path/to/project
-    python auto-claude/roadmap_runner.py --project /path/to/project --refresh
-    python auto-claude/roadmap_runner.py --project /path/to/project --output roadmap.json
+    python magestic-ai/roadmap_runner.py --project /path/to/project
+    python magestic-ai/roadmap_runner.py --project /path/to/project --refresh
+    python magestic-ai/roadmap_runner.py --project /path/to/project --output roadmap.json
 """
 
 import asyncio
 import sys
 from pathlib import Path
 
-# Add auto-claude to path
+# Add magestic-ai to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Load .env file from auto-claude/ directory
+# Load .env file from magestic-ai/ directory
 from dotenv import load_dotenv
 
 env_file = Path(__file__).parent.parent / ".env"
@@ -50,7 +50,7 @@ def main():
     parser.add_argument(
         "--output",
         type=Path,
-        help="Output directory for roadmap files (default: project/auto-claude/roadmap)",
+        help="Output directory for roadmap files (default: project/magestic-ai/roadmap)",
     )
     parser.add_argument(
         "--model",

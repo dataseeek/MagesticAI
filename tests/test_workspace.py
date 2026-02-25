@@ -168,7 +168,7 @@ class TestSetupWorkspace:
             WorkspaceMode.ISOLATED,
         )
 
-        assert (temp_git_repo / ".auto-claude" / "worktrees" / "tasks").exists()
+        assert (temp_git_repo / ".magestic-ai" / "worktrees" / "tasks").exists()
 
 
 class TestWorkspaceUtilities:
@@ -185,7 +185,7 @@ class TestWorkspaceUtilities:
 
         # Worktree should be named after the spec
         assert working_dir.name == spec_name
-        # New path: .auto-claude/worktrees/tasks/{spec_name}
+        # New path: .magestic-ai/worktrees/tasks/{spec_name}
         assert working_dir.parent.name == "tasks"
 
 
@@ -391,6 +391,6 @@ class TestPerSpecWorktreeName:
             WorkspaceMode.ISOLATED,
         )
 
-        # New path: .auto-claude/worktrees/tasks/{spec_name}
+        # New path: .magestic-ai/worktrees/tasks/{spec_name}
         assert "worktrees" in str(working_dir)
         assert working_dir.parent.name == "tasks"

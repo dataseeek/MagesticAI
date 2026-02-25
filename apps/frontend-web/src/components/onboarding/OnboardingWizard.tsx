@@ -43,7 +43,7 @@ const WIZARD_STEPS: { id: WizardStepId; labelKey: string }[] = [
  * to connect their Claude account.
  *
  * Simplified flow:
- * 1. Welcome — Brief intro to Martinica
+ * 1. Welcome — Brief intro to MagesticAI
  * 2. Import Credentials (conditional) — Auto-import from ~/.claude/.credentials.json
  * 3. OAuth — Manual token setup
  * 4. Completion — Done

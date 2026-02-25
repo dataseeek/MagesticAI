@@ -3,7 +3,7 @@ Git Provider Protocol
 =====================
 
 Defines the abstract interface that all git hosting providers must implement.
-Enables support for GitHub, GitLab, Bitbucket, and other providers.
+Enables support for GitHub, Bitbucket, and other providers.
 """
 
 from __future__ import annotations
@@ -18,7 +18,6 @@ class ProviderType(str, Enum):
     """Supported git hosting providers."""
 
     GITHUB = "github"
-    GITLAB = "gitlab"
     BITBUCKET = "bitbucket"
     GITEA = "gitea"
     AZURE_DEVOPS = "azure_devops"
@@ -174,7 +173,7 @@ class GitProvider(Protocol):
     Abstract protocol for git hosting providers.
 
     All provider implementations must implement these methods.
-    This enables the system to work with GitHub, GitLab, Bitbucket, etc.
+    This enables the system to work with GitHub, Bitbucket, etc.
     """
 
     @property
@@ -445,7 +444,7 @@ class GitProvider(Protocol):
         Check a user's permission level on the repository.
 
         Args:
-            username: GitHub/GitLab username
+            username: GitHub username
 
         Returns:
             Permission level (admin, write, read, none)

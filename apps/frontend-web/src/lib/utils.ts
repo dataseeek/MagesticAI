@@ -18,9 +18,10 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function isWebMode(): boolean {
   // Check for the web mode marker set by api-adapter.ts
+  // The web adapter sets window.API (not window.electronAPI)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const electronAPI = (window as any).electronAPI;
-  return electronAPI?._isWebMode === true;
+  const api = (window as any).API;
+  return api?._isWebMode === true;
 }
 
 /**

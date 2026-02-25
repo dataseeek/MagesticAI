@@ -2,7 +2,7 @@
 CLI Utilities
 ==============
 
-Shared utility functions for the Auto Claude CLI.
+Shared utility functions for the Magestic AI CLI.
 """
 
 import os
@@ -17,8 +17,6 @@ if str(_PARENT_DIR) not in sys.path:
 from core.auth import get_auth_token, get_auth_token_source
 from dotenv import load_dotenv
 from graphiti_config import get_graphiti_status
-from linear_integration import LinearManager
-from linear_updater import is_linear_enabled
 from spec.pipeline import get_specs_dir
 from ui import (
     Icons,
@@ -37,15 +35,15 @@ def setup_environment() -> Path:
     Set up the environment and return the script directory.
 
     Returns:
-        Path to the auto-claude directory
+        Path to the magestic-ai directory
     """
-    # Add auto-claude directory to path for imports
+    # Add magestic-ai directory to path for imports
     script_dir = Path(__file__).parent.parent.resolve()
     sys.path.insert(0, str(script_dir))
 
-    # Load .env file - check both auto-claude/ and dev/auto-claude/ locations
+    # Load .env file - check both magestic-ai/ and dev/magestic-ai/ locations
     env_file = script_dir / ".env"
-    dev_env_file = script_dir.parent / "dev" / "auto-claude" / ".env"
+    dev_env_file = script_dir.parent / "dev" / "magestic-ai" / ".env"
     if env_file.exists():
         load_dotenv(env_file)
     elif dev_env_file.exists():
@@ -82,11 +80,11 @@ def find_spec(project_dir: Path, spec_identifier: str) -> Path | None:
                     return spec_folder
 
     # Check worktree specs (for merge-preview, merge, review, discard operations)
-    worktree_base = project_dir / ".auto-claude" / "worktrees" / "tasks"
+    worktree_base = project_dir / ".magestic-ai" / "worktrees" / "tasks"
     if worktree_base.exists():
         # Try exact match in worktree
         worktree_spec = (
-            worktree_base / spec_identifier / ".auto-claude" / "specs" / spec_identifier
+            worktree_base / spec_identifier / ".magestic-ai" / "specs" / spec_identifier
         )
         if worktree_spec.exists() and (worktree_spec / "spec.md").exists():
             return worktree_spec
@@ -97,7 +95,7 @@ def find_spec(project_dir: Path, spec_identifier: str) -> Path | None:
                 spec_identifier + "-"
             ):
                 spec_in_worktree = (
-                    worktree_dir / ".auto-claude" / "specs" / worktree_dir.name
+                    worktree_dir / ".magestic-ai" / "specs" / worktree_dir.name
                 )
                 if (
                     spec_in_worktree.exists()
@@ -120,7 +118,7 @@ def validate_environment(spec_dir: Path) -> bool:
     # Check for OAuth token (API keys are not supported)
     if not get_auth_token():
         print("Error: No OAuth token found")
-        print("\nAuto Claude requires Claude Code OAuth authentication.")
+        print("\nMagestic AI requires Claude Code OAuth authentication.")
         print("Direct API keys (ANTHROPIC_API_KEY) are not supported.")
         print("\nTo authenticate, run:")
         print("  claude setup-token")
@@ -141,25 +139,6 @@ def validate_environment(spec_dir: Path) -> bool:
     if not spec_file.exists():
         print(f"\nError: spec.md not found in {spec_dir}")
         valid = False
-
-    # Check Linear integration (optional but show status)
-    if is_linear_enabled():
-        print("Linear integration: ENABLED")
-        # Show Linear project status if initialized
-        project_dir = (
-            spec_dir.parent.parent
-        )  # auto-claude/specs/001-name -> project root
-        linear_manager = LinearManager(spec_dir, project_dir)
-        if linear_manager.is_initialized:
-            summary = linear_manager.get_progress_summary()
-            print(f"  Project: {summary.get('project_name', 'Unknown')}")
-            print(
-                f"  Issues: {summary.get('mapped_subtasks', 0)}/{summary.get('total_subtasks', 0)} mapped"
-            )
-        else:
-            print("  Status: Will be initialized during planner session")
-    else:
-        print("Linear integration: DISABLED (set LINEAR_API_KEY to enable)")
 
     # Check Graphiti integration (optional but show status)
     graphiti_status = get_graphiti_status()

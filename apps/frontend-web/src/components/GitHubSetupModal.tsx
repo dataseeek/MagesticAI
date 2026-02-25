@@ -49,7 +49,7 @@ interface GitHubSetupModalProps {
 type SetupStep = 'github-auth' | 'claude-auth' | 'repo-confirm' | 'repo' | 'branch' | 'complete';
 
 /**
- * Setup Modal - Required setup flow after Auto Claude initialization
+ * Setup Modal - Required setup flow after Magestic AI initialization
  *
  * Flow:
  * 1. Authenticate with GitHub (via gh CLI OAuth) - for repo operations
@@ -718,7 +718,7 @@ export function GitHubSetupModal({
                 Select Base Branch
               </DialogTitle>
               <DialogDescription>
-                Choose which branch Auto Claude should use as the base for creating task branches.
+                Choose which branch Magestic AI should use as the base for creating task branches.
               </DialogDescription>
             </DialogHeader>
 
@@ -771,7 +771,7 @@ export function GitHubSetupModal({
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   All tasks will be created from branches like{' '}
-                  <code className="px-1 bg-muted rounded">auto-claude/task-name</code>
+                  <code className="px-1 bg-muted rounded">magestic-ai/task-name</code>
                   {selectedBranch && (
                     <> based on <code className="px-1 bg-muted rounded">{selectedBranch}</code></>
                   )}
@@ -785,7 +785,7 @@ export function GitHubSetupModal({
                   <div className="text-xs text-muted-foreground">
                     <p className="font-medium text-foreground">Why select a branch?</p>
                     <p className="mt-1">
-                      Auto Claude creates isolated workspaces for each task. Selecting the right base branch ensures
+                      Magestic AI creates isolated workspaces for each task. Selecting the right base branch ensures
                       your tasks start with the latest code from your main development line.
                     </p>
                   </div>
@@ -831,7 +831,7 @@ export function GitHubSetupModal({
                 <CheckCircle2 className="h-8 w-8 text-success" />
               </div>
               <p className="text-sm text-muted-foreground text-center">
-                Auto Claude is ready to use! You can now create tasks that will be
+                Magestic AI is ready to use! You can now create tasks that will be
                 automatically based on <code className="px-1 bg-muted rounded">{selectedBranch}</code>.
               </p>
             </div>

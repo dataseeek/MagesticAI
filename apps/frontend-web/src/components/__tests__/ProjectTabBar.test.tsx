@@ -14,11 +14,10 @@ function createTestProject(overrides: Partial<Project> = {}): Project {
     id: `project-${Date.now()}-${Math.random().toString(36).substring(7)}`,
     name: 'Test Project',
     path: '/path/to/test-project',
-    autoBuildPath: '/path/to/test-project/.auto-claude',
+    autoBuildPath: '/path/to/test-project/.magestic-ai',
     settings: {
       model: 'claude-3-haiku-20240307',
       memoryBackend: 'file',
-      linearSync: false,
       notifications: {
         onTaskComplete: true,
         onTaskFailed: true,

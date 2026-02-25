@@ -10,7 +10,6 @@ import { TerminalGrid } from './components/TerminalGrid';
 import { Worktrees } from './components/Worktrees';
 import { Context } from './components/context/Context';
 import { GitHubIssues } from './components/GitHubIssues';
-import { GitLabIssues } from './components/GitLabIssues';
 import { Changelog } from './components/changelog/Changelog';
 import { Insights } from './components/Insights';
 import { AgentTools } from './components/AgentTools';
@@ -320,15 +319,9 @@ function AuthenticatedApp() {
                       onNavigateToTask={(taskId) => setSelectedTaskId(taskId)}
                     />
                   )}
-                  {activeView === 'gitlab-issues' && (
-                    <GitLabIssues
-                      onOpenSettings={() => setIsSettingsDialogOpen(true)}
-                      onNavigateToTask={(taskId) => setSelectedTaskId(taskId)}
-                    />
-                  )}
-                  {(activeView === 'github-prs' || activeView === 'gitlab-merge-requests') && (
+                  {activeView === 'github-prs' && (
                     <div className="flex h-full items-center justify-center text-muted-foreground">
-                      <p>Pull Requests / Merge Requests view coming soon</p>
+                      <p>Pull Requests view coming soon</p>
                     </div>
                   )}
                   {activeView === 'changelog' && <Changelog />}

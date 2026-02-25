@@ -1,6 +1,6 @@
-# Claude Code Manager Web - Web UI Guide
+# MagesticAI - Web UI Guide
 
-This guide provides a comprehensive walkthrough of the Claude Code Manager Web user interface. It covers all views, features, and workflows to help you get the most out of the platform.
+This guide provides a comprehensive walkthrough of the MagesticAI user interface. It covers all views, features, and workflows to help you get the most out of the platform.
 
 ---
 
@@ -31,7 +31,7 @@ This guide provides a comprehensive walkthrough of the Claude Code Manager Web u
 
 ## Interface Overview
 
-Claude Code Manager Web features a modern, responsive interface designed for efficient AI-powered development workflows. The main interface consists of:
+MagesticAI features a modern, responsive interface designed for efficient AI-powered development workflows. The main interface consists of:
 
 ```
 +------------------+----------------------------------------+
@@ -271,7 +271,7 @@ The Worktrees view manages Git worktrees created for each task.
 
 ### What are Worktrees?
 
-Git worktrees are isolated working directories that share the same Git repository. Claude Code Manager Web creates a worktree for each task, providing:
+Git worktrees are isolated working directories that share the same Git repository. MagesticAI creates a worktree for each task, providing:
 - **Isolation** - Each task has its own workspace
 - **Clean merges** - Changes don't conflict between tasks
 - **Easy review** - Review each task's changes separately
@@ -719,7 +719,7 @@ Access settings via the sidebar Settings button.
 
 #### Projects
 - **Default project path** - Where to look for projects
-- **Auto Claude path** - Framework source path
+- **Magestic AI path** - Framework source path
 
 #### Claude
 - **Default model** - Claude model selection
@@ -832,4 +832,4 @@ Access settings via the sidebar Settings button.
 
 ---
 
-**Claude Code Manager Web** - Master your AI-powered development workflow!
+**MagesticAI** - Master your AI-powered development workflow!

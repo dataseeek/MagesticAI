@@ -9,7 +9,6 @@ import enTasks from './locales/en/tasks.json';
 import enWelcome from './locales/en/welcome.json';
 import enOnboarding from './locales/en/onboarding.json';
 import enDialogs from './locales/en/dialogs.json';
-import enGitlab from './locales/en/gitlab.json';
 import enTaskReview from './locales/en/taskReview.json';
 import enTerminal from './locales/en/terminal.json';
 
@@ -21,7 +20,6 @@ import frTasks from './locales/fr/tasks.json';
 import frWelcome from './locales/fr/welcome.json';
 import frOnboarding from './locales/fr/onboarding.json';
 import frDialogs from './locales/fr/dialogs.json';
-import frGitlab from './locales/fr/gitlab.json';
 import frTaskReview from './locales/fr/taskReview.json';
 import frTerminal from './locales/fr/terminal.json';
 
@@ -33,7 +31,6 @@ import ptBRTasks from './locales/pt-BR/tasks.json';
 import ptBRWelcome from './locales/pt-BR/welcome.json';
 import ptBROnboarding from './locales/pt-BR/onboarding.json';
 import ptBRDialogs from './locales/pt-BR/dialogs.json';
-import ptBRGitlab from './locales/pt-BR/gitlab.json';
 import ptBRTaskReview from './locales/pt-BR/taskReview.json';
 import ptBRTerminal from './locales/pt-BR/terminal.json';
 
@@ -48,7 +45,6 @@ export const resources = {
     welcome: enWelcome,
     onboarding: enOnboarding,
     dialogs: enDialogs,
-    gitlab: enGitlab,
     taskReview: enTaskReview,
     terminal: enTerminal
   },
@@ -60,7 +56,6 @@ export const resources = {
     welcome: frWelcome,
     onboarding: frOnboarding,
     dialogs: frDialogs,
-    gitlab: frGitlab,
     taskReview: frTaskReview,
     terminal: frTerminal
   },
@@ -72,7 +67,6 @@ export const resources = {
     welcome: ptBRWelcome,
     onboarding: ptBROnboarding,
     dialogs: ptBRDialogs,
-    gitlab: ptBRGitlab,
     taskReview: ptBRTaskReview,
     terminal: ptBRTerminal
   }
@@ -85,7 +79,7 @@ i18n
     lng: 'en', // Default language (will be overridden by settings)
     fallbackLng: 'en',
     defaultNS,
-    ns: ['common', 'navigation', 'settings', 'tasks', 'welcome', 'onboarding', 'dialogs', 'gitlab', 'taskReview', 'terminal'],
+    ns: ['common', 'navigation', 'settings', 'tasks', 'welcome', 'onboarding', 'dialogs', 'taskReview', 'terminal'],
     interpolation: {
       escapeValue: false // React already escapes values
     },

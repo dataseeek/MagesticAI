@@ -11,14 +11,6 @@ from pathlib import Path
 
 from core.client import create_client
 from debug import debug, debug_error, debug_section, debug_success, debug_warning
-from linear_updater import (
-    LinearTaskState,
-    is_linear_enabled,
-    linear_qa_approved,
-    linear_qa_max_iterations,
-    linear_qa_rejected,
-    linear_qa_started,
-)
 from phase_config import get_phase_model, get_phase_thinking_budget
 from phase_event import ExecutionPhase, emit_phase
 from progress import count_subtasks, is_build_complete
@@ -180,16 +172,6 @@ async def run_qa_validation_loop(
     if task_logger:
         task_logger.start_phase(LogPhase.VALIDATION, "Starting QA validation...")
 
-    # Check Linear integration status
-    linear_task = None
-    if is_linear_enabled():
-        linear_task = LinearTaskState.load(spec_dir)
-        if linear_task and linear_task.task_id:
-            print(f"Linear task: {linear_task.task_id}")
-            # Update Linear to "In Review" when QA starts
-            await linear_qa_started(spec_dir)
-            print("Linear task moved to 'In Review'")
-
     qa_iteration = get_qa_iteration_count(spec_dir)
     consecutive_errors = 0
     last_error_context = None  # Track error for self-correction feedback
@@ -270,7 +252,7 @@ async def run_qa_validation_loop(
             print("\nAll acceptance criteria verified.")
             print("The implementation is production-ready.")
             print("\nNext steps:")
-            print("  1. Review the auto-claude/* branch")
+            print("  1. Review the magestic-ai/* branch")
             print("  2. Create a PR and merge to main")
 
             # End validation phase successfully
@@ -280,11 +262,6 @@ async def run_qa_validation_loop(
                     success=True,
                     message="QA validation passed - all criteria met",
                 )
-
-            # Update Linear: QA approved, awaiting human review
-            if linear_task and linear_task.task_id:
-                await linear_qa_approved(spec_dir)
-                print("\nLinear: Task marked as QA approved, awaiting human review")
 
             return True
 
@@ -347,19 +324,7 @@ async def run_qa_validation_loop(
                         message=f"QA escalated to human after {qa_iteration} iterations due to recurring issues",
                     )
 
-                # Update Linear
-                if linear_task and linear_task.task_id:
-                    await linear_qa_max_iterations(spec_dir, qa_iteration)
-                    print(
-                        "\nLinear: Task marked as needing human intervention (recurring issues)"
-                    )
-
                 return False
-
-            # Record rejection in Linear
-            if linear_task and linear_task.task_id:
-                issues_count = len(current_issues)
-                await linear_qa_rejected(spec_dir, issues_count, qa_iteration)
 
             if qa_iteration >= MAX_QA_ITERATIONS:
                 print("\n⚠️  Maximum QA iterations reached.")
@@ -514,11 +479,6 @@ async def run_qa_validation_loop(
     qa_report_file = spec_dir / "qa_report.md"
     if qa_report_file.exists():
         print(f"See: {qa_report_file}")
-
-    # Update Linear: max iterations reached, needs human intervention
-    if linear_task and linear_task.task_id:
-        await linear_qa_max_iterations(spec_dir, qa_iteration)
-        print("\nLinear: Task marked as needing human intervention")
 
     print("\nManual intervention required.")
     return False

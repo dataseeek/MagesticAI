@@ -1,5 +1,5 @@
 """
-BMad Method Integration for Claude Code Manager Web.
+BMad Method Integration for MagesticAI.
 
 This module provides:
 - Complexity detection (5 levels: 0-4)

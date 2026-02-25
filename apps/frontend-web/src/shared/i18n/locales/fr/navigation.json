@@ -35,7 +35,7 @@
     "cancel": "Annuler"
   },
   "messages": {
-    "initializeToCreateTasks": "Initialisez Martinica pour créer des tâches"
+    "initializeToCreateTasks": "Initialisez MagesticAI pour créer des tâches"
   },
   "claudeCode": {
     "checking": "Vérification de Claude Code...",

@@ -54,7 +54,7 @@ def choose_workspace(
     auto_continue: bool = False,
 ) -> WorkspaceMode:
     """
-    Let user choose where auto-claude should work.
+    Let user choose where magestic-ai should work.
 
     Uses simple, non-technical language. Safe defaults.
 
@@ -200,9 +200,9 @@ def copy_spec_to_worktree(
         Path to the spec directory inside the worktree
     """
     # Determine target location inside worktree
-    # Use .auto-claude/specs/{spec_name}/ as the standard location
-    # Note: auto-claude/ is source code, .auto-claude/ is the installed instance
-    target_spec_dir = worktree_path / ".auto-claude" / "specs" / spec_name
+    # Use .magestic-ai/specs/{spec_name}/ as the standard location
+    # Note: magestic-ai/ is source code, .magestic-ai/ is the installed instance
+    target_spec_dir = worktree_path / ".magestic-ai" / "specs" / spec_name
 
     # Create parent directories if needed
     target_spec_dir.parent.mkdir(parents=True, exist_ok=True)

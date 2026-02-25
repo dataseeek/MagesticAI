@@ -1,8 +1,8 @@
 {
-  "name": "martinica-web",
+  "name": "magesticai-web",
   "version": "1.0.0",
   "type": "module",
-  "description": "Web UI for Auto Claude autonomous coding framework",
+  "description": "Web UI for MagesticAI autonomous coding framework",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

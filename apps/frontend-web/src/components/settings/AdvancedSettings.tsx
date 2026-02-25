@@ -75,7 +75,7 @@ interface AdvancedSettingsProps {
 export function AdvancedSettings({ settings, onSettingsChange, section, version }: AdvancedSettingsProps) {
   const { t } = useTranslation('settings');
 
-  // Auto Claude source update state
+  // Magestic AI source update state
   const [sourceUpdateCheck, setSourceUpdateCheck] = useState<AutoBuildSourceUpdateCheck | null>(null);
   const [isCheckingSourceUpdate, setIsCheckingSourceUpdate] = useState(false);
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);

@@ -18,7 +18,6 @@ from .models import (
     AGENT_CONFIGS,
     CONTEXT7_TOOLS,
     GRAPHITI_MCP_TOOLS,
-    LINEAR_TOOLS,
     PUPPETEER_TOOLS,
     get_agent_config,
     get_required_mcp_servers,
@@ -29,7 +28,6 @@ from .registry import is_tools_available
 def get_allowed_tools(
     agent_type: str,
     project_capabilities: dict | None = None,
-    linear_enabled: bool = False,
     mcp_config: dict | None = None,
 ) -> list[str]:
     """
@@ -45,8 +43,7 @@ def get_allowed_tools(
         agent_type: Agent type identifier (e.g., 'coder', 'planner', 'qa_reviewer')
         project_capabilities: Optional dict from detect_project_capabilities()
                             containing flags like is_web_frontend, is_nextjs, etc.
-        linear_enabled: Whether Linear integration is enabled for this project
-        mcp_config: Per-project MCP server toggles from .auto-claude/.env
+        mcp_config: Per-project MCP server toggles from .magestic-ai/.env
 
     Returns:
         List of allowed tool names
@@ -64,14 +61,13 @@ def get_allowed_tools(
     required_servers = get_required_mcp_servers(
         agent_type,
         project_capabilities,
-        linear_enabled,
         mcp_config,
     )
 
-    # Add auto-claude tools ONLY if the MCP server is available
+    # Add magestic-ai tools ONLY if the MCP server is available
     # This prevents allowing tools that won't work because the server isn't running
-    if "auto-claude" in required_servers and is_tools_available():
-        tools.extend(config.get("auto_claude_tools", []))
+    if "magestic-ai" in required_servers and is_tools_available():
+        tools.extend(config.get("magestic_ai_tools", []))
 
     # Add MCP tool names based on required servers
     tools.extend(_get_mcp_tools_for_servers(required_servers))
@@ -86,7 +82,7 @@ def _get_mcp_tools_for_servers(servers: list[str]) -> list[str]:
     Maps server names to their corresponding tool lists.
 
     Args:
-        servers: List of MCP server names (e.g., ['context7', 'linear', 'puppeteer'])
+        servers: List of MCP server names (e.g., ['context7', 'puppeteer'])
 
     Returns:
         List of MCP tool names for all specified servers
@@ -96,13 +92,11 @@ def _get_mcp_tools_for_servers(servers: list[str]) -> list[str]:
     for server in servers:
         if server == "context7":
             tools.extend(CONTEXT7_TOOLS)
-        elif server == "linear":
-            tools.extend(LINEAR_TOOLS)
         elif server == "graphiti":
             tools.extend(GRAPHITI_MCP_TOOLS)
         elif server == "puppeteer":
             tools.extend(PUPPETEER_TOOLS)
-        # auto-claude tools are already added via config["auto_claude_tools"]
+        # magestic-ai tools are already added via config["magestic_ai_tools"]
 
     return tools
 

@@ -7,7 +7,7 @@
   "sections": {
     "appearance": {
       "title": "Appearance",
-      "description": "Customize how Martinica looks"
+      "description": "Customize how MagesticAI looks"
     },
     "display": {
       "title": "Display",
@@ -65,7 +65,7 @@
     },
     "updates": {
       "title": "Updates",
-      "description": "Martinica updates"
+      "description": "MagesticAI updates"
     },
     "notifications": {
       "title": "Notifications",
@@ -94,7 +94,7 @@
     "otherAgentSettingsDescription": "Additional agent configuration options",
     "agentFramework": "Agent Framework",
     "agentFrameworkDescription": "The coding framework used for autonomous tasks",
-    "agentFrameworkAutoClaude": "Martinica",
+    "agentFrameworkAutoClaude": "MagesticAI",
     "aiTerminalNaming": "AI Terminal Naming",
     "aiTerminalNamingDescription": "Automatically name terminals based on commands (uses Haiku)",
     "featureModelSettings": "Feature Model Settings",
@@ -125,9 +125,9 @@
     "sourceBundled": "Bundled",
     "sourceFallback": "Fallback",
     "notDetected": "Not detected",
-    "autoClaudePath": "Martinica Path",
-    "autoClaudePathDescription": "Relative path to auto-claude directory in projects",
-    "autoClaudePathPlaceholder": "auto-claude (default)",
+    "autoClaudePath": "MagesticAI Path",
+    "autoClaudePathDescription": "Relative path to magestic-ai directory in projects",
+    "autoClaudePathPlaceholder": "magestic-ai (default)",
     "autoNameTerminals": "Automatically name terminals",
     "autoNameTerminalsDescription": "Use AI to generate descriptive names for terminal tabs based on their activity",
     "bmadSessionSegmentation": "BMad Session Segmentation",
@@ -135,7 +135,7 @@
   },
   "theme": {
     "title": "Appearance",
-    "description": "Customize how Martinica looks",
+    "description": "Customize how MagesticAI looks",
     "mode": "Mode",
     "modeDescription": "Choose between light and dark themes",
     "light": "Light",
@@ -151,14 +151,14 @@
     "detectAgain": "Detect Again",
     "ide": {
       "label": "Preferred IDE",
-      "description": "Martinica will open worktrees in this editor",
+      "description": "MagesticAI will open worktrees in this editor",
       "placeholder": "Select IDE...",
       "customPath": "Custom IDE Path",
       "customPathPlaceholder": "/path/to/your/ide"
     },
     "terminal": {
       "label": "Preferred Terminal",
-      "description": "Martinica will open terminal sessions here",
+      "description": "MagesticAI will open terminal sessions here",
       "placeholder": "Select terminal...",
       "customPath": "Custom Terminal Path",
       "customPathPlaceholder": "/path/to/your/terminal"
@@ -170,7 +170,7 @@
   },
   "updates": {
     "title": "Updates",
-    "description": "Manage Martinica updates",
+    "description": "Manage MagesticAI updates",
     "appUpdateReady": "App Update Ready",
     "newVersion": "New Version",
     "released": "Released",
@@ -187,7 +187,7 @@
     "unableToCheck": "Unable to check for updates",
     "checkForUpdates": "Check for Updates",
     "autoUpdateProjects": "Auto-Update Projects",
-    "autoUpdateProjectsDescription": "Automatically update Martinica in projects when a new version is available",
+    "autoUpdateProjectsDescription": "Automatically update MagesticAI in projects when a new version is available",
     "betaUpdates": "Beta Updates",
     "betaUpdatesDescription": "Receive pre-release beta versions with new features (may be less stable)"
   },
@@ -218,13 +218,6 @@
     "claude": {
       "title": "Claude Auth",
       "description": "Claude authentication"
-    },
-    "linear": {
-      "title": "Linear",
-      "description": "Linear integration",
-      "integrationTitle": "Linear Integration",
-      "integrationDescription": "Connect to Linear for issue tracking and task import",
-      "syncDescription": "Sync with Linear for issue tracking"
     },
     "github": {
       "title": "GitHub",
@@ -368,7 +361,7 @@
     "noProjectSelected": "No Project Selected",
     "noProjectSelectedDescription": "Select a project from the dropdown to view and configure MCP servers.",
     "projectNotInitialized": "Project Not Initialized",
-    "projectNotInitializedDescription": "Initialize Martinica for this project to configure MCP servers.",
+    "projectNotInitializedDescription": "Initialize MagesticAI for this project to configure MCP servers.",
     "browserAutomation": "Browser Automation (QA agents only)",
     "alwaysEnabled": "always enabled",
     "addServer": "Add Server",
@@ -391,11 +384,6 @@
         "description": "Knowledge graph for cross-session context",
         "notConfigured": "Requires memory configuration (see Memory settings)"
       },
-      "linear": {
-        "name": "Linear",
-        "description": "Project management integration",
-        "notConfigured": "Requires Linear integration (see Linear settings)"
-      },
       "electron": {
         "name": "Electron",
         "description": "Desktop app automation via Chrome DevTools"
@@ -405,7 +393,7 @@
         "description": "Web browser automation for testing"
       },
       "autoClaude": {
-        "name": "Auto-Claude Tools",
+        "name": "Magestic AI Tools",
         "description": "Build progress tracking"
       }
     },

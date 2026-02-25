@@ -1,4 +1,4 @@
-# Claude Code Manager Web
+# MagesticAI
 
 **Web-based AI task management and agent orchestration platform powered by Claude AI**
 
@@ -12,7 +12,7 @@
 
 ## Overview
 
-Claude Code Manager Web is a browser-based platform for managing AI-powered coding tasks through coordinated autonomous agents. It provides a modern web interface for task creation, execution monitoring, terminal access, and code review - all accessible from any browser.
+MagesticAI is a browser-based platform for managing AI-powered coding tasks through coordinated autonomous agents. It provides a modern web interface for task creation, execution monitoring, terminal access, and code review - all accessible from any browser.
 
 ### Key Features
 
@@ -41,8 +41,8 @@ Claude Code Manager Web is a browser-based platform for managing AI-powered codi
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/dataseeek/Claude-Code-Manager-Web.git
-cd Claude-Code-Manager-Web
+git clone https://github.com/dataseeek/MagesticAI.git
+cd MagesticAI
 
 # 2. Install all dependencies
 npm run install:all
@@ -61,7 +61,7 @@ cd apps/web-server
 source .venv/bin/activate
 python -m server.main
 # Server runs on http://localhost:8000
-# API token printed to console and saved to ~/.auto-claude-web/.token
+# API token printed to console and saved to ~/.magestic-ai/.token
 ```
 
 **Terminal 2 - Frontend Dev Server:**
@@ -77,7 +77,7 @@ npm run dev
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                   Claude Code Manager Web                        │
+│                   MagesticAI                        │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │   Browser (React 19 + Vite)           Port 5173                 │
@@ -153,7 +153,7 @@ npm run dev
 ## Project Structure
 
 ```
-Claude-Code-Manager-Web/
+MagesticAI/
 ├── apps/
 │   ├── frontend-web/        # React web frontend (Vite)
 │   │   ├── src/
@@ -309,7 +309,7 @@ npm run build            # Build frontend for production
 | Issue | Solution |
 |-------|----------|
 | Cannot connect to backend | Ensure web-server running on port 8000 |
-| Invalid token | Get token from `~/.auto-claude-web/.token` |
+| Invalid token | Get token from `~/.magestic-ai/.token` |
 | WebSocket failed | Check token in URL, verify ports accessible |
 | Task stuck | Check agent logs in Settings → Logs |
 | Memory errors | Verify `GRAPHITI_ENABLED=true` in backend .env |
@@ -337,14 +337,14 @@ See [LICENSE](LICENSE) for details.
 
 ## Credits
 
-Claude Code Manager Web is a fork of [Auto-Claude](https://github.com/AndyMik90/Auto-Claude) by AndyMik90. We thank the original authors for their foundational work.
+MagesticAI is a fork of [Magestic AI](https://github.com/AndyMik90/Magestic AI) by AndyMik90. We thank the original authors for their foundational work.
 
 ---
 
 ## Support
 
-- **Issues:** [GitHub Issues](https://github.com/dataseeek/Claude-Code-Manager-Web/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/dataseeek/Claude-Code-Manager-Web/discussions)
+- **Issues:** [GitHub Issues](https://github.com/dataseeek/MagesticAI/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/dataseeek/MagesticAI/discussions)
 
 ---
 

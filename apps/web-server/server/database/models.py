@@ -1,5 +1,5 @@
 """
-SQLAlchemy ORM models for the Claude Code Manager Web multi-user system.
+SQLAlchemy ORM models for the MagesticAI multi-user system.
 
 All models use SQLAlchemy 2.x declarative style with Mapped columns.
 UUIDs are stored as strings since SQLite lacks native UUID support.

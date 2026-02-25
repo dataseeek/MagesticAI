@@ -172,7 +172,7 @@ class TaskUpdate(BaseModel):
 
 def get_spec_dirs(project_path: Path) -> list[Path]:
     """Get all spec directories in a project."""
-    specs_dir = project_path / ".auto-claude" / "specs"
+    specs_dir = project_path / ".magestic-ai" / "specs"
     if not specs_dir.exists():
         return []
     return sorted([d for d in specs_dir.iterdir() if d.is_dir()])
@@ -202,15 +202,15 @@ def get_next_spec_id(project_path: Path, title: str) -> str:
 def get_worktree_spec_dir(project_path: Path, spec_id: str) -> Path | None:
     """Get the worktree spec directory if it exists.
 
-    Worktree layout: .auto-claude/worktrees/tasks/{spec_id}/.auto-claude/specs/{spec_id}/
+    Worktree layout: .magestic-ai/worktrees/tasks/{spec_id}/.magestic-ai/specs/{spec_id}/
     """
     worktree_spec_dir = (
         project_path
-        / ".auto-claude"
+        / ".magestic-ai"
         / "worktrees"
         / "tasks"
         / spec_id
-        / ".auto-claude"
+        / ".magestic-ai"
         / "specs"
         / spec_id
     )
@@ -224,7 +224,7 @@ def sync_worktree_to_main_spec(project_path: Path, spec_id: str) -> bool:
 
     Returns True if sync was performed, False otherwise.
     """
-    main_spec_dir = project_path / ".auto-claude" / "specs" / spec_id
+    main_spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
     worktree_spec_dir = get_worktree_spec_dir(project_path, spec_id)
 
     if not worktree_spec_dir:
@@ -313,7 +313,7 @@ def get_plan_with_worktree_sync(project_path: Path, spec_id: str) -> tuple[dict,
     sync_worktree_to_main_spec(project_path, spec_id)
 
     # Read from main spec (now potentially updated)
-    main_spec_dir = project_path / ".auto-claude" / "specs" / spec_id
+    main_spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
     plan_file = main_spec_dir / "implementation_plan.json"
 
     plan = {}
@@ -506,7 +506,7 @@ def load_spec_metadata(spec_dir: Path) -> dict:
     worktree_marker = spec_dir / ".worktree_path"
     if worktree_marker.exists():
         metadata["worktree_path"] = worktree_marker.read_text().strip()
-        metadata["branch_name"] = f"auto-claude/{spec_dir.name}"
+        metadata["branch_name"] = f"magestic-ai/{spec_dir.name}"
 
     # Load task metadata from requirements.json
     requirements_file = spec_dir / "requirements.json"
@@ -621,8 +621,8 @@ def get_execution_progress(spec_dir: Path, subtasks: list) -> dict | None:
     Returns ExecutionProgress dict or None if not available.
     """
     # Also check worktree for task_logs.json
-    project_path = spec_dir.parent.parent  # .auto-claude/specs -> project root
-    worktree_spec_dir = project_path / "worktrees" / "tasks" / spec_dir.name / ".auto-claude" / "specs" / spec_dir.name
+    project_path = spec_dir.parent.parent  # .magestic-ai/specs -> project root
+    worktree_spec_dir = project_path / "worktrees" / "tasks" / spec_dir.name / ".magestic-ai" / "specs" / spec_dir.name
 
     task_logs_file = None
     for check_dir in [worktree_spec_dir, spec_dir]:
@@ -734,7 +734,7 @@ def task_to_dict(task: Task) -> dict:
         projects = load_projects()
         if task.project_id in projects:
             project_path = Path(projects[task.project_id]["path"])
-            spec_dir = project_path / ".auto-claude" / "specs" / task.spec_id
+            spec_dir = project_path / ".magestic-ai" / "specs" / task.spec_id
             if spec_dir.exists():
                 specs_path = str(spec_dir)  # Store path for frontend Files tab
                 execution_progress = get_execution_progress(spec_dir, task.subtasks)
@@ -859,7 +859,7 @@ async def get_task(task_id: str):
         )
 
     project_path = Path(projects[project_id]["path"])
-    spec_dir = project_path / ".auto-claude" / "specs" / spec_id
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
 
     if not spec_dir.exists():
         raise HTTPException(
@@ -884,8 +884,8 @@ async def create_task(task: TaskCreate):
 
     project_path = Path(projects[task.project_id]["path"])
 
-    # Ensure .auto-claude/specs exists
-    specs_dir = project_path / ".auto-claude" / "specs"
+    # Ensure .magestic-ai/specs exists
+    specs_dir = project_path / ".magestic-ai" / "specs"
     specs_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate spec ID and create directory
@@ -906,7 +906,7 @@ async def create_task(task: TaskCreate):
 
 ## Notes
 
-Created via Auto-Claude Web UI
+Created via Magestic AI Web UI
 """
     (spec_dir / "spec.md").write_text(spec_content)
 
@@ -959,7 +959,7 @@ async def update_task_status(task_id: str, update: TaskStatusUpdate):
         )
 
     project_path = Path(projects[project_id]["path"])
-    spec_dir = project_path / ".auto-claude" / "specs" / spec_id
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
 
     if not spec_dir.exists():
         raise HTTPException(
@@ -1005,7 +1005,7 @@ async def update_task(task_id: str, update: TaskUpdate):
         )
 
     project_path = Path(projects[project_id]["path"])
-    spec_dir = project_path / ".auto-claude" / "specs" / spec_id
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
 
     if not spec_dir.exists():
         raise HTTPException(
@@ -1136,7 +1136,7 @@ async def delete_task(task_id: str):
         )
 
     project_path = Path(projects[project_id]["path"])
-    spec_dir = project_path / ".auto-claude" / "specs" / spec_id
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
 
     if not spec_dir.exists():
         raise HTTPException(
@@ -1179,7 +1179,7 @@ async def approve_plan(task_id: str, request: ApprovePlanRequest = ApprovePlanRe
         )
 
     project_path = Path(projects[project_id]["path"])
-    spec_dir = project_path / ".auto-claude" / "specs" / spec_id
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
 
     if not spec_dir.exists():
         raise HTTPException(
@@ -1292,7 +1292,7 @@ async def get_plan_html(task_id: str):
         )
 
     project_path = Path(projects[project_id]["path"])
-    spec_dir = project_path / ".auto-claude" / "specs" / spec_id
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
 
     if not spec_dir.exists():
         raise HTTPException(
@@ -1361,8 +1361,8 @@ async def get_task_logs(task_id: str):
     project_path = Path(projects[project_id]["path"])
     logger.info(f"[GetTaskLogs] project_path: {project_path}")
 
-    spec_dir = project_path / ".auto-claude" / "specs" / spec_id
-    worktree_spec_dir = project_path / ".auto-claude" / "worktrees" / "tasks" / spec_id / ".auto-claude" / "specs" / spec_id
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
+    worktree_spec_dir = project_path / ".magestic-ai" / "worktrees" / "tasks" / spec_id / ".magestic-ai" / "specs" / spec_id
 
     logger.info(f"[GetTaskLogs] Checking spec_dir: {spec_dir}")
     logger.info(f"[GetTaskLogs] Checking worktree_spec_dir: {worktree_spec_dir}")
@@ -1506,7 +1506,7 @@ async def get_worktree_merge_preview(task_id: str):
         else:
             project_path = Path(project.get("path", ""))
 
-        spec_dir = project_path / ".auto-claude" / "specs" / task_id
+        spec_dir = project_path / ".magestic-ai" / "specs" / task_id
 
         if spec_dir.exists():
             # Found the task
@@ -1518,7 +1518,7 @@ async def get_worktree_merge_preview(task_id: str):
         return {"success": False, "error": f"Task {task_id} not found"}
 
     # Find the worktree
-    worktree_path = project_path / ".auto-claude" / "worktrees" / "tasks" / task_id
+    worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / task_id
 
     if not worktree_path.exists():
         return {"success": False, "error": "No worktree found for this task"}
@@ -1808,10 +1808,10 @@ async def resolve_worktree_conflicts(task_id: str, options: ConflictResolveOptio
         else:
             project_path = Path(project.get("path", ""))
 
-        spec_dir = project_path / ".auto-claude" / "specs" / task_id
+        spec_dir = project_path / ".magestic-ai" / "specs" / task_id
 
         if spec_dir.exists():
-            worktree_path = project_path / ".auto-claude" / "worktrees" / "tasks" / task_id
+            worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / task_id
             break
     else:
         return {"success": False, "error": f"Task {task_id} not found"}
@@ -1904,10 +1904,10 @@ async def resolve_uncommitted_conflicts(task_id: str):
         else:
             project_path = Path(project.get("path", ""))
 
-        spec_dir = project_path / ".auto-claude" / "specs" / task_id
+        spec_dir = project_path / ".magestic-ai" / "specs" / task_id
 
         if spec_dir.exists():
-            worktree_path = project_path / ".auto-claude" / "worktrees" / "tasks" / task_id
+            worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / task_id
             break
     else:
         return {"success": False, "error": f"Task {task_id} not found"}
@@ -1975,7 +1975,7 @@ async def resolve_uncommitted_conflicts(task_id: str):
         return {"success": True, "data": {"message": "No conflicting files found", "resolved": []}}
 
     # Stash uncommitted changes (include untracked files)
-    stash_message = f"auto-claude-temp-{task_id}"
+    stash_message = f"magestic-ai-temp-{task_id}"
     stash_created = False
     try:
         # First try with --include-untracked to catch new files
@@ -2167,10 +2167,10 @@ async def resolve_git_merge_conflicts(task_id: str):
         else:
             project_path = Path(project.get("path", ""))
 
-        spec_dir = project_path / ".auto-claude" / "specs" / task_id
+        spec_dir = project_path / ".magestic-ai" / "specs" / task_id
 
         if spec_dir.exists():
-            worktree_path = project_path / ".auto-claude" / "worktrees" / "tasks" / task_id
+            worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / task_id
             break
     else:
         return {"success": False, "error": f"Task {task_id} not found"}
@@ -2435,10 +2435,10 @@ async def abort_worktree_merge(task_id: str):
         else:
             project_path = Path(project.get("path", ""))
 
-        spec_dir = project_path / ".auto-claude" / "specs" / task_id
+        spec_dir = project_path / ".magestic-ai" / "specs" / task_id
 
         if spec_dir.exists():
-            worktree_path = project_path / ".auto-claude" / "worktrees" / "tasks" / task_id
+            worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / task_id
             break
     else:
         return {"success": False, "error": f"Task {task_id} not found"}
@@ -2554,7 +2554,7 @@ async def merge_worktree(task_id: str, options: WorktreeMergeOptions = None):
         else:
             project_path = Path(project.get("path", ""))
 
-        spec_dir = project_path / ".auto-claude" / "specs" / task_id
+        spec_dir = project_path / ".magestic-ai" / "specs" / task_id
 
         if spec_dir.exists():
             break
@@ -2562,7 +2562,7 @@ async def merge_worktree(task_id: str, options: WorktreeMergeOptions = None):
         return {"success": False, "error": f"Task {task_id} not found"}
 
     # Find the worktree
-    worktree_path = project_path / ".auto-claude" / "worktrees" / "tasks" / task_id
+    worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / task_id
 
     if not worktree_path.exists():
         return {"success": False, "error": "No worktree found for this task"}
@@ -2597,8 +2597,8 @@ async def merge_worktree(task_id: str, options: WorktreeMergeOptions = None):
     # These are untracked files created by agents in worktrees that would
     # collide with the same untracked files in the main working directory.
     _INTERNAL_MERGE_BLOCKERS = [
-        ".auto-claude-security.json",
-        ".auto-claude-status",
+        ".magestic-ai-security.json",
+        ".magestic-ai-status",
     ]
     for fname in _INTERNAL_MERGE_BLOCKERS:
         blocker = project_path / fname
@@ -2715,7 +2715,7 @@ async def get_worktree_status(task_id: str):
             # Search all projects for this spec
             for proj in projects_data.values():
                 path = Path(proj["path"])
-                if (path / ".auto-claude" / "specs" / spec_id).exists():
+                if (path / ".magestic-ai" / "specs" / spec_id).exists():
                     project_path = path
                     break
     else:
@@ -2724,7 +2724,7 @@ async def get_worktree_status(task_id: str):
             if project_id and project.get("id") == project_id:
                 project_path = path
                 break
-            elif (path / ".auto-claude" / "specs" / spec_id).exists():
+            elif (path / ".magestic-ai" / "specs" / spec_id).exists():
                 project_path = path
                 break
 
@@ -2737,7 +2737,7 @@ async def get_worktree_status(task_id: str):
         }
 
     # Check for worktree
-    worktree_path = project_path / ".auto-claude" / "worktrees" / "tasks" / spec_id
+    worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / spec_id
 
     if not worktree_path.exists():
         return {
@@ -2758,7 +2758,7 @@ async def get_worktree_status(task_id: str):
         )
         worktree_branch = result.stdout.strip()
     except subprocess.CalledProcessError:
-        worktree_branch = f"auto-claude/{spec_id}"
+        worktree_branch = f"magestic-ai/{spec_id}"
 
     # Get base branch from main project
     try:
@@ -2866,7 +2866,7 @@ async def get_worktree_diff(task_id: str):
         else:
             for proj in projects_data.values():
                 path = Path(proj["path"])
-                if (path / ".auto-claude" / "specs" / spec_id).exists():
+                if (path / ".magestic-ai" / "specs" / spec_id).exists():
                     project_path = path
                     break
     else:
@@ -2875,7 +2875,7 @@ async def get_worktree_diff(task_id: str):
             if project_id and project.get("id") == project_id:
                 project_path = path
                 break
-            elif (path / ".auto-claude" / "specs" / spec_id).exists():
+            elif (path / ".magestic-ai" / "specs" / spec_id).exists():
                 project_path = path
                 break
 
@@ -2886,7 +2886,7 @@ async def get_worktree_diff(task_id: str):
         }
 
     # Check for worktree
-    worktree_path = project_path / ".auto-claude" / "worktrees" / "tasks" / spec_id
+    worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / spec_id
 
     if not worktree_path.exists():
         return {
@@ -2905,7 +2905,7 @@ async def get_worktree_diff(task_id: str):
         )
         worktree_branch = result.stdout.strip()
     except subprocess.CalledProcessError:
-        worktree_branch = f"auto-claude/{spec_id}"
+        worktree_branch = f"magestic-ai/{spec_id}"
 
     # Get base branch from main project
     try:
@@ -2983,14 +2983,47 @@ async def get_worktree_diff(task_id: str):
     except subprocess.CalledProcessError:
         pass
 
-    # Filter out internal auto-claude files and agent artifacts (not relevant for user review)
-    INTERNAL_FILES = {".auto-claude-security.json", ".auto-claude-status"}
-    INTERNAL_PREFIXES = (".auto-claude/", "VERIFICATION_REPORT", "LANGUAGE_CHOICE")
+    # Filter out internal magestic-ai files and agent artifacts (not relevant for user review)
+    INTERNAL_FILES = {".magestic-ai-security.json", ".magestic-ai-status"}
+    INTERNAL_PREFIXES = (".magestic-ai/", "VERIFICATION_REPORT", "LANGUAGE_CHOICE")
     files = [
         f for f in files
         if f["path"] not in INTERNAL_FILES
         and not any(f["path"].startswith(p) for p in INTERNAL_PREFIXES)
     ]
+
+    # Fallback: if git diff shows no user-facing files but worktree has changes,
+    # list files that exist in worktree but not in the main project
+    if not files and worktree_path.exists():
+        for f in worktree_path.iterdir():
+            # Skip internal files, directories, and dotfiles
+            if f.name.startswith('.') or f.name.startswith('__') or f.is_dir():
+                continue
+            if f.name in INTERNAL_FILES or any(f.name.startswith(p) for p in INTERNAL_PREFIXES):
+                continue
+            # Check if this file exists in the main project
+            main_file = project_path / f.name
+            if not main_file.exists():
+                # New file created by the agent
+                try:
+                    content = f.read_text(errors='replace')
+                    line_count = content.count('\n') + (1 if content and not content.endswith('\n') else 0)
+                    # Generate a unified diff for display
+                    diff_lines = [f"--- /dev/null", f"+++ b/{f.name}"]
+                    diff_lines.append(f"@@ -0,0 +1,{line_count} @@")
+                    for line in content.splitlines():
+                        diff_lines.append(f"+{line}")
+                    synthetic_diff = "\n".join(diff_lines) + "\n"
+                except OSError:
+                    line_count = 0
+                    synthetic_diff = ""
+                files.append({
+                    "path": f.name,
+                    "status": "added",
+                    "additions": line_count,
+                    "deletions": 0,
+                    "diff": synthetic_diff,
+                })
 
     # Get actual diff content for each file
     for f in files:
@@ -3060,14 +3093,14 @@ async def discard_worktree(task_id: str):
         return {"success": False, "error": "Task ID must include project ID (format: project_id:spec_id)"}
 
     # Find the worktree
-    worktree_path = project_path / ".auto-claude" / "worktrees" / "tasks" / spec_id
+    worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / spec_id
 
     if not worktree_path.exists():
         return {"success": False, "error": "No worktree found for this task"}
 
     try:
         # Get the branch name before removing worktree
-        branch_name = f"auto-claude/{spec_id}"
+        branch_name = f"magestic-ai/{spec_id}"
 
         # Remove worktree using git command
         result = subprocess.run(

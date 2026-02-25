@@ -12,8 +12,8 @@ function createTestMemoryStatus(overrides: Partial<GraphitiMemoryStatus> = {}): 
   return {
     enabled: true,
     available: true,
-    database: 'auto_claude_memory',
-    dbPath: '~/.auto-claude/graphs',
+    database: 'magestic_ai_memory',
+    dbPath: '~/.magestic-ai/graphs',
     ...overrides
   };
 }

@@ -1,5 +1,5 @@
 # =============================================================================
-# Martinica - Multi-Stage Docker Build
+# MagesticAI - Multi-Stage Docker Build
 # =============================================================================
 # Stage 1: Build React frontend
 # Stage 2: Ubuntu runtime with Python backend + built frontend
@@ -57,19 +57,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user with tty group (needed for PTY terminal access)
-RUN useradd -m -s /bin/bash -G tty martinica
+RUN useradd -m -s /bin/bash -G tty magesticai
 
-# Project directory (matches the plan: /home/projects/Martinica)
-RUN mkdir -p /home/projects/Martinica && \
-    chown -R martinica:martinica /home/projects
+# Project directory (matches the plan: /home/projects/MagesticAI)
+RUN mkdir -p /home/projects/MagesticAI && \
+    chown -R magesticai:magesticai /home/projects
 
 # Copy project files
-COPY --chown=martinica:martinica . /home/projects/Martinica/
+COPY --chown=magesticai:magesticai . /home/projects/MagesticAI/
 
 # Copy built frontend from Stage 1
-COPY --from=frontend-build --chown=martinica:martinica \
+COPY --from=frontend-build --chown=magesticai:magesticai \
     /build/apps/web-server/static/ \
-    /home/projects/Martinica/apps/web-server/static/
+    /home/projects/MagesticAI/apps/web-server/static/
 
 # Copy Node.js from the frontend build stage so it's available at runtime
 # (needed for npm install -g @anthropic-ai/claude-code)
@@ -79,46 +79,46 @@ RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
     ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 # Switch to non-root user for remaining setup
-USER martinica
+USER magesticai
 
 # Configure npm global installs to go to user-writable directory
 # (non-root user can't write to /usr/local/lib/node_modules)
-RUN mkdir -p /home/martinica/.npm-global && \
-    npm config set prefix /home/martinica/.npm-global
+RUN mkdir -p /home/magesticai/.npm-global && \
+    npm config set prefix /home/magesticai/.npm-global
 
 # Create single Python venv (both web-server and backend share it,
 # because agent_service.py spawns backend scripts via sys.executable)
-RUN python3 -m venv /home/projects/Martinica/.venv
+RUN python3 -m venv /home/projects/MagesticAI/.venv
 
 # Install both requirements into the same venv
-RUN /home/projects/Martinica/.venv/bin/pip install --no-cache-dir \
-    -r /home/projects/Martinica/apps/web-server/requirements.txt \
-    -r /home/projects/Martinica/apps/backend/requirements.txt
+RUN /home/projects/MagesticAI/.venv/bin/pip install --no-cache-dir \
+    -r /home/projects/MagesticAI/apps/web-server/requirements.txt \
+    -r /home/projects/MagesticAI/apps/backend/requirements.txt
 
 # Git config (required for worktree operations inside the container)
-RUN git config --global user.name "Martinica" && \
-    git config --global user.email "martinica@container"
+RUN git config --global user.name "MagesticAI" && \
+    git config --global user.email "magesticai@container"
 
 # Create data directory for persistent state
-RUN mkdir -p /home/martinica/.martinica
+RUN mkdir -p /home/magesticai/.magestic-ai
 
 # ---------------------------------------------------------------------------
 # Environment
 # ---------------------------------------------------------------------------
 ENV APP_HOST=0.0.0.0 \
     APP_PORT=8000 \
-    APP_BACKEND_PATH=/home/projects/Martinica/apps/backend \
-    APP_PROJECTS_DATA_DIR=/home/martinica/.martinica \
+    APP_BACKEND_PATH=/home/projects/MagesticAI/apps/backend \
+    APP_PROJECTS_DATA_DIR=/home/magesticai/.magestic-ai \
     APP_DEFAULT_SHELL=/bin/bash \
     PYTHONUNBUFFERED=1 \
     # npm global bin + venv Python on PATH
-    PATH="/home/martinica/.npm-global/bin:/home/projects/Martinica/.venv/bin:$PATH"
+    PATH="/home/magesticai/.npm-global/bin:/home/projects/MagesticAI/.venv/bin:$PATH"
 
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
-WORKDIR /home/projects/Martinica/apps/web-server
+WORKDIR /home/projects/MagesticAI/apps/web-server
 
 CMD ["python", "-m", "server.main"]

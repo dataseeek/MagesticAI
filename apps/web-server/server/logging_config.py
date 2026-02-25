@@ -1,5 +1,5 @@
 """
-Logging configuration for Martinica Web Server.
+Logging configuration for MagesticAI Web Server.
 
 Sets up file-based logging with rotation for persistent error tracking and debugging.
 """

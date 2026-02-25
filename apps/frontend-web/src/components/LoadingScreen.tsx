@@ -30,9 +30,9 @@ export function LoadingScreen({ duration = 5000, onComplete }: LoadingScreenProp
       {/* Logo and branding */}
       <div className="mb-8 flex flex-col items-center">
         <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl">
-          <img src="/logo.png" alt="Martinica" className="h-20 w-20 rounded-2xl" />
+          <img src="/logo.png" alt="MagesticAI" className="h-20 w-20 rounded-2xl" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Martinica</h1>
+        <h1 className="text-2xl font-bold text-foreground">MagesticAI</h1>
         <p className="mt-2 text-sm text-muted-foreground">Preparing your workspace...</p>
       </div>
 

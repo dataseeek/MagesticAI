@@ -40,7 +40,7 @@ from bot_detection import BotDetector, BotDetectionState
 @pytest.fixture
 def temp_github_dir(tmp_path):
     """Create temporary GitHub directory structure."""
-    github_dir = tmp_path / ".auto-claude" / "github"
+    github_dir = tmp_path / ".magestic-ai" / "github"
     pr_dir = github_dir / "pr"
     pr_dir.mkdir(parents=True)
     return github_dir

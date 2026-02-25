@@ -8,6 +8,8 @@ Streams responses via WebSocket and persists sessions to disk.
 import asyncio
 import json
 import os
+import shutil
+import subprocess
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -47,6 +49,43 @@ class InsightsService:
         self.settings = get_settings()
         self._running_chats: dict[str, asyncio.subprocess.Process] = {}
         self._sessions: dict[str, InsightsSession] = {}  # Cache
+        self._claude_path: str | None = None  # Cached CLI path
+
+    def _resolve_claude_path(self) -> str:
+        """Resolve the full path to the claude CLI."""
+        if self._claude_path:
+            return self._claude_path
+
+        # 1) Direct lookup (works if PATH includes ~/.local/bin)
+        path = shutil.which("claude")
+        if path:
+            self._claude_path = path
+            return path
+
+        # 2) Login shell fallback (picks up fnm/npm global PATH)
+        try:
+            result = subprocess.run(
+                ["bash", "-l", "-c", "which claude"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                self._claude_path = result.stdout.strip()
+                return self._claude_path
+        except (subprocess.SubprocessError, OSError):
+            pass
+
+        # 3) Common install locations
+        home = Path.home()
+        for candidate in [
+            home / ".local" / "bin" / "claude",
+            Path("/usr/local/bin/claude"),
+        ]:
+            if candidate.exists():
+                self._claude_path = str(candidate)
+                return self._claude_path
+
+        # Last resort: bare name (will fail if not in PATH)
+        return "claude"
 
     def _resolve_claude_token(self) -> tuple[str | None, str | None, str | None]:
         """Resolve Claude OAuth token with profile-aware fallback."""
@@ -96,7 +135,7 @@ class InsightsService:
 
     def _get_sessions_dir(self, project_path: Path) -> Path:
         """Get the directory for storing insight sessions."""
-        sessions_dir = project_path / ".auto-claude" / "insights"
+        sessions_dir = project_path / ".magestic-ai" / "insights"
         sessions_dir.mkdir(parents=True, exist_ok=True)
         return sessions_dir
 
@@ -314,12 +353,33 @@ class InsightsService:
         # Build Claude Code CLI command
         # Use --print flag for non-interactive output
         # Note: --verbose is required when using --print with --output-format stream-json
+        claude_bin = self._resolve_claude_path()
         cmd = [
-            "claude",
+            claude_bin,
             "--print",  # Non-interactive, print output
             "--verbose",  # Required for stream-json with --print
             "--output-format", "stream-json",  # Stream JSON for tool visibility
         ]
+
+        # Apply model and thinking level from agent profile config
+        if model_config:
+            model_value = model_config.get("model")
+            if model_value:
+                # CLI accepts shorthand: opus, sonnet, haiku
+                cmd.extend(["--model", model_value])
+
+            thinking_level = model_config.get("thinkingLevel")
+            if thinking_level and thinking_level != "none":
+                # Map thinking levels to CLI --effort flag
+                effort_map = {
+                    "low": "low",
+                    "medium": "medium",
+                    "high": "high",
+                    "ultrathink": "high",
+                }
+                effort = effort_map.get(thinking_level)
+                if effort:
+                    cmd.extend(["--effort", effort])
 
         # Add the message as the prompt
         cmd.append(message)
@@ -327,6 +387,8 @@ class InsightsService:
         # Set environment
         env = os.environ.copy()
         env["PYTHONUNBUFFERED"] = "1"
+        # Remove CLAUDECODE to avoid "nested session" rejection
+        env.pop("CLAUDECODE", None)
 
         # Get OAuth token with active profile preference
         token, profile_id, profile_name = self._resolve_claude_token()
@@ -464,9 +526,21 @@ class InsightsService:
 
             # Check stderr for errors
             stderr_output = await proc.stderr.read()
+            stderr_text = ""
             if stderr_output:
-                stderr_text = stderr_output.decode("utf-8", errors="replace")
+                stderr_text = stderr_output.decode("utf-8", errors="replace").strip()
                 logger.warning(f"[InsightsService] Claude stderr: {stderr_text}")
+
+            # If process failed and no content was produced, broadcast the error
+            if proc.returncode != 0 and not accumulated_content.strip():
+                error_msg = stderr_text or f"Claude CLI exited with code {proc.returncode}"
+                logger.error(f"[InsightsService] Claude CLI failed: {error_msg}")
+                await broadcast_event("insights:chunk", {
+                    "projectId": project_id,
+                    "type": "error",
+                    "error": error_msg,
+                })
+                return
 
             # Save assistant message
             if accumulated_content.strip():

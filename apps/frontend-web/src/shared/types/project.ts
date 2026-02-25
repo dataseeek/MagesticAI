@@ -17,8 +17,6 @@ export interface Project {
 export interface ProjectSettings {
   model: string;
   memoryBackend: 'graphiti' | 'file';
-  linearSync: boolean;
-  linearTeamId?: string;
   notifications: NotificationSettings;
   /** Enable Graphiti MCP server for agent-accessible knowledge graph */
   graphitiMcpEnabled: boolean;
@@ -227,8 +225,8 @@ export interface GraphitiProviderConfig {
   ollamaEmbeddingDim?: number;
 
   // LadybugDB settings (embedded database - no Docker required)
-  database?: string;  // Database name (default: auto_claude_memory)
-  dbPath?: string;    // Database storage path (default: ~/.auto-claude/memories)
+  database?: string;  // Database name (default: magestic_ai_memory)
+  dbPath?: string;    // Database storage path (default: ~/.magestic-ai/memories)
 }
 
 export interface GraphitiProviderInfo {
@@ -285,26 +283,12 @@ export interface ProjectEnvConfig {
   // Model Override
   autoBuildModel?: string;
 
-  // Linear Integration
-  linearEnabled: boolean;
-  linearApiKey?: string;
-  linearTeamId?: string;
-  linearProjectId?: string;
-  linearRealtimeSync?: boolean; // Enable real-time sync of new Linear tasks
-
   // GitHub Integration
   githubEnabled: boolean;
   githubToken?: string;
   githubRepo?: string; // Format: owner/repo
   githubAutoSync?: boolean; // Auto-sync issues on project load
   githubAuthMethod?: 'oauth' | 'pat'; // How the token was obtained
-
-  // GitLab Integration
-  gitlabEnabled: boolean;
-  gitlabInstanceUrl?: string; // Default: https://gitlab.com, or self-hosted URL
-  gitlabToken?: string;
-  gitlabProject?: string; // Format: group/project or numeric ID
-  gitlabAutoSync?: boolean; // Auto-sync issues on project load
 
   // Git/Worktree Settings
   defaultBranch?: string; // Base branch for worktree creation (e.g., 'main', 'develop')
@@ -329,8 +313,6 @@ export interface ProjectEnvConfig {
     context7Enabled?: boolean;
     /** Graphiti knowledge graph - default: true (if graphitiProviderConfig set) */
     graphitiEnabled?: boolean;
-    /** Linear MCP integration - default: follows linearEnabled */
-    linearMcpEnabled?: boolean;
     /** Electron desktop automation (QA only) - default: false */
     electronEnabled?: boolean;
     /** Puppeteer browser automation (QA only) - default: false */
@@ -346,7 +328,7 @@ export interface ProjectEnvConfig {
 
 /**
  * Per-agent MCP override configuration.
- * Stored in .auto-claude/.env as AGENT_MCP_<agent>_ADD and AGENT_MCP_<agent>_REMOVE
+ * Stored in .magestic-ai/.env as AGENT_MCP_<agent>_ADD and AGENT_MCP_<agent>_REMOVE
  */
 export interface AgentMcpOverride {
   /** MCP servers to add beyond the agent's defaults */
@@ -427,10 +409,10 @@ export interface McpTestConnectionResult {
   responseTime?: number;
 }
 
-// Auto Claude Initialization Types
+// Magestic AI Initialization Types
 export interface AutoBuildVersionInfo {
   isInitialized: boolean;
-  updateAvailable: boolean; // Always false - .auto-claude only contains data, no code to update
+  updateAvailable: boolean; // Always false - .magestic-ai only contains data, no code to update
 }
 
 export interface InitializationResult {

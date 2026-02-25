@@ -1,7 +1,7 @@
 # Plan: Multi-Model AI Integration (Gemini/Codex)
 
 ## Goal
-Integrate `@agent-gemini-research-analyst` and `@agent-codex-research-analyst` into the Auto-Claude pipeline for alternative perspectives at key decision points.
+Integrate `@agent-gemini-research-analyst` and `@agent-codex-research-analyst` into the Magestic AI pipeline for alternative perspectives at key decision points.
 
 ## Integration Architecture
 
@@ -177,7 +177,7 @@ def build_external_model_context(task_spec_dir: Path) -> str:
 ## TECH STACK & PATTERNS (from DOCS.md)
 Architecture: React 19 + FastAPI + Claude Agent SDK
 Auth: OAuth tokens via `claude setup-token` (NOT API keys)
-Storage: File-based (.auto-claude/specs/, ~/.auto-claude-web/)
+Storage: File-based (.magestic-ai/specs/, ~/.magestic-ai/)
 Security: 3-layer (sandbox, filesystem, command allowlist)
 
 ## TASK TO REVIEW

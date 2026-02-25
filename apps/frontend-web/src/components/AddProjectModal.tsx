@@ -23,7 +23,7 @@ interface DiscoveredProject {
   has_git: boolean;
   has_package_json: boolean;
   has_requirements: boolean;
-  has_auto_claude: boolean;
+  has_magestic_ai: boolean;
   has_claude_md: boolean;
 }
 
@@ -234,7 +234,7 @@ export function AddProjectModal({ open, onOpenChange, onProjectAdded }: AddProje
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm truncate">{proj.name}</span>
-                          {proj.has_auto_claude && (
+                          {proj.has_magestic_ai && (
                             <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />
                           )}
                         </div>

@@ -21,7 +21,7 @@ from pathlib import Path
 
 def find_spec_directories(project_path: Path) -> list[Path]:
     """Find all spec directories in a project."""
-    specs_dir = project_path / ".auto-claude" / "specs"
+    specs_dir = project_path / ".magestic-ai" / "specs"
     if not specs_dir.exists():
         return []
 
@@ -179,7 +179,7 @@ def fix_task(spec_dir: Path, dry_run: bool = False) -> bool:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Fix stuck tasks in Auto-Claude projects"
+        description="Fix stuck tasks in Magestic AI projects"
     )
     parser.add_argument(
         "project_path",

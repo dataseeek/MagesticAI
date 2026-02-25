@@ -1,6 +1,6 @@
 # Status and Phases Reference
 
-This document describes all status and phase values used in Claude Code Manager Web.
+This document describes all status and phase values used in MagesticAI.
 
 ## Task Status (`TaskStatus`)
 

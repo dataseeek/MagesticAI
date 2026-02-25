@@ -137,8 +137,6 @@ class AppSettings(BaseModel):
 
     # Integrations - using camelCase with snake_case aliases
     githubEnabled: bool = Field(False, alias="github_enabled", description="Enable GitHub integration")
-    gitlabEnabled: bool = Field(False, alias="gitlab_enabled", description="Enable GitLab integration")
-    linearEnabled: bool = Field(False, alias="linear_enabled", description="Enable Linear integration")
 
     # Memory - using camelCase with snake_case aliases
     graphitiEnabled: bool = Field(True, alias="graphiti_enabled", description="Enable Graphiti memory")
@@ -166,9 +164,9 @@ class AppSettings(BaseModel):
     claudePath: str | None = Field(None, description="Claude CLI path")
     autoBuildPath: str | None = Field(
         None,
-        description="Path to Auto Claude backend (apps/backend directory)",
+        description="Path to Magestic AI backend (apps/backend directory)",
     )
-    autoUpdateAutoBuild: bool = Field(True, description="Auto-update Auto Claude source")
+    autoUpdateAutoBuild: bool = Field(True, description="Auto-update Magestic AI source")
 
     # Global API keys
     globalClaudeOAuthToken: str | None = Field(None, description="Global Claude OAuth token")
@@ -260,8 +258,6 @@ class SettingsUpdate(BaseModel):
     preferredTerminal: str | None = None
     customTerminalPath: str | None = None
     githubEnabled: bool | None = Field(None, alias="github_enabled")
-    gitlabEnabled: bool | None = Field(None, alias="gitlab_enabled")
-    linearEnabled: bool | None = Field(None, alias="linear_enabled")
     graphitiEnabled: bool | None = Field(None, alias="graphiti_enabled")
     memoryEnabled: bool | None = None
     memoryEmbeddingProvider: str | None = None
@@ -1741,12 +1737,10 @@ async def discover_api_models(request: TestConnectionRequest):
 # --------------------------------------------------------------------------
 
 class SourceEnvUpdate(BaseModel):
-    """Model for updating Auto-Claude source environment configuration."""
+    """Model for updating Magestic AI source environment configuration."""
     claudeToken: str | None = Field(None, description="Claude Code OAuth token (CLAUDE_CODE_OAUTH_TOKEN)")
     anthropicBaseUrl: str | None = Field(None, description="Custom Anthropic API endpoint (ANTHROPIC_BASE_URL)")
     graphitiEnabled: bool | None = Field(None, description="Enable Graphiti memory system (GRAPHITI_ENABLED)")
-    linearApiKey: str | None = Field(None, description="Linear API key (LINEAR_API_KEY)")
-    gitlabToken: str | None = Field(None, description="GitLab personal access token (GITLAB_TOKEN)")
     githubToken: str | None = Field(None, description="GitHub personal access token (GITHUB_TOKEN)")
     openaiApiKey: str | None = Field(None, description="OpenAI API key for Graphiti (OPENAI_API_KEY)")
     debug: bool | None = Field(None, description="Enable debug mode (DEBUG)")
@@ -1761,14 +1755,12 @@ async def get_source_env():
 @router.patch("/source-env")
 async def update_source_env(config: SourceEnvUpdate):
     """
-    Update Auto-Claude source environment configuration.
+    Update Magestic AI source environment configuration.
 
     Updates the apps/backend/.env file with environment variables for:
     - Claude authentication (CLAUDE_CODE_OAUTH_TOKEN)
     - Custom API endpoints (ANTHROPIC_BASE_URL)
     - Graphiti memory system (GRAPHITI_ENABLED)
-    - Linear integration (LINEAR_API_KEY)
-    - GitLab integration (GITLAB_TOKEN)
     - GitHub integration (GITHUB_TOKEN)
     - OpenAI integration for Graphiti (OPENAI_API_KEY)
     - Debug mode (DEBUG)
@@ -1787,7 +1779,7 @@ async def update_source_env(config: SourceEnvUpdate):
     """
     try:
         settings = get_settings()
-        backend_path = Path(settings.AUTO_CLAUDE_BACKEND_PATH)
+        backend_path = Path(settings.MAGESTIC_AI_BACKEND_PATH)
         env_path = backend_path / ".env"
 
         # Read existing .env or start fresh
@@ -1806,8 +1798,6 @@ async def update_source_env(config: SourceEnvUpdate):
         # Token fields (string values that need validation)
         token_mapping = {
             "claudeToken": "CLAUDE_CODE_OAUTH_TOKEN",
-            "linearApiKey": "LINEAR_API_KEY",
-            "gitlabToken": "GITLAB_TOKEN",
             "githubToken": "GITHUB_TOKEN",
             "openaiApiKey": "OPENAI_API_KEY",
         }
@@ -1865,8 +1855,8 @@ async def update_source_env(config: SourceEnvUpdate):
         env_lines = []
 
         # Add header comment
-        env_lines.append("# Auto-Claude Environment Configuration")
-        env_lines.append("# Updated via Auto-Claude web interface")
+        env_lines.append("# Magestic AI Environment Configuration")
+        env_lines.append("# Updated via Magestic AI web interface")
         env_lines.append("")
 
         # Write all environment variables
@@ -1975,7 +1965,7 @@ async def check_claude_credentials_exist():
 
 @router.post("/import-claude-credentials")
 async def import_claude_credentials():
-    """Import token from ~/.claude/.credentials.json into Martinica profiles."""
+    """Import token from ~/.claude/.credentials.json into MagesticAI profiles."""
     from ..paths import get_data_file
 
     cred_path = Path.home() / ".claude" / ".credentials.json"

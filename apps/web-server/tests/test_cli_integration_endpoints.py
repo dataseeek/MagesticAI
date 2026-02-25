@@ -381,8 +381,8 @@ class TestGitOperations:
             "createBranch": True
         }
 
-        # Should call: git worktree add -b auto-claude/tasks/feature-123 .auto-claude/worktrees/tasks/feature-123 main
-        # Expected: {"success": True, "worktreePath": "...", "branch": "auto-claude/tasks/feature-123"}
+        # Should call: git worktree add -b magestic-ai/tasks/feature-123 .magestic-ai/worktrees/tasks/feature-123 main
+        # Expected: {"success": True, "worktreePath": "...", "branch": "magestic-ai/tasks/feature-123"}
         assert True  # Placeholder for actual endpoint call
 
     @patch('apps.web-server.server.routes.git.run_git_command')

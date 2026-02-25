@@ -29,9 +29,7 @@ class ValidateApiKeyRequest(BaseModel):
 
 class ProjectEnvUpdate(BaseModel):
     """Model for updating project environment configuration."""
-    linearApiKey: str | None = None
     githubToken: str | None = None
-    gitlabToken: str | None = None
     graphitiEnabled: bool | None = None
     enableFancyUi: bool | None = None
     claudeToken: str | None = None
@@ -69,8 +67,8 @@ async def get_project_context(projectId: str = Path(...)):
         return {"success": False, "error": f"Project {projectId} not found"}
 
     project_path = FilePath(projects[projectId]["path"])
-    index_path = project_path / ".auto-claude" / "project-index.json"
-    specs_dir = project_path / ".auto-claude" / "specs"
+    index_path = project_path / ".magestic-ai" / "project-index.json"
+    specs_dir = project_path / ".magestic-ai" / "specs"
 
     project_index = None
     if index_path.exists():
@@ -80,7 +78,7 @@ async def get_project_context(projectId: str = Path(...)):
             pass
 
     # Check if Graphiti/memory is configured
-    env_path = project_path / ".auto-claude" / ".env"
+    env_path = project_path / ".magestic-ai" / ".env"
     memory_enabled = False
     if env_path.exists():
         env_content = env_path.read_text()
@@ -119,7 +117,7 @@ async def get_project_context(projectId: str = Path(...)):
     recent_memories = memories[:10]
 
     # Check Graphiti database
-    graphiti_db = FilePath.home() / ".auto-claude" / "memories" / "auto_claude_memory"
+    graphiti_db = FilePath.home() / ".magestic-ai" / "memories" / "magestic_ai_memory"
     graphiti_available = graphiti_db.exists()
 
     return {
@@ -177,7 +175,7 @@ async def refresh_project_index(projectId: str = Path(...)):
                 index["languages"][ext] = index["languages"].get(ext, 0) + 1
 
         # Save index
-        index_path = project_path / ".auto-claude" / "project-index.json"
+        index_path = project_path / ".magestic-ai" / "project-index.json"
         index_path.parent.mkdir(parents=True, exist_ok=True)
         import json
         index_path.write_text(json.dumps(index, indent=2))
@@ -198,7 +196,7 @@ async def get_memory_status(projectId: str = Path(...)):
         return {"success": False, "error": f"Project {projectId} not found"}
 
     project_path = FilePath(projects[projectId]["path"])
-    specs_dir = project_path / ".auto-claude" / "specs"
+    specs_dir = project_path / ".magestic-ai" / "specs"
 
     # Count memory files across all specs
     memory_count = 0
@@ -210,7 +208,7 @@ async def get_memory_status(projectId: str = Path(...)):
                     memory_count += len(list(insights_dir.glob("session_*.json")))
 
     # Check Graphiti database
-    graphiti_db = FilePath.home() / ".auto-claude" / "memories" / "auto_claude_memory"
+    graphiti_db = FilePath.home() / ".magestic-ai" / "memories" / "magestic_ai_memory"
     graphiti_available = graphiti_db.exists()
 
     return {
@@ -237,7 +235,7 @@ async def search_memories(projectId: str = Path(...), q: str = Query(...)):
         return {"success": False, "error": f"Project {projectId} not found"}
 
     project_path = FilePath(projects[projectId]["path"])
-    specs_dir = project_path / ".auto-claude" / "specs"
+    specs_dir = project_path / ".magestic-ai" / "specs"
 
     results = []
     query_lower = q.lower()
@@ -288,7 +286,7 @@ async def get_recent_memories(projectId: str = Path(...), limit: int = Query(10)
         return {"success": False, "error": f"Project {projectId} not found"}
 
     project_path = FilePath(projects[projectId]["path"])
-    specs_dir = project_path / ".auto-claude" / "specs"
+    specs_dir = project_path / ".magestic-ai" / "specs"
 
     memories = []
 
@@ -359,13 +357,11 @@ async def get_project_env(projectId: str = Path(...)):
         return {"success": False, "error": f"Project {projectId} not found"}
 
     project_path = FilePath(projects[projectId]["path"])
-    env_path = project_path / ".auto-claude" / ".env"
+    env_path = project_path / ".magestic-ai" / ".env"
 
     config = {
         "claudeAuthStatus": "not_configured",
-        "linearEnabled": False,
         "githubEnabled": False,
-        "gitlabEnabled": False,
         "graphitiEnabled": False,
         "enableFancyUi": True
     }
@@ -385,12 +381,8 @@ async def get_project_env(projectId: str = Path(...)):
                     key = key.strip()
                     value = value.strip().strip('"').strip("'")
 
-                    if key == "LINEAR_API_KEY" and value:
-                        config["linearEnabled"] = True
-                    elif key == "GITHUB_TOKEN" and value:
+                    if key == "GITHUB_TOKEN" and value:
                         config["githubEnabled"] = True
-                    elif key == "GITLAB_TOKEN" and value:
-                        config["gitlabEnabled"] = True
                     elif key == "GRAPHITI_ENABLED":
                         config["graphitiEnabled"] = value.lower() == "true"
                     elif key == "ENABLE_FANCY_UI":
@@ -456,10 +448,8 @@ async def update_project_env(projectId: str = Path(...), config: ProjectEnvUpdat
     """
     Update project environment configuration.
 
-    Updates the .auto-claude/.env file with environment variables for:
-    - Linear integration (LINEAR_API_KEY)
+    Updates the .magestic-ai/.env file with environment variables for:
     - GitHub integration (GITHUB_TOKEN)
-    - GitLab integration (GITLAB_TOKEN)
     - Graphiti memory system (GRAPHITI_ENABLED)
     - UI preferences (ENABLE_FANCY_UI)
     - Claude authentication (CLAUDE_CODE_OAUTH_TOKEN)
@@ -475,7 +465,7 @@ async def update_project_env(projectId: str = Path(...), config: ProjectEnvUpdat
         return {"success": False, "error": f"Project {projectId} not found"}
 
     project_path = FilePath(projects[projectId]["path"])
-    env_path = project_path / ".auto-claude" / ".env"
+    env_path = project_path / ".magestic-ai" / ".env"
 
     try:
         # Read existing .env or start fresh
@@ -493,9 +483,7 @@ async def update_project_env(projectId: str = Path(...), config: ProjectEnvUpdat
         # Map API keys/tokens (string values)
         # These are sensitive credentials that should be validated
         token_mapping = {
-            "linearApiKey": "LINEAR_API_KEY",
             "githubToken": "GITHUB_TOKEN",
-            "gitlabToken": "GITLAB_TOKEN",
             "claudeToken": "CLAUDE_CODE_OAUTH_TOKEN",
         }
 
@@ -559,7 +547,7 @@ async def update_project_env(projectId: str = Path(...), config: ProjectEnvUpdat
                         elif env_key in existing:
                             del existing[env_key]
 
-        # Ensure .auto-claude directory exists
+        # Ensure .magestic-ai directory exists
         env_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write back to .env file
@@ -702,7 +690,7 @@ async def get_memory_infrastructure_status(dbPath: str | None = Query(None)):
         "success": True,
         "data": {
             "kuzuInstalled": False,
-            "databasePath": dbPath or str(FilePath.home() / ".auto-claude" / "memories"),
+            "databasePath": dbPath or str(FilePath.home() / ".magestic-ai" / "memories"),
             "databaseExists": False,
             "databases": [],
             "ready": False
@@ -759,54 +747,3 @@ async def test_graphiti_connection(request: TestGraphitiRequest):
         }
     }
 
-
-# ============================================
-# Linear Integration Routes
-# Project-specific at /api/projects/{projectId}/linear
-# ============================================
-
-linear_router = APIRouter()
-
-
-@linear_router.get("/teams")
-async def get_linear_teams(projectId: str = Path(...)):
-    """Get Linear teams."""
-    return {"success": True, "data": []}
-
-
-@linear_router.get("/projects")
-async def get_linear_projects(projectId: str = Path(...), teamId: str = Query(...)):
-    """Get Linear projects for a team."""
-    return {"success": True, "data": []}
-
-
-@linear_router.get("/issues")
-async def get_linear_issues(
-    projectId: str = Path(...),
-    teamId: str | None = Query(None),
-    projectId_: str | None = Query(None, alias="projectId")
-):
-    """Get Linear issues."""
-    return {"success": True, "data": []}
-
-
-class ImportLinearRequest(BaseModel):
-    issueIds: list[str]
-
-
-@linear_router.post("/import")
-async def import_linear_issues(projectId: str = Path(...), request: ImportLinearRequest = ...):
-    """Import Linear issues as tasks."""
-    return {"success": True, "data": {"imported": 0}}
-
-
-@linear_router.get("/status")
-async def check_linear_connection(projectId: str = Path(...)):
-    """Check Linear connection status."""
-    return {
-        "success": True,
-        "data": {
-            "connected": False,
-            "error": None
-        }
-    }

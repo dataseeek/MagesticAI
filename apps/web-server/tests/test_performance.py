@@ -40,7 +40,7 @@ def temp_dir():
 @pytest.fixture
 def mock_settings_dir(temp_dir: Path):
     """Create mock settings directory structure."""
-    settings_dir = temp_dir / ".auto-claude"
+    settings_dir = temp_dir / ".magestic-ai"
     settings_dir.mkdir(parents=True, exist_ok=True)
     return settings_dir
 

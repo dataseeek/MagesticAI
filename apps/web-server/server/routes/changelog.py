@@ -143,7 +143,7 @@ async def load_task_specs(projectId: str = Path(...), request: LoadSpecsRequest 
         return {"success": False, "error": f"Project {projectId} not found"}
 
     project_path = FilePath(projects[projectId]["path"])
-    specs_dir = project_path / ".auto-claude" / "specs"
+    specs_dir = project_path / ".magestic-ai" / "specs"
 
     specs = []
     for task_id in request.taskIds:
@@ -664,7 +664,7 @@ async def save_changelog_image(projectId: str = Path(...), request: SaveImageReq
     """
     Save a base64 encoded image to the project's assets directory.
 
-    Decodes the base64 image data and saves it to .auto-claude/assets/
+    Decodes the base64 image data and saves it to .magestic-ai/assets/
     with secure file permissions.
 
     Args:
@@ -700,7 +700,7 @@ async def save_changelog_image(projectId: str = Path(...), request: SaveImageReq
             return {"success": False, "error": "Filename must include an extension (e.g., .png, .jpg)"}
 
         # Create assets directory if it doesn't exist
-        assets_dir = project_path / ".auto-claude" / "assets"
+        assets_dir = project_path / ".magestic-ai" / "assets"
         assets_dir.mkdir(parents=True, exist_ok=True)
 
         # Decode base64 image data
@@ -730,7 +730,7 @@ async def save_changelog_image(projectId: str = Path(...), request: SaveImageReq
         image_path.chmod(0o600)
 
         # Return relative path from project root
-        relative_path = f".auto-claude/assets/{filename}"
+        relative_path = f".magestic-ai/assets/{filename}"
 
         return {
             "success": True,

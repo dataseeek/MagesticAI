@@ -2,7 +2,7 @@
  * Authentication utilities for web API
  */
 
-const TOKEN_KEY = 'auto-claude-token';
+const TOKEN_KEY = 'magestic-ai-token';
 
 export function getAuthToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);

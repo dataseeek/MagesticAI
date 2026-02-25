@@ -3,5 +3,4 @@
  * Each integration manages its own configuration, connection status, and UI.
  */
 
-export { LinearIntegration } from './LinearIntegration';
 export { GitHubIntegration } from './GitHubIntegration';

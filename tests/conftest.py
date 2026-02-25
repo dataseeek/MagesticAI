@@ -19,7 +19,7 @@ from unittest.mock import MagicMock
 import pytest
 
 # =============================================================================
-# PRE-MOCK EXTERNAL SDK MODULES - Must happen BEFORE adding auto-claude to path
+# PRE-MOCK EXTERNAL SDK MODULES - Must happen BEFORE adding magestic-ai to path
 # =============================================================================
 # These SDK modules may not be installed, so we mock them before any imports
 # that might trigger loading code that depends on them.

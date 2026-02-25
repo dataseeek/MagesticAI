@@ -11,9 +11,7 @@ import {
   Download,
   RefreshCw,
   Github,
-  GitlabIcon,
   GitPullRequest,
-  GitMerge,
   FileText,
   Sparkles,
   GitBranch,
@@ -51,7 +49,7 @@ import { RateLimitIndicator } from './RateLimitIndicator';
 import { ClaudeCodeStatusBadge } from './ClaudeCodeStatusBadge';
 import type { Project, AutoBuildVersionInfo, GitStatus, ProjectEnvConfig } from '../shared/types';
 
-export type SidebarView = 'kanban' | 'terminals' | 'editor' | 'context' | 'github-issues' | 'gitlab-issues' | 'github-prs' | 'gitlab-merge-requests' | 'changelog' | 'insights' | 'worktrees' | 'agent-tools';
+export type SidebarView = 'kanban' | 'terminals' | 'editor' | 'context' | 'github-issues' | 'github-prs' | 'changelog' | 'insights' | 'worktrees' | 'agent-tools';
 
 interface SidebarProps {
   onSettingsClick: () => void;
@@ -83,12 +81,6 @@ const baseNavItems: NavItem[] = [
 const githubNavItems: NavItem[] = [
   { id: 'github-issues', labelKey: 'navigation:items.githubIssues', icon: Github },
   { id: 'github-prs', labelKey: 'navigation:items.githubPRs', icon: GitPullRequest }
-];
-
-// GitLab nav items shown when GitLab is enabled
-const gitlabNavItems: NavItem[] = [
-  { id: 'gitlab-issues', labelKey: 'navigation:items.gitlabIssues', icon: GitlabIcon },
-  { id: 'gitlab-merge-requests', labelKey: 'navigation:items.gitlabMRs', icon: GitMerge }
 ];
 
 export function Sidebar({
@@ -129,7 +121,7 @@ export function Sidebar({
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
-  // Load env config when project changes to check GitHub/GitLab enabled state
+  // Load env config when project changes to check GitHub enabled state
   useEffect(() => {
     const loadEnvConfig = async () => {
       if (selectedProject?.autoBuildPath) {
@@ -150,7 +142,7 @@ export function Sidebar({
     loadEnvConfig();
   }, [selectedProject?.id, selectedProject?.autoBuildPath]);
 
-  // Compute visible nav items based on GitHub/GitLab enabled state
+  // Compute visible nav items based on GitHub enabled state
   const visibleNavItems = useMemo(() => {
     const items = [...baseNavItems];
 
@@ -158,12 +150,8 @@ export function Sidebar({
       items.push(...githubNavItems);
     }
 
-    if (envConfig?.gitlabEnabled) {
-      items.push(...gitlabNavItems);
-    }
-
     return items;
-  }, [envConfig?.githubEnabled, envConfig?.gitlabEnabled]);
+  }, [envConfig?.githubEnabled]);
 
   // Check git status when project changes
   // Use selectedProjectId instead of selectedProject to avoid re-running on every render
@@ -286,8 +274,8 @@ export function Sidebar({
       <div className="flex h-full w-64 flex-col bg-sidebar border-r border-border">
         {/* Header with drag area - extra top padding for macOS traffic lights */}
         <div className="electron-drag flex h-14 items-center gap-2.5 px-4 pt-6">
-          <img src="/logo.png" alt="Martinica" className="electron-no-drag h-7 w-7 rounded" />
-          <span className="electron-no-drag text-lg font-bold text-white bg-primary/30 px-2 py-0.5 rounded">Martinica AI</span>
+          <img src="/logo.png" alt="MagesticAI" className="electron-no-drag h-7 w-7 rounded" />
+          <span className="electron-no-drag text-lg font-bold text-white bg-primary/30 px-2 py-0.5 rounded">MagesticAI</span>
         </div>
 
         <Separator className="mt-2" />
@@ -355,7 +343,7 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Initialize Auto Claude Dialog */}
+      {/* Initialize Magestic AI Dialog */}
       <Dialog open={showInitDialog} onOpenChange={(open) => {
         // Only allow closing if user manually closes (not during initialization)
         if (!open && !isInitializing) {

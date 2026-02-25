@@ -32,8 +32,8 @@ class TerminalWorktreeService:
         if not self.project_path.is_dir():
             raise ValueError(f"Project path does not exist: {project_path}")
 
-        self.worktrees_dir = self.project_path / ".auto-claude" / "worktrees" / "terminal"
-        self.config_file = self.project_path / ".auto-claude" / "terminal-worktrees.json"
+        self.worktrees_dir = self.project_path / ".magestic-ai" / "worktrees" / "terminal"
+        self.config_file = self.project_path / ".magestic-ai" / "terminal-worktrees.json"
 
     def create_worktree(
         self,
@@ -67,7 +67,7 @@ class TerminalWorktreeService:
         if existing:
             raise ValueError(f"Worktree '{name}' already exists")
 
-        # Ensure .auto-claude/worktrees/terminal/ directory exists
+        # Ensure .magestic-ai/worktrees/terminal/ directory exists
         self.worktrees_dir.mkdir(parents=True, exist_ok=True)
 
         worktree_path = self.worktrees_dir / name

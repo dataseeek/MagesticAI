@@ -46,7 +46,7 @@ def load_task_specs(project_path: Path, task_ids: list[str]) -> list[dict[str, A
         List of task data dictionaries
     """
     tasks = []
-    specs_dir = project_path / ".auto-claude" / "specs"
+    specs_dir = project_path / ".magestic-ai" / "specs"
 
     if not specs_dir.exists():
         logger.warning(f"Specs directory not found: {specs_dir}")
@@ -471,7 +471,7 @@ def generate_changelog(
         import json
 
         # Load LLM provider settings from web server config
-        settings_file = Path.home() / ".auto-claude-web" / "settings.json"
+        settings_file = Path.home() / ".magestic-ai" / "settings.json"
         llm_provider = "ollama"  # default
         llm_config = {}
 
@@ -561,7 +561,7 @@ def generate_changelog(
     emit_phase(5, "FORMATTING")
 
     # Save to file
-    changelog_dir = project_path / ".auto-claude" / "changelog"
+    changelog_dir = project_path / ".magestic-ai" / "changelog"
     changelog_dir.mkdir(parents=True, exist_ok=True)
 
     output_file = changelog_dir / "generated.md"

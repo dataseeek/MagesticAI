@@ -142,7 +142,7 @@ export function GeneralSettings({ settings, onSettingsChange, section }: General
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="auto-claude">{t('general.agentFrameworkAutoClaude')}</SelectItem>
+                  <SelectItem value="magestic-ai">{t('general.agentFrameworkAutoClaude')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

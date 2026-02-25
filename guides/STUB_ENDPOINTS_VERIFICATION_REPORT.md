@@ -261,8 +261,8 @@ The implementation_plan.json needs corrections:
 
 ## 📚 Related Documents
 
-- **Implementation Plan:** `.auto-claude/specs/012-search-this-project-files-for-/implementation_plan.json`
-- **Build Progress:** `.auto-claude/specs/012-search-this-project-files-for-/build-progress.txt`
+- **Implementation Plan:** `.magestic-ai/specs/012-search-this-project-files-for-/implementation_plan.json`
+- **Build Progress:** `.magestic-ai/specs/012-search-this-project-files-for-/build-progress.txt`
 - **AI Service Test Report:** `AI_SERVICE_ENDPOINTS_TEST_REPORT.md`
 - **File-Based Test Report:** `FILE_BASED_ENDPOINTS_TEST_REPORT.md`
 - **CLI Integration Test Report:** `CLI_INTEGRATION_ENDPOINTS_TEST_REPORT.md`

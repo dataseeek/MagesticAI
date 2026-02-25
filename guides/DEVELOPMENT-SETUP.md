@@ -1,6 +1,6 @@
-# Claude Code Manager Web - Development Setup Guide
+# MagesticAI - Development Setup Guide
 
-This guide provides detailed instructions for setting up a development environment to contribute to Claude Code Manager Web. It covers all three applications, debugging configurations, hot reload, and IDE recommendations.
+This guide provides detailed instructions for setting up a development environment to contribute to MagesticAI. It covers all three applications, debugging configurations, hot reload, and IDE recommendations.
 
 ---
 
@@ -24,7 +24,7 @@ This guide provides detailed instructions for setting up a development environme
 
 ## Overview
 
-Claude Code Manager Web consists of three main applications:
+MagesticAI consists of three main applications:
 
 | Application | Technology | Port | Purpose |
 |-------------|------------|------|---------|
@@ -416,7 +416,7 @@ The backend can be run directly via CLI for testing:
 # Activate virtual environment
 source .venv/bin/activate
 
-# Run a task (from project root with .auto-claude directory)
+# Run a task (from project root with .magestic-ai directory)
 python -m cli.main start-task TASK_ID
 
 # Run specific agent

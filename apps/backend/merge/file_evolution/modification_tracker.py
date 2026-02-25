@@ -36,11 +36,11 @@ MODULE = "merge.file_evolution.modification_tracker"
 
 # Files/patterns to ignore during conflict detection (internal auto-generated files)
 IGNORED_FILES = {
-    ".auto-claude-security.json",
-    ".auto-claude-status",
+    ".magestic-ai-security.json",
+    ".magestic-ai-status",
 }
 IGNORED_PREFIXES = (
-    ".auto-claude/",
+    ".magestic-ai/",
     "VERIFICATION_REPORT",
     "LANGUAGE_CHOICE",
 )

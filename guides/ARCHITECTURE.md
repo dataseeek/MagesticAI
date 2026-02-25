@@ -1,6 +1,6 @@
-# Claude Code Manager Web - Architecture Guide
+# MagesticAI - Architecture Guide
 
-This guide provides a comprehensive overview of the Claude Code Manager Web architecture, including system design, data flow, component interactions, and key design decisions.
+This guide provides a comprehensive overview of the MagesticAI architecture, including system design, data flow, component interactions, and key design decisions.
 
 ---
 
@@ -23,7 +23,7 @@ This guide provides a comprehensive overview of the Claude Code Manager Web arch
 
 ## Overview
 
-Claude Code Manager Web is a **three-tier web application** that orchestrates AI-powered coding tasks through a coordination of autonomous agents. The system is designed for:
+MagesticAI is a **three-tier web application** that orchestrates AI-powered coding tasks through a coordination of autonomous agents. The system is designed for:
 
 - **Browser-based access** - Full functionality from any modern web browser
 - **Real-time interaction** - Live updates via WebSocket connections
@@ -113,13 +113,13 @@ Claude Code Manager Web is a **three-tier web application** that orchestrates AI
                                  ┌─────────────────────────────────────┐
                                  │         File System Storage          │
                                  │  ┌─────────────────────────────────┐ │
-                                 │  │  ~/.auto-claude-web/            │ │
+                                 │  │  ~/.magestic-ai/            │ │
                                  │  │  ├── projects.json              │ │
                                  │  │  ├── settings.json              │ │
                                  │  │  └── .token                     │ │
                                  │  └─────────────────────────────────┘ │
                                  │  ┌─────────────────────────────────┐ │
-                                 │  │  project/.auto-claude/          │ │
+                                 │  │  project/.magestic-ai/          │ │
                                  │  │  ├── specs/{task-id}/           │ │
                                  │  │  └── worktrees/tasks/           │ │
                                  │  └─────────────────────────────────┘ │
@@ -130,7 +130,7 @@ Claude Code Manager Web is a **three-tier web application** that orchestrates AI
 
 ## System Layers
 
-Claude Code Manager Web consists of four distinct layers:
+MagesticAI consists of four distinct layers:
 
 ### Layer 1: Presentation Layer (Frontend)
 
@@ -623,7 +623,7 @@ The agent system includes an optional knowledge graph memory:
 │                                                                          │
 │  For each subtask in implementation_plan.json:                          │
 │       │                                                                  │
-│       │ Git worktree: .auto-claude/worktrees/tasks/{id}/                │
+│       │ Git worktree: .magestic-ai/worktrees/tasks/{id}/                │
 │       ▼                                                                  │
 │  Coder Agent ────────────────────────────────────────────────────────►  │
 │       │  - Reads subtask from plan                                      │
@@ -779,18 +779,18 @@ const ws = new WebSocket(`ws://localhost:8000/ws/events?token=${token}`);
 
 ### File-Based Storage Design
 
-Claude Code Manager Web intentionally uses **file-based storage** instead of a traditional database:
+MagesticAI intentionally uses **file-based storage** instead of a traditional database:
 
 | Storage Type | Location | Purpose |
 |--------------|----------|---------|
-| **App Data** | `~/.auto-claude-web/` | Global application data |
-| **Project Data** | `{project}/.auto-claude/` | Per-project task data |
-| **Git Worktrees** | `{project}/.auto-claude/worktrees/` | Isolated task branches |
+| **App Data** | `~/.magestic-ai/` | Global application data |
+| **Project Data** | `{project}/.magestic-ai/` | Per-project task data |
+| **Git Worktrees** | `{project}/.magestic-ai/worktrees/` | Isolated task branches |
 
-### Global App Data (`~/.auto-claude-web/`)
+### Global App Data (`~/.magestic-ai/`)
 
 ```
-~/.auto-claude-web/
+~/.magestic-ai/
 ├── projects.json        # List of registered projects
 │                        # [{ id, path, name, createdAt }]
 │
@@ -809,11 +809,11 @@ Claude Code Manager Web intentionally uses **file-based storage** instead of a t
     └── agent.log        # Agent execution logs
 ```
 
-### Per-Project Data (`{project}/.auto-claude/`)
+### Per-Project Data (`{project}/.magestic-ai/`)
 
 ```
 {project}/
-└── .auto-claude/
+└── .magestic-ai/
     ├── specs/
     │   └── {task-id}/                 # e.g., 001-add-login
     │       ├── spec.md                # Feature specification
@@ -898,7 +898,7 @@ Claude Code Manager Web intentionally uses **file-based storage** instead of a t
 │       │                                                          │
 │       │ Generate or load token                                   │
 │       ▼                                                          │
-│  ~/.auto-claude-web/.token                                      │
+│  ~/.magestic-ai/.token                                      │
 │       │                                                          │
 │       │ Token printed to console                                 │
 │       ▼                                                          │
@@ -954,7 +954,7 @@ Claude Code Manager Web intentionally uses **file-based storage** instead of a t
 │    Go: go                                                      │
 │    Docker: docker, docker-compose                              │
 │                                                                  │
-│  Security Profile (.auto-claude-security.json):                 │
+│  Security Profile (.magestic-ai-security.json):                 │
 │  {                                                              │
 │    "allowed_commands": ["npm", "git", "python", ...],          │
 │    "capabilities": {                                            │
@@ -1053,7 +1053,7 @@ The architecture supports horizontal scaling through:
 
 1. **Multiple Web Servers** - Behind load balancer (requires sticky sessions for WebSocket)
 2. **Distributed Agents** - Agent workers on multiple machines
-3. **Shared Storage** - NFS or cloud storage for `~/.auto-claude-web/`
+3. **Shared Storage** - NFS or cloud storage for `~/.magestic-ai/`
 
 ### Performance Optimizations
 
@@ -1075,4 +1075,4 @@ The architecture supports horizontal scaling through:
 
 ---
 
-**Claude Code Manager Web** - Understanding the architecture enables better contributions.
+**MagesticAI** - Understanding the architecture enables better contributions.

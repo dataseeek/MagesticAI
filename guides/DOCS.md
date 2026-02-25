@@ -1,4 +1,4 @@
-# Claude Code Manager Web - Technical Documentation
+# MagesticAI - Technical Documentation
 
 Comprehensive technical documentation for contributors and developers.
 
@@ -30,7 +30,7 @@ Comprehensive technical documentation for contributors and developers.
 
 ### Purpose
 
-Claude Code Manager Web is a web-based platform for managing AI-powered coding tasks through coordinated autonomous agents. It enables:
+MagesticAI is a web-based platform for managing AI-powered coding tasks through coordinated autonomous agents. It enables:
 
 - **Task Automation** - Create specs, plan implementations, and execute code automatically
 - **Multi-Agent Orchestration** - Planner, Coder, and QA agents work together
@@ -323,10 +323,10 @@ npm run dev
 
 | File | Location | Purpose |
 |------|----------|---------|
-| `settings.json` | `~/.auto-claude-web/` | App settings |
-| `projects.json` | `~/.auto-claude-web/` | Project list |
-| `.token` | `~/.auto-claude-web/` | API auth token |
-| `claude-profiles.json` | `~/.auto-claude-web/` | Claude profiles |
+| `settings.json` | `~/.magestic-ai/` | App settings |
+| `projects.json` | `~/.magestic-ai/` | Project list |
+| `.token` | `~/.magestic-ai/` | API auth token |
+| `claude-profiles.json` | `~/.magestic-ai/` | Claude profiles |
 
 ---
 
@@ -404,7 +404,7 @@ class PTYManager:
 ### Authentication Flow
 
 ```
-1. Server starts → generates token → saves to ~/.auto-claude-web/.token
+1. Server starts → generates token → saves to ~/.magestic-ai/.token
 2. Client reads token from localStorage
 3. All /api/* requests include: Authorization: Bearer {token}
 4. WebSocket connects with: ?token={token} or Bearer header
@@ -662,23 +662,23 @@ def create_client(
 
 ### File-Based Storage
 
-Claude Code Manager Web uses file-based storage (no SQL database):
+MagesticAI uses file-based storage (no SQL database):
 
 | Location | Content |
 |----------|---------|
-| `~/.auto-claude-web/` | Web interface data |
-| `~/.auto-claude-web/projects.json` | Project list |
-| `~/.auto-claude-web/settings.json` | App settings |
-| `~/.auto-claude-web/.token` | API auth token |
-| `~/.auto-claude-web/logs/` | Server logs |
-| `.auto-claude/specs/` | Per-project spec data |
-| `.auto-claude/worktrees/` | Git worktrees |
+| `~/.magestic-ai/` | Web interface data |
+| `~/.magestic-ai/projects.json` | Project list |
+| `~/.magestic-ai/settings.json` | App settings |
+| `~/.magestic-ai/.token` | API auth token |
+| `~/.magestic-ai/logs/` | Server logs |
+| `.magestic-ai/specs/` | Per-project spec data |
+| `.magestic-ai/worktrees/` | Git worktrees |
 
 ### Project Data Structure
 
 ```
 project-root/
-└── .auto-claude/
+└── .magestic-ai/
     ├── specs/
     │   └── 001-feature-name/
     │       ├── spec.md               # Feature specification
@@ -989,7 +989,7 @@ function MyComponent() {
 
 ### Authentication
 
-- **Token-based auth** stored in `~/.auto-claude-web/.token`
+- **Token-based auth** stored in `~/.magestic-ai/.token`
 - Auto-generated on first server start
 - Required for all `/api/*` routes
 - WebSocket auth via query param or header
@@ -1016,7 +1016,7 @@ STACK_COMMANDS = {
 
 ### Security Profile
 
-Cached in `.auto-claude-security.json`:
+Cached in `.magestic-ai-security.json`:
 
 ```json
 {
@@ -1117,7 +1117,7 @@ APP_DEBUG=false python -m server.main
 ```bash
 # Enable SSL
 APP_SSL_ENABLED=true
-# Certificates auto-generated in ~/.auto-claude-web/ssl/
+# Certificates auto-generated in ~/.magestic-ai/ssl/
 ```
 
 ---
@@ -1129,7 +1129,7 @@ APP_SSL_ENABLED=true
 | Issue | Solution |
 |-------|----------|
 | Cannot connect to backend | Verify web-server on port 8000 |
-| Invalid token | Get from `~/.auto-claude-web/.token` |
+| Invalid token | Get from `~/.magestic-ai/.token` |
 | WebSocket fails | Check token, verify ports |
 | Task stuck | Check logs: Settings → Logs |
 | Memory errors | Set `GRAPHITI_ENABLED=true` |
@@ -1140,10 +1140,10 @@ APP_SSL_ENABLED=true
 
 | Log | Location |
 |-----|----------|
-| Server logs | `~/.auto-claude-web/logs/server.log` |
-| Error logs | `~/.auto-claude-web/logs/errors.log` |
-| Agent logs | `~/.auto-claude-web/logs/agent.log` |
-| Task logs | `.auto-claude/specs/{id}/task_logs.json` |
+| Server logs | `~/.magestic-ai/logs/server.log` |
+| Error logs | `~/.magestic-ai/logs/errors.log` |
+| Agent logs | `~/.magestic-ai/logs/agent.log` |
+| Task logs | `.magestic-ai/specs/{id}/task_logs.json` |
 
 ### Debug Mode
 

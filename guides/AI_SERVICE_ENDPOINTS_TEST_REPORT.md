@@ -160,7 +160,7 @@ analysis_result = await analyze_issue_with_ai(
 - [x] Error handling (project not found, CLI errors, AI errors)
 - [x] Response structure validation
 
-**Commit:** `1080dab` - "auto-claude: 8.1 - Fetch issue via glab CLI and analyze with AI"
+**Commit:** `1080dab` - "magestic-ai: 8.1 - Fetch issue via glab CLI and analyze with AI"
 
 ---
 
@@ -212,7 +212,7 @@ response = await client.send_message(prompt)
 - [x] Error handling (project not found, CLI errors, AI errors)
 - [x] Response structure validation
 
-**Commit:** `c0cc51c` - "auto-claude: 8.2 - AI-powered code review for MR"
+**Commit:** `c0cc51c` - "magestic-ai: 8.2 - AI-powered code review for MR"
 
 ---
 
@@ -249,7 +249,7 @@ response = await client.send_message(prompt)
 - [x] Partial success handling
 - [x] Error handling
 
-**Commit:** `4a56803` - "auto-claude: 8.3 - Post AI review comments to GitLab MR"
+**Commit:** `4a56803` - "magestic-ai: 8.3 - Post AI review comments to GitLab MR"
 
 ---
 
@@ -300,7 +300,7 @@ analysis_result = await analyze_issue_with_ai(
 - [x] Error handling (project not found, CLI errors, AI errors)
 - [x] Response structure validation
 
-**Commit:** `d58d47a` - "auto-claude: 9.1 - Fetch issue via gh CLI and analyze with AI"
+**Commit:** `d58d47a` - "magestic-ai: 9.1 - Fetch issue via gh CLI and analyze with AI"
 
 ---
 
@@ -359,7 +359,7 @@ response = await client.send_message(followup_prompt)
 - [x] Response structure validation
 - [x] Error handling
 
-**Commit:** `4bd38ec` - "auto-claude: 14.3 - Continue AI review with additional context"
+**Commit:** `4bd38ec` - "magestic-ai: 14.3 - Continue AI review with additional context"
 
 ---
 
@@ -402,7 +402,7 @@ The `run_mr_review` endpoint (8.2) uses `await analyze_mr_with_ai()` which runs 
 - [x] API compatibility
 - [x] Error handling
 
-**Commit:** `3bab31c` - "auto-claude: 14.4 - Cancel ongoing MR review process"
+**Commit:** `3bab31c` - "magestic-ai: 14.4 - Cancel ongoing MR review process"
 
 ---
 
@@ -595,5 +595,5 @@ The ideation endpoints (6.1-6.3) were well-implemented initially (commit 2d3bcf2
 ---
 
 **Generated:** 2026-01-07
-**Author:** Auto-Claude Task 012, Subtask 15.3
+**Author:** Magestic AI Task 012, Subtask 15.3
 **Total Lines:** 700+

@@ -1,11 +1,11 @@
 ## Claude Account Failover Plan
 
-Goal: When an agent run exits immediately with no logs (exit code 1, planning failed), automatically switch to another Claude account token from `~/.auto-claude-web/claude-profiles.json` and retry once.
+Goal: When an agent run exits immediately with no logs (exit code 1, planning failed), automatically switch to another Claude account token from `~/.magestic-ai/claude-profiles.json` and retry once.
 
 ### Strategy
 - **Token resolution with failover order:**
   1) If `CLAUDE_CODE_OAUTH_TOKEN` is set in env, use it (no failover unless explicitly allowed).
-  2) Else, read `~/.auto-claude-web/claude-profiles.json`:
+  2) Else, read `~/.magestic-ai/claude-profiles.json`:
      - Prefer active profile if it has `oauthToken` (or legacy `token`).
      - Else first usable profile; allow exclusion of the just-failed profile ID.
   3) Fallback: `~/.claude/oauth_token`.

@@ -1,10 +1,10 @@
 # Docker-Native Web UI Architecture
 
-> Design document for converting Auto-Claude from Electron to a containerized web application.
+> Design document for converting Magestic AI from Electron to a containerized web application.
 
 ## Executive Summary
 
-This document outlines the architecture for a Docker-native version of Auto-Claude that:
+This document outlines the architecture for a Docker-native version of Magestic AI that:
 1. Runs entirely in containers for security isolation
 2. Provides a web-based UI accessible via browser
 3. Maintains feature parity with the Electron app
@@ -35,7 +35,7 @@ This document outlines the architecture for a Docker-native version of Auto-Clau
 └─────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         auto-claude Container                            │
+│                         magestic-ai Container                            │
 │                                                                          │
 │  ┌─────────────────────────────────────────────────────────────────────┐│
 │  │                         Caddy / Nginx                                ││
@@ -60,7 +60,7 @@ This document outlines the architecture for a Docker-native version of Auto-Clau
 │  │                          │                                          ││
 │  │                          ▼                                          ││
 │  │  ┌──────────────────────────────────────────────────────────────┐  ││
-│  │  │              Auto-Claude Python Core                          │  ││
+│  │  │              Magestic AI Python Core                          │  ││
 │  │  │                                                                │  ││
 │  │  │  - runners/         Agent orchestration                       │  ││
 │  │  │  - core/client.py   Claude SDK integration                    │  ││
@@ -98,11 +98,11 @@ This document outlines the architecture for a Docker-native version of Auto-Clau
 
 ### 1. FastAPI Backend
 
-**Location:** `auto-claude/api/`
+**Location:** `magestic-ai/api/`
 
 **Structure:**
 ```
-auto-claude/api/
+magestic-ai/api/
 ├── __init__.py
 ├── main.py              # FastAPI app, CORS, lifespan
 ├── routes/
@@ -187,8 +187,8 @@ interface ProjectEvent {
 | POST | `/api/projects` | Add project by path |
 | DELETE | `/api/projects/{id}` | Remove project |
 | PATCH | `/api/projects/{id}/settings` | Update project settings |
-| POST | `/api/projects/{id}/initialize` | Initialize auto-claude in project |
-| GET | `/api/projects/{id}/version` | Check auto-claude version |
+| POST | `/api/projects/{id}/initialize` | Initialize magestic-ai in project |
+| GET | `/api/projects/{id}/version` | Check magestic-ai version |
 | GET | `/api/projects/{id}/context` | Get project context/index |
 | POST | `/api/projects/{id}/refresh-index` | Refresh project index |
 
@@ -336,24 +336,24 @@ RUN curl -fsSL https://claude.ai/install.sh | sh
 
 # Set up Python environment
 WORKDIR /app
-COPY auto-claude/requirements.txt .
+COPY magestic-ai/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install API dependencies
-COPY auto-claude/api/requirements.txt ./api-requirements.txt
+COPY magestic-ai/api/requirements.txt ./api-requirements.txt
 RUN pip install --no-cache-dir -r api-requirements.txt
 
 # Copy application code
-COPY auto-claude/ ./auto-claude/
+COPY magestic-ai/ ./magestic-ai/
 
 # --- Frontend Build Stage ---
 FROM node:22-alpine AS frontend-build
 
 WORKDIR /app
-COPY auto-claude-ui/package*.json ./
+COPY magestic-ai-ui/package*.json ./
 RUN npm ci
 
-COPY auto-claude-ui/ ./
+COPY magestic-ai-ui/ ./
 # Modify for web build (remove Electron-specific code)
 ENV VITE_API_URL=/api
 ENV VITE_WS_URL=/ws
@@ -375,7 +375,7 @@ COPY docker/Caddyfile /etc/caddy/Caddyfile
 RUN mkdir -p /data /projects /home/claude
 
 # Environment
-ENV PYTHONPATH=/app/auto-claude
+ENV PYTHONPATH=/app/magestic-ai
 ENV DATA_DIR=/data
 ENV PROJECTS_DIR=/projects
 ENV CLAUDE_CONFIG_DIR=/home/claude/.claude
@@ -400,7 +400,7 @@ CMD ["/start.sh"]
 # docker/start.sh
 
 # Start FastAPI in background
-cd /app/auto-claude
+cd /app/magestic-ai
 uvicorn api.main:app --host 0.0.0.0 --port 8000 &
 
 # Start Caddy (foreground)
@@ -435,23 +435,23 @@ caddy run --config /etc/caddy/Caddyfile
 
 ```yaml
 # docker-compose.yml
-name: auto-claude
+name: magestic-ai
 
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: auto-claude
+    container_name: magestic-ai
     ports:
       - "3000:3000"
     volumes:
       # Mount user's projects (read-write for agent work)
       - ${PROJECTS_PATH:-./projects}:/projects
       # Persistent data
-      - auto-claude-data:/data
+      - magestic-ai-data:/data
       # Claude CLI config (for OAuth tokens)
-      - auto-claude-claude:/home/claude/.claude
+      - magestic-ai-claude:/home/claude/.claude
     environment:
       - CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN:-}
       - SECURITY_STRICT_MODE=${SECURITY_STRICT_MODE:-true}
@@ -459,15 +459,15 @@ services:
     depends_on:
       - falkordb
     networks:
-      - auto-claude-net
+      - magestic-ai-net
 
   falkordb:
     image: falkordb/falkordb:latest
-    container_name: auto-claude-falkordb
+    container_name: magestic-ai-falkordb
     volumes:
       - falkordb-data:/data
     networks:
-      - auto-claude-net
+      - magestic-ai-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -476,7 +476,7 @@ services:
 
   graphiti-mcp:
     image: falkordb/graphiti-knowledge-graph-mcp:latest
-    container_name: auto-claude-graphiti
+    container_name: magestic-ai-graphiti
     platform: linux/amd64
     environment:
       DATABASE_TYPE: falkordb
@@ -487,15 +487,15 @@ services:
       falkordb:
         condition: service_healthy
     networks:
-      - auto-claude-net
+      - magestic-ai-net
 
 volumes:
-  auto-claude-data:
-  auto-claude-claude:
+  magestic-ai-data:
+  magestic-ai-claude:
   falkordb-data:
 
 networks:
-  auto-claude-net:
+  magestic-ai-net:
     driver: bridge
 ```
 
@@ -516,7 +516,7 @@ networks:
 ```yaml
 # Future: Per-agent containers
 agent-sandbox:
-  image: auto-claude-agent
+  image: magestic-ai-agent
   read_only: true
   tmpfs:
     - /tmp
@@ -530,7 +530,7 @@ agent-sandbox:
 
 ### Secrets Management
 
-1. OAuth tokens stored in named volume (`auto-claude-claude`)
+1. OAuth tokens stored in named volume (`magestic-ai-claude`)
 2. API keys passed via environment variables
 3. Never logged or exposed via API
 4. Consider Docker secrets for production

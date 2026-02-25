@@ -1,10 +1,10 @@
 # Release Process
 
-This document describes how releases are created for Claude Code Manager Web.
+This document describes how releases are created for MagesticAI.
 
 ## Overview
 
-Claude Code Manager Web uses a simplified release process with version bumping and changelog management.
+MagesticAI uses a simplified release process with version bumping and changelog management.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -49,7 +49,7 @@ On your development branch:
 
 ```bash
 # Navigate to project root
-cd Claude-Code-Manager-Web
+cd MagesticAI
 
 # Bump version (choose one)
 node scripts/bump-version.js patch   # 1.0.0 -> 1.0.1 (bug fixes)
@@ -122,7 +122,7 @@ gh release create v1.1.0 \
 ```
 
 Or create the release manually via GitHub UI:
-1. Go to [Releases](https://github.com/dataseeek/Claude-Code-Manager-Web/releases)
+1. Go to [Releases](https://github.com/dataseeek/MagesticAI/releases)
 2. Click "Create a new release"
 3. Select the tag
 4. Add release notes from CHANGELOG.md
@@ -239,6 +239,6 @@ gh release edit v1.1.0 --notes "Updated release notes"
 
 ## Resources
 
-- [GitHub Releases](https://github.com/dataseeek/Claude-Code-Manager-Web/releases)
+- [GitHub Releases](https://github.com/dataseeek/MagesticAI/releases)
 - [Semantic Versioning](https://semver.org/)
 - [GitHub CLI Documentation](https://cli.github.com/manual/)

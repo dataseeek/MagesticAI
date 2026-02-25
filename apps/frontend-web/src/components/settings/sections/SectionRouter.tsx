@@ -1,11 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import type { Project, ProjectSettings as ProjectSettingsType, AutoBuildVersionInfo, ProjectEnvConfig, LinearSyncStatus, GitHubSyncStatus, GitLabSyncStatus } from '../../../shared/types';
+import type { Project, ProjectSettings as ProjectSettingsType, AutoBuildVersionInfo, ProjectEnvConfig, GitHubSyncStatus } from '../../../shared/types';
 import { SettingsSection } from '../SettingsSection';
 import { GeneralSettings } from '../../project-settings/GeneralSettings';
 import { SecuritySettings } from '../../project-settings/SecuritySettings';
-import { LinearIntegration } from '../integrations/LinearIntegration';
 import { GitHubIntegration } from '../integrations/GitHubIntegration';
-import { GitLabIntegration } from '../integrations/GitLabIntegration';
 import { InitializationGuard } from '../common/InitializationGuard';
 import type { ProjectSettingsSection } from '../ProjectSettingsContent';
 
@@ -21,22 +19,13 @@ interface SectionRouterProps {
   isLoadingEnv: boolean;
   envError: string | null;
   updateEnvConfig: (updates: Partial<ProjectEnvConfig>) => void;
-  showLinearKey: boolean;
-  setShowLinearKey: React.Dispatch<React.SetStateAction<boolean>>;
   showOpenAIKey: boolean;
   setShowOpenAIKey: React.Dispatch<React.SetStateAction<boolean>>;
   showGitHubToken: boolean;
   setShowGitHubToken: React.Dispatch<React.SetStateAction<boolean>>;
   gitHubConnectionStatus: GitHubSyncStatus | null;
   isCheckingGitHub: boolean;
-  showGitLabToken: boolean;
-  setShowGitLabToken: React.Dispatch<React.SetStateAction<boolean>>;
-  gitLabConnectionStatus: GitLabSyncStatus | null;
-  isCheckingGitLab: boolean;
-  linearConnectionStatus: LinearSyncStatus | null;
-  isCheckingLinear: boolean;
   handleInitialize: () => Promise<void>;
-  onOpenLinearImport: () => void;
 }
 
 /**
@@ -55,22 +44,13 @@ export function SectionRouter({
   isLoadingEnv,
   envError,
   updateEnvConfig,
-  showLinearKey,
-  setShowLinearKey,
   showOpenAIKey,
   setShowOpenAIKey,
   showGitHubToken,
   setShowGitHubToken,
   gitHubConnectionStatus,
   isCheckingGitHub,
-  showGitLabToken,
-  setShowGitLabToken,
-  gitLabConnectionStatus,
-  isCheckingGitLab,
-  linearConnectionStatus,
-  isCheckingLinear,
   handleInitialize,
-  onOpenLinearImport
 }: SectionRouterProps) {
   const { t } = useTranslation('settings');
 
@@ -93,30 +73,6 @@ export function SectionRouter({
         </SettingsSection>
       );
 
-    case 'linear':
-      return (
-        <SettingsSection
-          title={t('projectSections.linear.integrationTitle')}
-          description={t('projectSections.linear.integrationDescription')}
-        >
-          <InitializationGuard
-            initialized={!!project.autoBuildPath}
-            title={t('projectSections.linear.integrationTitle')}
-            description={t('projectSections.linear.syncDescription')}
-          >
-            <LinearIntegration
-              envConfig={envConfig}
-              updateEnvConfig={updateEnvConfig}
-              showLinearKey={showLinearKey}
-              setShowLinearKey={setShowLinearKey}
-              linearConnectionStatus={linearConnectionStatus}
-              isCheckingLinear={isCheckingLinear}
-              onOpenLinearImport={onOpenLinearImport}
-            />
-          </InitializationGuard>
-        </SettingsSection>
-      );
-
     case 'github':
       return (
         <SettingsSection
@@ -135,32 +91,6 @@ export function SectionRouter({
               setShowGitHubToken={setShowGitHubToken}
               gitHubConnectionStatus={gitHubConnectionStatus}
               isCheckingGitHub={isCheckingGitHub}
-              projectPath={project.path}
-              settings={settings}
-              setSettings={setSettings}
-            />
-          </InitializationGuard>
-        </SettingsSection>
-      );
-
-    case 'gitlab':
-      return (
-        <SettingsSection
-          title={t('projectSections.gitlab.integrationTitle')}
-          description={t('projectSections.gitlab.integrationDescription')}
-        >
-          <InitializationGuard
-            initialized={!!project.autoBuildPath}
-            title={t('projectSections.gitlab.integrationTitle')}
-            description={t('projectSections.gitlab.syncDescription')}
-          >
-            <GitLabIntegration
-              envConfig={envConfig}
-              updateEnvConfig={updateEnvConfig}
-              showGitLabToken={showGitLabToken}
-              setShowGitLabToken={setShowGitLabToken}
-              gitLabConnectionStatus={gitLabConnectionStatus}
-              isCheckingGitLab={isCheckingGitLab}
               projectPath={project.path}
               settings={settings}
               setSettings={setSettings}

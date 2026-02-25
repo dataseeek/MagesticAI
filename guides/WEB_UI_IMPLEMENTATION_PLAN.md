@@ -1,8 +1,8 @@
-# Auto-Claude Web UI Implementation Plan
+# Magestic AI Web UI Implementation Plan
 
 ## Overview
 
-Convert Auto-Claude from Electron desktop app to full web UI with feature parity, Monaco editor integration, and remote access capability.
+Convert Magestic AI from Electron desktop app to full web UI with feature parity, Monaco editor integration, and remote access capability.
 
 **User Requirements:**
 - Full Web Replacement (no Electron)
@@ -46,7 +46,7 @@ Convert Auto-Claude from Electron desktop app to full web UI with feature parity
 ## Project Structure (New)
 
 ```
-Auto-Claude/
+MagesticAI/
 ├── apps/
 │   ├── backend/              # UNCHANGED - existing Python CLI
 │   ├── frontend/             # DEPRECATED - keep for reference only
@@ -438,7 +438,7 @@ async def terminal_ws(websocket, id):
 
 **Frontend:**
 ```typescript
-const token = localStorage.getItem('auto-claude-token');
+const token = localStorage.getItem('magestic-ai-token');
 const headers = { Authorization: `Bearer ${token}` };
 ```
 

@@ -11,13 +11,6 @@ import logging
 from pathlib import Path
 
 from core.client import create_client
-from linear_updater import (
-    LinearTaskState,
-    is_linear_enabled,
-    linear_build_complete,
-    linear_task_started,
-    linear_task_stuck,
-)
 from phase_config import get_phase_model, get_phase_thinking_budget
 from phase_event import ExecutionPhase, emit_phase
 from progress import (
@@ -85,7 +78,7 @@ async def run_autonomous_agent(
 
     Args:
         project_dir: Root directory for the project
-        spec_dir: Directory containing the spec (auto-claude/specs/001-name/)
+        spec_dir: Directory containing the spec (magestic-ai/specs/001-name/)
         model: Claude model to use
         max_iterations: Maximum number of iterations (None for unlimited)
         verbose: Whether to show detailed output
@@ -111,19 +104,6 @@ async def run_autonomous_agent(
         total=subtasks["total"],
         in_progress=subtasks["in_progress"],
     )
-
-    # Check Linear integration status
-    linear_task = None
-    if is_linear_enabled():
-        linear_task = LinearTaskState.load(spec_dir)
-        if linear_task and linear_task.task_id:
-            print_status("Linear integration: ENABLED", "success")
-            print_key_value("Task", linear_task.task_id)
-            print_key_value("Status", linear_task.status)
-            print()
-        else:
-            print_status("Linear enabled but no task created for this spec", "warning")
-            print()
 
     # Check if this is a fresh start or continuation
     first_run = is_first_run(spec_dir)
@@ -158,10 +138,6 @@ async def run_autonomous_agent(
                 LogPhase.PLANNING, "Starting implementation planning..."
             )
 
-        # Update Linear to "In Progress" when build starts
-        if linear_task and linear_task.task_id:
-            print_status("Updating Linear task to In Progress...", "progress")
-            await linear_task_started(spec_dir)
     else:
         print(f"Continuing build: {highlight(spec_dir.name)}")
         print_progress_summary(spec_dir)
@@ -209,7 +185,7 @@ async def run_autonomous_agent(
             print("\nTo resume, delete the PAUSE file:")
             print(f"  rm {pause_file}")
             print("\nThen run again:")
-            print(f"  python auto-claude/run.py --spec {spec_dir.name}")
+            print(f"  python magestic-ai/run.py --spec {spec_dir.name}")
             return
 
         # Check max iterations
@@ -414,9 +390,6 @@ async def run_autonomous_agent(
 
         # === POST-SESSION PROCESSING (100% reliable) ===
         if subtask_id and not first_run:
-            linear_is_enabled = (
-                linear_task is not None and linear_task.task_id is not None
-            )
             success = await post_session_processing(
                 spec_dir=spec_dir,
                 project_dir=project_dir,
@@ -425,7 +398,6 @@ async def run_autonomous_agent(
                 commit_before=commit_before,
                 commit_count_before=commit_count_before,
                 recovery_manager=recovery_manager,
-                linear_enabled=linear_is_enabled,
                 status_manager=status_manager,
                 source_spec_dir=source_spec_dir,
             )
@@ -442,15 +414,6 @@ async def run_autonomous_agent(
                     "error",
                 )
                 print(muted("Consider: manual intervention or skipping this subtask"))
-
-                # Record stuck subtask in Linear (if enabled)
-                if linear_is_enabled:
-                    await linear_task_stuck(
-                        spec_dir=spec_dir,
-                        subtask_id=subtask_id,
-                        attempt_count=attempt_count,
-                    )
-                    print_status("Linear notified of stuck subtask", "info")
         elif is_planning_phase and source_spec_dir:
             # After planning phase, sync the newly created implementation plan back to source
             if sync_plan_to_source(spec_dir, source_spec_dir):
@@ -469,10 +432,6 @@ async def run_autonomous_agent(
                     success=True,
                     message="All subtasks completed successfully",
                 )
-
-            if linear_task and linear_task.task_id:
-                await linear_build_complete(spec_dir)
-                print_status("Linear notified: build complete, ready for QA", "success")
 
             break
 
@@ -542,14 +501,14 @@ async def run_autonomous_agent(
             bold(f"{icon(Icons.PLAY)} NEXT STEPS"),
             "",
             f"{total - completed} subtasks remaining.",
-            f"Run again: {highlight(f'python auto-claude/run.py --spec {spec_dir.name}')}",
+            f"Run again: {highlight(f'python magestic-ai/run.py --spec {spec_dir.name}')}",
         ]
     else:
         content = [
             bold(f"{icon(Icons.SUCCESS)} NEXT STEPS"),
             "",
             "All subtasks completed!",
-            "  1. Review the auto-claude/* branch",
+            "  1. Review the magestic-ai/* branch",
             "  2. Run manual tests",
             "  3. Merge to main",
         ]

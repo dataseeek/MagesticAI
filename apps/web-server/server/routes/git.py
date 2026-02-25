@@ -144,7 +144,7 @@ async def initialize_git(request: InitGitRequest):
                 "*.pyc\n"
                 ".venv/\n"
                 "venv/\n"
-                ".auto-claude/\n"
+                ".magestic-ai/\n"
                 "dist/\n"
                 "build/\n"
             )
@@ -602,7 +602,7 @@ updates_router = APIRouter()
 
 @updates_router.get("/source/check")
 async def check_source_update():
-    """Check for Auto-Claude source updates."""
+    """Check for Magestic AI source updates."""
     return {
         "success": True,
         "data": {
@@ -616,9 +616,9 @@ async def check_source_update():
 @updates_router.post("/source/download")
 async def download_source_update():
     """
-    Download Auto-Claude source update via git pull.
+    Download Magestic AI source update via git pull.
 
-    This endpoint updates the Auto-Claude application source code by performing
+    This endpoint updates the Magestic AI application source code by performing
     a git pull from the configured remote repository.
 
     Returns:
@@ -632,10 +632,10 @@ async def download_source_update():
         - No remote configured
     """
     try:
-        # Get Auto-Claude source directory (project root)
+        # Get Magestic AI source directory (project root)
         # From git.py: __file__.parent = routes/, .parent.parent = server/,
         # .parent.parent.parent = web-server/, .parent.parent.parent.parent = apps/,
-        # .parent.parent.parent.parent.parent = Auto-Claude/ (project root)
+        # .parent.parent.parent.parent.parent = MagesticAI/ (project root)
         source_dir = Path(__file__).parent.parent.parent.parent.parent
         source_path = str(source_dir.resolve())
 
@@ -644,7 +644,7 @@ async def download_source_update():
         if not git_dir.exists():
             return {
                 "success": False,
-                "error": "Auto-Claude source directory is not a git repository"
+                "error": "Magestic AI source directory is not a git repository"
             }
 
         # Check for uncommitted changes
@@ -705,7 +705,7 @@ async def download_source_update():
         if not updates_available:
             return {
                 "success": True,
-                "message": "Auto-Claude is already up to date",
+                "message": "Magestic AI is already up to date",
                 "data": {
                     "updated": False,
                     "currentBranch": current_branch,
@@ -740,7 +740,7 @@ async def download_source_update():
 
         return {
             "success": True,
-            "message": f"Auto-Claude updated successfully to commit {new_commit}",
+            "message": f"Magestic AI updated successfully to commit {new_commit}",
             "data": {
                 "updated": True,
                 "currentBranch": current_branch,
@@ -753,13 +753,13 @@ async def download_source_update():
     except Exception as e:
         return {
             "success": False,
-            "error": f"Failed to update Auto-Claude source: {str(e)}"
+            "error": f"Failed to update Magestic AI source: {str(e)}"
         }
 
 
 @updates_router.get("/source/version")
 async def get_source_version():
-    """Get current Auto-Claude source version."""
+    """Get current Magestic AI source version."""
     return {"success": True, "data": {"version": "1.0.0"}}
 
 
@@ -969,8 +969,8 @@ async def create_worktree(projectId: str, request: CreateWorktreeRequest):
     switching branches in your main repository.
 
     The worktree will be created in:
-    - Path: .auto-claude/worktrees/tasks/{name}
-    - Branch: auto-claude/tasks/{name} (if createBranch is true)
+    - Path: .magestic-ai/worktrees/tasks/{name}
+    - Branch: magestic-ai/tasks/{name} (if createBranch is true)
 
     Args:
         projectId: Project ID
@@ -1060,8 +1060,8 @@ async def create_worktree(projectId: str, request: CreateWorktreeRequest):
             return {"success": False, "error": "Failed to get current branch"}
         base_branch = current_branch_result["output"]
 
-    # Create worktree path: .auto-claude/worktrees/tasks/{name}
-    worktrees_base = Path(project_path) / ".auto-claude" / "worktrees" / "tasks"
+    # Create worktree path: .magestic-ai/worktrees/tasks/{name}
+    worktrees_base = Path(project_path) / ".magestic-ai" / "worktrees" / "tasks"
     worktree_path = worktrees_base / name
 
     # Check if worktree path already exists
@@ -1081,7 +1081,7 @@ async def create_worktree(projectId: str, request: CreateWorktreeRequest):
         }
 
     # Build git worktree add command
-    worktree_branch = f"auto-claude/tasks/{name}" if request.createBranch else None
+    worktree_branch = f"magestic-ai/tasks/{name}" if request.createBranch else None
 
     if request.createBranch:
         # Check if branch already exists
@@ -1152,7 +1152,7 @@ class CreateReleaseRequest(BaseModel):
     projectId: str
     version: str
     releaseNotes: str
-    platform: str = "github"  # or 'gitlab'
+    platform: str = "github"
 
 
 def run_gh_command(args: list[str], cwd: str) -> dict:
@@ -1184,44 +1184,15 @@ def run_gh_command(args: list[str], cwd: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-def run_glab_command(args: list[str], cwd: str) -> dict:
-    """Run a glab CLI command and return result.
-
-    Args:
-        args: Command arguments (without 'glab' prefix)
-        cwd: Working directory for command execution
-
-    Returns:
-        Dict with success status, output or error message
-    """
-    try:
-        result = subprocess.run(
-            ["glab"] + args,
-            capture_output=True,
-            text=True,
-            cwd=cwd,
-            timeout=30
-        )
-        if result.returncode != 0:
-            return {"success": False, "error": result.stderr.strip()}
-        return {"success": True, "output": result.stdout.strip()}
-    except FileNotFoundError:
-        return {"success": False, "error": "GitLab CLI (glab) not installed"}
-    except subprocess.TimeoutExpired:
-        return {"success": False, "error": "Command timed out"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
 @releases_router.post("")
 async def create_release(projectId: str, request: CreateReleaseRequest):
-    """Create a release using GitHub (gh) or GitLab (glab) CLI.
+    """Create a release using GitHub (gh) CLI.
 
-    This endpoint creates a release on GitHub or GitLab by:
+    This endpoint creates a release on GitHub by:
     1. Validating the project exists
     2. Getting the project path
     3. Validating the version and release notes
-    4. Executing the appropriate CLI command (gh or glab)
+    4. Executing the gh CLI command
     5. Creating the release with the specified version and notes
 
     Args:
@@ -1238,10 +1209,10 @@ async def create_release(projectId: str, request: CreateReleaseRequest):
 
     # Validate platform
     platform = request.platform.lower()
-    if platform not in ["github", "gitlab"]:
+    if platform != "github":
         return {
             "success": False,
-            "error": f"Invalid platform '{request.platform}'. Must be 'github' or 'gitlab'"
+            "error": f"Invalid platform '{request.platform}'. Must be 'github'"
         }
 
     # Validate version
@@ -1300,52 +1271,30 @@ async def create_release(projectId: str, request: CreateReleaseRequest):
     else:
         version_tag = version
 
-    # Create release based on platform
+    # Create release
     try:
-        if platform == "github":
-            # GitHub: gh release create <tag> --notes <notes>
-            result = run_gh_command(
-                ["release", "create", version_tag, "--notes", release_notes],
-                project_path
-            )
+        # GitHub: gh release create <tag> --notes <notes>
+        result = run_gh_command(
+            ["release", "create", version_tag, "--notes", release_notes],
+            project_path
+        )
 
-            if not result["success"]:
-                return {
-                    "success": False,
-                    "error": f"Failed to create GitHub release: {result.get('error', 'Unknown error')}"
-                }
-
+        if not result["success"]:
             return {
-                "success": True,
-                "message": f"Successfully created GitHub release {version_tag}",
-                "version": version_tag,
-                "platform": "github",
-                "output": result.get("output", "")
+                "success": False,
+                "error": f"Failed to create GitHub release: {result.get('error', 'Unknown error')}"
             }
 
-        else:  # gitlab
-            # GitLab: glab release create <tag> --notes <notes>
-            result = run_glab_command(
-                ["release", "create", version_tag, "--notes", release_notes],
-                project_path
-            )
-
-            if not result["success"]:
-                return {
-                    "success": False,
-                    "error": f"Failed to create GitLab release: {result.get('error', 'Unknown error')}"
-                }
-
-            return {
-                "success": True,
-                "message": f"Successfully created GitLab release {version_tag}",
-                "version": version_tag,
-                "platform": "gitlab",
-                "output": result.get("output", "")
-            }
+        return {
+            "success": True,
+            "message": f"Successfully created GitHub release {version_tag}",
+            "version": version_tag,
+            "platform": "github",
+            "output": result.get("output", "")
+        }
 
     except Exception as e:
         return {
             "success": False,
-            "error": f"Failed to create {platform} release: {str(e)}"
+            "error": f"Failed to create GitHub release: {str(e)}"
         }
