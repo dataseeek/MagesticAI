@@ -9,15 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '../ui/select';
 import { Separator } from '../ui/separator';
-import { AVAILABLE_MODELS } from '../../shared/constants';
 import type {
   Project,
   ProjectSettings as ProjectSettingsType,
@@ -109,28 +101,9 @@ export function GeneralSettings({
         <>
           <Separator />
 
-          {/* Agent Settings */}
+          {/* CLAUDE.md Setting */}
           <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground">Agent Configuration</h3>
-            <div className="space-y-2">
-              <Label htmlFor="model" className="text-sm font-medium text-foreground">Model</Label>
-              <Select
-                value={settings.model}
-                onValueChange={(value) => setSettings({ ...settings, model: value })}
-              >
-                <SelectTrigger id="model">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {AVAILABLE_MODELS.map((model) => (
-                    <SelectItem key={model.value} value={model.value}>
-                      {model.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label className="font-normal text-foreground">
                   {t('projectSections.general.useClaudeMd')}
