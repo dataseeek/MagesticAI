@@ -547,20 +547,6 @@ export const webAPI: API & { _isWebMode: boolean } = {
     post('/memory/validate-api-key', { provider, apiKey }),
   testGraphitiConnection: (config) => post('/memory/test-graphiti', config),
 
-  // ========== Linear Integration ==========
-  getLinearTeams: (projectId: string) => get(`/projects/${projectId}/linear/teams`),
-  getLinearProjects: (projectId: string, teamId: string) =>
-    get(`/projects/${projectId}/linear/projects?teamId=${teamId}`),
-  getLinearIssues: (projectId: string, teamId?: string, projectId_?: string) => {
-    const params = new URLSearchParams();
-    if (teamId) params.set('teamId', teamId);
-    if (projectId_) params.set('projectId', projectId_);
-    return get(`/projects/${projectId}/linear/issues?${params}`);
-  },
-  importLinearIssues: (projectId: string, issueIds: string[]) =>
-    post(`/projects/${projectId}/linear/import`, { issueIds }),
-  checkLinearConnection: (projectId: string) => get(`/projects/${projectId}/linear/status`),
-
   // ========== GitHub Integration ==========
   getGitHubRepositories: (projectId: string) => get(`/projects/${projectId}/github/repositories`),
   getGitHubIssues: (projectId: string, state?: 'open' | 'closed' | 'all') =>
@@ -599,100 +585,6 @@ export const webAPI: API & { _isWebMode: boolean } = {
   onGitHubInvestigationComplete: (callback) => registerCallback('github:investigation-complete', callback),
   onGitHubInvestigationError: (callback) => registerCallback('github:investigation-error', callback),
 
-  // ========== GitLab Integration ==========
-  getGitLabProjects: (projectId: string) => get(`/projects/${projectId}/gitlab/projects`),
-  getGitLabIssues: (projectId: string, state) =>
-    get(`/projects/${projectId}/gitlab/issues${state ? `?state=${state}` : ''}`),
-  getGitLabIssue: (projectId: string, issueIid: number) =>
-    get(`/projects/${projectId}/gitlab/issues/${issueIid}`),
-  getGitLabIssueNotes: (projectId: string, issueIid: number) =>
-    get(`/projects/${projectId}/gitlab/issues/${issueIid}/notes`),
-  checkGitLabConnection: (projectId: string) => get(`/projects/${projectId}/gitlab/status`),
-  investigateGitLabIssue: (projectId: string, issueIid: number, selectedNoteIds?: number[]) => {
-    post(`/projects/${projectId}/gitlab/issues/${issueIid}/investigate`, { selectedNoteIds });
-  },
-  importGitLabIssues: (projectId: string, issueIids: number[]) =>
-    post(`/projects/${projectId}/gitlab/import`, { issueIids }),
-  createGitLabRelease: (projectId: string, tagName: string, releaseNotes: string, options) =>
-    post(`/projects/${projectId}/gitlab/releases`, { tagName, releaseNotes, ...options }),
-
-  // GitLab MR operations
-  getGitLabMergeRequests: (projectId: string, state) =>
-    get(`/projects/${projectId}/gitlab/merge-requests${state ? `?state=${state}` : ''}`),
-  getGitLabMergeRequest: (projectId: string, mrIid: number) =>
-    get(`/projects/${projectId}/gitlab/merge-requests/${mrIid}`),
-  createGitLabMergeRequest: (projectId: string, options) =>
-    post(`/projects/${projectId}/gitlab/merge-requests`, options),
-  updateGitLabMergeRequest: (projectId: string, mrIid: number, updates) =>
-    patch(`/projects/${projectId}/gitlab/merge-requests/${mrIid}`, updates),
-
-  // GitLab MR Review
-  getGitLabMRReview: async (projectId: string, mrIid: number) => {
-    const result = await get<import('../shared/types').GitLabMRReviewResult>(`/projects/${projectId}/gitlab/merge-requests/${mrIid}/review`);
-    return result.data ?? null;
-  },
-  runGitLabMRReview: (projectId: string, mrIid: number) => {
-    post(`/projects/${projectId}/gitlab/merge-requests/${mrIid}/review/run`);
-  },
-  runGitLabMRFollowupReview: (projectId: string, mrIid: number) => {
-    post(`/projects/${projectId}/gitlab/merge-requests/${mrIid}/review/followup`);
-  },
-  postGitLabMRReview: async (projectId: string, mrIid: number, selectedFindingIds?: string[]) => {
-    const result = await post(`/projects/${projectId}/gitlab/merge-requests/${mrIid}/review/post`, { selectedFindingIds });
-    return result.success;
-  },
-  postGitLabMRNote: async (projectId: string, mrIid: number, body: string) => {
-    const result = await post(`/projects/${projectId}/gitlab/merge-requests/${mrIid}/notes`, { body });
-    return result.success;
-  },
-  mergeGitLabMR: async (projectId: string, mrIid: number, mergeMethod) => {
-    const result = await post(`/projects/${projectId}/gitlab/merge-requests/${mrIid}/merge`, { mergeMethod });
-    return result.success;
-  },
-  assignGitLabMR: async (projectId: string, mrIid: number, userIds: number[]) => {
-    const result = await patch(`/projects/${projectId}/gitlab/merge-requests/${mrIid}/assign`, { userIds });
-    return result.success;
-  },
-  approveGitLabMR: async (projectId: string, mrIid: number) => {
-    const result = await post(`/projects/${projectId}/gitlab/merge-requests/${mrIid}/approve`);
-    return result.success;
-  },
-  cancelGitLabMRReview: async (projectId: string, mrIid: number) => {
-    const result = await post(`/projects/${projectId}/gitlab/merge-requests/${mrIid}/review/cancel`);
-    return result.success;
-  },
-  checkGitLabMRNewCommits: async (projectId: string, mrIid: number) => {
-    const result = await get<import('../shared/types').GitLabNewCommitsCheck>(`/projects/${projectId}/gitlab/merge-requests/${mrIid}/new-commits`);
-    return result.data ?? { hasNewCommits: false, newCommitCount: 0, latestSha: '' };
-  },
-  onGitLabMRReviewProgress: (callback) => registerCallback('gitlab:mr-review-progress', callback),
-  onGitLabMRReviewComplete: (callback) => registerCallback('gitlab:mr-review-complete', callback),
-  onGitLabMRReviewError: (callback) => registerCallback('gitlab:mr-review-error', callback),
-
-  // GitLab OAuth
-  checkGitLabCli: () => get('/gitlab/cli/check'),
-  installGitLabCli: () => post('/gitlab/cli/install'),
-  checkGitLabAuth: (hostname) => get(`/gitlab/auth/check${hostname ? `?hostname=${hostname}` : ''}`),
-  startGitLabAuth: (hostname) => post('/gitlab/auth/start', { hostname }),
-  getGitLabToken: (hostname) => get(`/gitlab/token${hostname ? `?hostname=${hostname}` : ''}`),
-  getGitLabUser: (hostname) => get(`/gitlab/user${hostname ? `?hostname=${hostname}` : ''}`),
-  listGitLabUserProjects: (hostname) => get(`/gitlab/projects${hostname ? `?hostname=${hostname}` : ''}`),
-  detectGitLabProject: (projectPath: string) =>
-    get(`/gitlab/detect-project?path=${encodeURIComponent(projectPath)}`),
-  getGitLabBranches: (projectPath: string, token: string, instanceUrl) => {
-    const params = new URLSearchParams({ path: projectPath, token });
-    if (instanceUrl) params.set('instanceUrl', instanceUrl);
-    return get(`/gitlab/branches?${params}`);
-  },
-  createGitLabProject: (projectName: string, options) =>
-    post('/gitlab/projects', { projectName, ...options }),
-  addGitLabRemote: (projectPath: string, projectPathWithNamespace: string, instanceUrl) =>
-    post('/gitlab/remote', { projectPath, projectPathWithNamespace, instanceUrl }),
-  listGitLabGroups: (hostname) => get(`/gitlab/groups${hostname ? `?hostname=${hostname}` : ''}`),
-  onGitLabInvestigationProgress: (callback) => registerCallback('gitlab:investigation-progress', callback),
-  onGitLabInvestigationComplete: (callback) => registerCallback('gitlab:investigation-complete', callback),
-  onGitLabInvestigationError: (callback) => registerCallback('gitlab:investigation-error', callback),
-
   // ========== Release Operations ==========
   getReleaseableVersions: (projectId: string) => get(`/projects/${projectId}/releases/versions`),
   runReleasePreflightCheck: (projectId: string, version: string) =>
@@ -704,7 +596,7 @@ export const webAPI: API & { _isWebMode: boolean } = {
   onReleaseComplete: (callback) => registerCallback('release:complete', callback),
   onReleaseError: (callback) => registerCallback('release:error', callback),
 
-  // ========== Auto Claude Source Updates ==========
+  // ========== Magestic AI Source Updates ==========
   checkAutoBuildSourceUpdate: () => get('/updates/source/check'),
   downloadAutoBuildSourceUpdate: () => { post('/updates/source/download'); },
   getAutoBuildSourceVersion: () => get('/updates/source/version'),

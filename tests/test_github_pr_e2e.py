@@ -43,7 +43,7 @@ from bot_detection import BotDetector
 @pytest.fixture
 def temp_github_dir(tmp_path):
     """Create a temporary GitHub directory structure."""
-    github_dir = tmp_path / ".auto-claude" / "github"
+    github_dir = tmp_path / ".magestic-ai" / "github"
     pr_dir = github_dir / "pr"
     pr_dir.mkdir(parents=True)
     return github_dir
@@ -251,7 +251,7 @@ class TestBotDetectionE2E:
         state_dir = tmp_path / "github"
         state_dir.mkdir(parents=True)
 
-        with patch.object(BotDetector, "_get_bot_username", return_value="auto-claude[bot]"):
+        with patch.object(BotDetector, "_get_bot_username", return_value="magestic-ai[bot]"):
             detector = BotDetector(
                 state_dir=state_dir,
                 bot_token="ghp_bot_token",
@@ -295,8 +295,8 @@ class TestBotDetectionE2E:
         assert should_skip is False  # New commit allows review
 
         # Scenario 4: Bot-authored PR
-        bot_pr = {"author": {"login": "auto-claude[bot]"}}
-        bot_commits = [{"author": {"login": "auto-claude[bot]"}, "oid": "bot_commit"}]
+        bot_pr = {"author": {"login": "magestic-ai[bot]"}}
+        bot_commits = [{"author": {"login": "magestic-ai[bot]"}, "oid": "bot_commit"}]
 
         should_skip, reason = detector.should_skip_pr_review(
             pr_number=200,

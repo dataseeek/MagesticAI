@@ -68,7 +68,7 @@ export function WelcomeStep({ onGetStarted, onSkip }: WelcomeStepProps) {
         {/* Hero Section */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <img src="/logo.png" alt="Martinica" className="h-16 w-16 rounded-xl" />
+            <img src="/logo.png" alt="MagesticAI" className="h-16 w-16 rounded-xl" />
           </div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">
             {t('welcome.title')}

@@ -26,11 +26,11 @@ The AI considers:
 - Risk factors and edge cases
 
 Usage:
-    python auto-claude/spec_runner.py --task "Add user authentication"
-    python auto-claude/spec_runner.py --interactive
-    python auto-claude/spec_runner.py --continue 001-feature
-    python auto-claude/spec_runner.py --task "Fix button color" --complexity simple
-    python auto-claude/spec_runner.py --task "Simple fix" --no-ai-assessment
+    python magestic-ai/spec_runner.py --task "Add user authentication"
+    python magestic-ai/spec_runner.py --interactive
+    python magestic-ai/spec_runner.py --continue 001-feature
+    python magestic-ai/spec_runner.py --task "Fix button color" --complexity simple
+    python magestic-ai/spec_runner.py --task "Simple fix" --no-ai-assessment
 """
 
 import sys
@@ -38,7 +38,7 @@ import sys
 # Python version check - must be before any imports using 3.10+ syntax
 if sys.version_info < (3, 10):  # noqa: UP036
     sys.exit(
-        f"Error: Auto Claude requires Python 3.10 or higher.\n"
+        f"Error: Magestic AI requires Python 3.10 or higher.\n"
         f"You are running Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}\n"
         f"\n"
         f"Please upgrade Python: https://www.python.org/downloads/"
@@ -78,14 +78,14 @@ if sys.platform == "win32":
     if "_new_stream" in dir():
         del _new_stream
 
-# Add auto-claude to path (parent of runners/)
+# Add magestic-ai to path (parent of runners/)
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Load .env file
 from dotenv import load_dotenv
 
 env_file = Path(__file__).parent.parent / ".env"
-dev_env_file = Path(__file__).parent.parent.parent / "dev" / "auto-claude" / ".env"
+dev_env_file = Path(__file__).parent.parent.parent / "dev" / "magestic-ai" / ".env"
 if env_file.exists():
     load_dotenv(env_file)
 elif dev_env_file.exists():
@@ -232,18 +232,18 @@ Examples:
         # Sanitize null bytes which could cause issues
         task_description = task_description.replace("\x00", "")
 
-    # Find project root (look for auto-claude folder)
+    # Find project root (look for magestic-ai folder)
     project_dir = args.project_dir
 
-    # Auto-detect if running from within auto-claude directory (the source code)
-    if project_dir.name == "auto-claude" and (project_dir / "run.py").exists():
-        # Running from within auto-claude/ source directory, go up 1 level
+    # Auto-detect if running from within magestic-ai directory (the source code)
+    if project_dir.name == "magestic-ai" and (project_dir / "run.py").exists():
+        # Running from within magestic-ai/ source directory, go up 1 level
         project_dir = project_dir.parent
-    elif not (project_dir / ".auto-claude").exists():
-        # No .auto-claude folder found - try to find project root
-        # First check for .auto-claude (installed instance)
+    elif not (project_dir / ".magestic-ai").exists():
+        # No .magestic-ai folder found - try to find project root
+        # First check for .magestic-ai (installed instance)
         for parent in project_dir.parents:
-            if (parent / ".auto-claude").exists():
+            if (parent / ".magestic-ai").exists():
                 project_dir = parent
                 break
 
@@ -309,14 +309,14 @@ Examples:
                 print()
                 print(f"  {muted('To approve the spec, run:')}")
                 print(
-                    f"  {highlight(f'python auto-claude/review.py --spec-dir {orchestrator.spec_dir}')}"
+                    f"  {highlight(f'python magestic-ai/review.py --spec-dir {orchestrator.spec_dir}')}"
                 )
                 print()
                 print(
                     f"  {muted('Or re-run spec_runner with --auto-approve to skip review:')}"
                 )
                 example_cmd = (
-                    'python auto-claude/spec_runner.py --task "..." --auto-approve'
+                    'python magestic-ai/spec_runner.py --task "..." --auto-approve'
                 )
                 print(f"  {highlight(example_cmd)}")
                 sys.exit(1)
@@ -363,7 +363,7 @@ Examples:
         debug_error("spec_runner", "Spec creation interrupted by user")
         print("\n\nSpec creation interrupted.")
         print(
-            f"To continue: python auto-claude/spec_runner.py --continue {orchestrator.spec_dir.name}"
+            f"To continue: python magestic-ai/spec_runner.py --continue {orchestrator.spec_dir.name}"
         )
         sys.exit(1)
 

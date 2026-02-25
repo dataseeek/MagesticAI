@@ -27,7 +27,7 @@ def get_relative_spec_path(spec_dir: Path, project_dir: Path) -> str:
         project_dir: Absolute path to project/working directory
 
     Returns:
-        Relative path string (e.g., "./auto-claude/specs/003-new-spec")
+        Relative path string (e.g., "./magestic-ai/specs/003-new-spec")
     """
     try:
         # Try to make path relative to project_dir
@@ -36,7 +36,7 @@ def get_relative_spec_path(spec_dir: Path, project_dir: Path) -> str:
     except ValueError:
         # If spec_dir is not under project_dir, return the name only
         # This shouldn't happen if workspace.py correctly copies spec files
-        return f"./auto-claude/specs/{spec_dir.name}"
+        return f"./magestic-ai/specs/{spec_dir.name}"
 
 
 def generate_environment_context(project_dir: Path, spec_dir: Path) -> str:
@@ -210,7 +210,7 @@ Verify:""")
 5. **Commit your changes:**
    ```bash
    git add .
-   git commit -m "auto-claude: {subtask_id} - {description[:50]}"
+   git commit -m "magestic-ai: {subtask_id} - {description[:50]}"
    ```
 6. **Update the plan** - set this subtask's status to "completed" in implementation_plan.json
 
@@ -229,9 +229,6 @@ Before marking complete, verify:
 - If verification fails, FIX IT before committing
 - If you encounter a blocker, document it in build-progress.txt
 """)
-
-    # Note: Linear updates are now handled by Python orchestrator via linear_updater.py
-    # Agents no longer need to call Linear MCP tools directly
 
     return "\n".join(sections)
 
@@ -261,7 +258,7 @@ def generate_planner_prompt(spec_dir: Path, project_dir: Path | None = None) -> 
 
     # Use project_dir for relative paths, or infer from spec_dir
     if project_dir is None:
-        # Infer: spec_dir is typically project/auto-claude/specs/XXX
+        # Infer: spec_dir is typically project/magestic-ai/specs/XXX
         project_dir = spec_dir.parent.parent.parent
 
     # Get relative path for spec directory
@@ -286,9 +283,6 @@ not in the spec directory.
 ---
 
 """
-    # Note: Linear task creation and updates are now handled by Python orchestrator
-    # via linear_updater.py - agents no longer need Linear instructions in prompts
-
     return header + prompt
 
 

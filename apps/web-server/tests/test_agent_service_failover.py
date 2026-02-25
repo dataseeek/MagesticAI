@@ -33,7 +33,7 @@ async def test_rate_limit_triggers_failover_retry(tmp_path: Path, monkeypatch: p
     project_path = tmp_path
 
     # Seed spec dir with a task log so the failure isn't classified as "early"
-    spec_dir = project_path / ".auto-claude" / "specs" / spec_id
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
     spec_dir.mkdir(parents=True, exist_ok=True)
     (spec_dir / "task_logs.json").write_text(json.dumps({"phases": {"planning": {"entries": [{"content": "log"}]}}}))
 
@@ -89,7 +89,7 @@ def test_should_retry_reads_primary_auto_switch_file(tmp_path: Path, monkeypatch
 
 
 def test_should_retry_uses_legacy_auto_switch_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Legacy path ~/.auto-claude-web/data/auto-switch.json is still honored when primary is missing."""
+    """Legacy path ~/.magestic-ai/data/auto-switch.json is still honored when primary is missing."""
     # Point PROJECTS_DATA_DIR to a non-existent folder so only the legacy path is considered
     service = AgentService()
     service.settings.PROJECTS_DATA_DIR = str(tmp_path / "primary-missing")
@@ -97,7 +97,7 @@ def test_should_retry_uses_legacy_auto_switch_path(tmp_path: Path, monkeypatch: 
     # Mock home to tmp_path so we don't touch the real filesystem
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-    legacy_dir = tmp_path / ".auto-claude-web" / "data"
+    legacy_dir = tmp_path / ".magestic-ai" / "data"
     legacy_dir.mkdir(parents=True, exist_ok=True)
     (legacy_dir / "auto-switch.json").write_text(json.dumps({"enabled": True, "autoSwitchOnRateLimit": True}))
 

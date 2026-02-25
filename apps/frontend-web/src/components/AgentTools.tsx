@@ -19,7 +19,6 @@ import {
   Circle,
   Monitor,
   Globe,
-  ClipboardList,
   ListChecks,
   Info,
   AlertCircle,
@@ -160,8 +159,7 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
     description: 'Creates implementation plan with subtasks',
     category: 'build',
     tools: ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'Bash', 'WebFetch', 'WebSearch'],
-    mcp_servers: ['context7', 'graphiti-memory', 'auto-claude'],
-    mcp_optional: ['linear'],
+    mcp_servers: ['context7', 'graphiti-memory', 'magestic-ai'],
     settingsSource: { type: 'phase', phase: 'planning' },
   },
   coder: {
@@ -169,8 +167,7 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
     description: 'Implements individual subtasks',
     category: 'build',
     tools: ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'Bash', 'WebFetch', 'WebSearch'],
-    mcp_servers: ['context7', 'graphiti-memory', 'auto-claude'],
-    mcp_optional: ['linear'],
+    mcp_servers: ['context7', 'graphiti-memory', 'magestic-ai'],
     settingsSource: { type: 'phase', phase: 'coding' },
   },
 
@@ -180,8 +177,8 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
     description: 'Validates acceptance criteria. Can use Puppeteer for web frontend testing.',
     category: 'qa',
     tools: ['Read', 'Glob', 'Grep', 'Bash', 'WebFetch', 'WebSearch'],
-    mcp_servers: ['context7', 'graphiti-memory', 'auto-claude'],
-    mcp_optional: ['linear', 'puppeteer'],
+    mcp_servers: ['context7', 'graphiti-memory', 'magestic-ai'],
+    mcp_optional: ['puppeteer'],
     settingsSource: { type: 'phase', phase: 'qa' },
   },
   qa_fixer: {
@@ -189,8 +186,8 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
     description: 'Fixes QA-reported issues. Can use Puppeteer for web frontend testing.',
     category: 'qa',
     tools: ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'Bash', 'WebFetch', 'WebSearch'],
-    mcp_servers: ['context7', 'graphiti-memory', 'auto-claude'],
-    mcp_optional: ['linear', 'puppeteer'],
+    mcp_servers: ['context7', 'graphiti-memory', 'magestic-ai'],
+    mcp_optional: ['puppeteer'],
     settingsSource: { type: 'phase', phase: 'qa' },
   },
 
@@ -268,30 +265,17 @@ const MCP_SERVERS: Record<string, { name: string; description: string; icon: Rea
       'mcp__graphiti-memory__get_entity_edge',
     ],
   },
-  'auto-claude': {
-    name: 'Auto-Claude Tools',
+  'magestic-ai': {
+    name: 'Magestic AI Tools',
     description: 'Build progress tracking, session context, discoveries & gotchas recording',
     icon: ListChecks,
     tools: [
-      'mcp__auto-claude__update_subtask_status',
-      'mcp__auto-claude__get_build_progress',
-      'mcp__auto-claude__record_discovery',
-      'mcp__auto-claude__record_gotcha',
-      'mcp__auto-claude__get_session_context',
-      'mcp__auto-claude__update_qa_status',
-    ],
-  },
-  linear: {
-    name: 'Linear',
-    description: 'Project management via Linear API. Requires LINEAR_API_KEY env var.',
-    icon: ClipboardList,
-    tools: [
-      'mcp__linear-server__list_teams',
-      'mcp__linear-server__list_projects',
-      'mcp__linear-server__list_issues',
-      'mcp__linear-server__create_issue',
-      'mcp__linear-server__update_issue',
-      // ... and more
+      'mcp__magestic-ai__update_subtask_status',
+      'mcp__magestic-ai__get_build_progress',
+      'mcp__magestic-ai__record_discovery',
+      'mcp__magestic-ai__record_gotcha',
+      'mcp__magestic-ai__get_session_context',
+      'mcp__magestic-ai__update_qa_status',
     ],
   },
   puppeteer: {
@@ -315,9 +299,8 @@ const MCP_SERVERS: Record<string, { name: string; description: string; icon: Rea
 const ALL_MCP_SERVERS = [
   'context7',
   'graphiti-memory',
-  'linear',
   'puppeteer',
-  'auto-claude'
+  'magestic-ai'
 ] as const;
 
 // Category metadata - neutral styling per design.json
@@ -375,7 +358,6 @@ function AgentCard({ id, config, modelLabel, thinkingLabel, overrides, mcpServer
       switch (mcp) {
         case 'context7': return mcpServerStates.context7Enabled !== false;
         case 'graphiti-memory': return mcpServerStates.graphitiEnabled !== false;
-        case 'linear': return mcpServerStates.linearMcpEnabled !== false;
         case 'puppeteer': return mcpServerStates.puppeteerEnabled !== false;
         default: return true;
       }
@@ -398,7 +380,7 @@ function AgentCard({ id, config, modelLabel, thinkingLabel, overrides, mcpServer
   const customServerIds = customServers.map(s => s.id);
   const allAvailableMcpIds = [...ALL_MCP_SERVERS, ...customServerIds];
   const availableMcps = allAvailableMcpIds.filter(
-    mcp => !effectiveMcps.includes(mcp) && !removedMcps.includes(mcp) && mcp !== 'auto-claude'
+    mcp => !effectiveMcps.includes(mcp) && !removedMcps.includes(mcp) && mcp !== 'magestic-ai'
   );
 
   return (
@@ -463,7 +445,7 @@ function AgentCard({ id, config, modelLabel, thinkingLabel, overrides, mcpServer
                   const serverInfo = allMcpServers[server];
                   const ServerIcon = serverInfo?.icon || Server;
                   const isAdded = isCustomAdd(server);
-                  const canRemove = server !== 'auto-claude';
+                  const canRemove = server !== 'magestic-ai';
 
                   return (
                     <div key={server} className="flex items-center justify-between group">
@@ -952,9 +934,8 @@ export function AgentTools() {
   const enabledCount = [
     mcpServers.context7Enabled !== false,
     mcpServers.graphitiEnabled && envConfig?.graphitiProviderConfig,
-    mcpServers.linearMcpEnabled !== false && envConfig?.linearEnabled,
     mcpServers.puppeteerEnabled,
-    true, // auto-claude always enabled
+    true, // magestic-ai always enabled
   ].filter(Boolean).length;
 
   // Resolve model and thinking for an agent based on its settings source
@@ -1109,26 +1090,6 @@ export function AgentTools() {
                   />
                 </div>
 
-                {/* Linear */}
-                <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                  <div className="flex items-center gap-3">
-                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <span className="text-sm font-medium">{t('settings:mcp.servers.linear.name')}</span>
-                      <p className="text-xs text-muted-foreground">
-                        {envConfig.linearEnabled
-                          ? t('settings:mcp.servers.linear.description')
-                          : t('settings:mcp.servers.linear.notConfigured')}
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={mcpServers.linearMcpEnabled !== false && envConfig.linearEnabled}
-                    onCheckedChange={(checked) => updateMcpServer('linearMcpEnabled', checked)}
-                    disabled={!envConfig.linearEnabled}
-                  />
-                </div>
-
                 {/* Browser Automation Section */}
                 <div className="pt-2">
                   <div className="flex items-center gap-2 mb-3">
@@ -1154,7 +1115,7 @@ export function AgentTools() {
                   </div>
                 </div>
 
-                {/* Auto-Claude (always enabled) */}
+                {/* Magestic AI (always enabled) */}
                 <div className="flex items-center justify-between py-2 border-t border-border opacity-60">
                   <div className="flex items-center gap-3">
                     <ListChecks className="h-4 w-4 text-muted-foreground" />

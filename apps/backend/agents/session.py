@@ -3,7 +3,7 @@ Agent Session Management
 ========================
 
 Handles running agent sessions and post-session processing including
-memory updates, recovery tracking, and Linear integration.
+memory updates and recovery tracking.
 """
 
 import logging
@@ -18,10 +18,6 @@ from core.error_utils import (
 )
 from debug import debug, debug_detailed, debug_error, debug_section, debug_success
 from insight_extractor import extract_session_insights
-from linear_updater import (
-    linear_subtask_completed,
-    linear_subtask_failed,
-)
 from progress import (
     count_subtasks_detailed,
     is_build_complete,
@@ -61,7 +57,6 @@ async def post_session_processing(
     commit_before: str | None,
     commit_count_before: int,
     recovery_manager: RecoveryManager,
-    linear_enabled: bool = False,
     status_manager: StatusManager | None = None,
     source_spec_dir: Path | None = None,
 ) -> bool:
@@ -78,7 +73,6 @@ async def post_session_processing(
         commit_before: Git commit hash before session
         commit_count_before: Number of commits before session
         recovery_manager: Recovery manager instance
-        linear_enabled: Whether Linear integration is enabled
         status_manager: Optional status manager for ccstatusline
         source_spec_dir: Original spec directory (for syncing back from worktree)
 
@@ -138,18 +132,6 @@ async def post_session_processing(
         if commit_after and commit_after != commit_before:
             recovery_manager.record_good_commit(commit_after, subtask_id)
             print_status(f"Recorded good commit: {commit_after[:8]}", "success")
-
-        # Record Linear session result (if enabled)
-        if linear_enabled:
-            # Get progress counts for the comment
-            subtasks_detail = count_subtasks_detailed(spec_dir)
-            await linear_subtask_completed(
-                spec_dir=spec_dir,
-                subtask_id=subtask_id,
-                completed_count=subtasks_detail["completed"],
-                total_count=subtasks_detail["total"],
-            )
-            print_status("Linear progress recorded", "success")
 
         # Extract rich insights from session (LLM-powered analysis)
         try:
@@ -219,16 +201,6 @@ async def post_session_processing(
                 f"Recorded partial progress commit: {commit_after[:8]}", "info"
             )
 
-        # Record Linear session result (if enabled)
-        if linear_enabled:
-            attempt_count = recovery_manager.get_attempt_count(subtask_id)
-            await linear_subtask_failed(
-                spec_dir=spec_dir,
-                subtask_id=subtask_id,
-                attempt=attempt_count,
-                error_summary="Session ended without completion",
-            )
-
         # Extract insights even from failed sessions (valuable for future attempts)
         try:
             extracted_insights = await extract_session_insights(
@@ -274,16 +246,6 @@ async def post_session_processing(
             approach="Session ended without progress",
             error=f"Subtask status is {subtask_status}",
         )
-
-        # Record Linear session result (if enabled)
-        if linear_enabled:
-            attempt_count = recovery_manager.get_attempt_count(subtask_id)
-            await linear_subtask_failed(
-                spec_dir=spec_dir,
-                subtask_id=subtask_id,
-                attempt=attempt_count,
-                error_summary=f"Subtask status: {subtask_status}",
-            )
 
         # Extract insights even from completely failed sessions
         try:

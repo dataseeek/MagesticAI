@@ -1,6 +1,6 @@
-# Claude Code Manager Web - Task Workflow Guide
+# MagesticAI - Task Workflow Guide
 
-This guide explains the complete task lifecycle in Claude Code Manager Web, from initial creation through final merge. Understanding this workflow helps you get the most out of AI-powered development.
+This guide explains the complete task lifecycle in MagesticAI, from initial creation through final merge. Understanding this workflow helps you get the most out of AI-powered development.
 
 ---
 
@@ -24,7 +24,7 @@ This guide explains the complete task lifecycle in Claude Code Manager Web, from
 
 ## Overview
 
-Claude Code Manager Web uses a multi-agent orchestration system to implement features autonomously. Each task progresses through a series of phases, with specialized AI agents handling different aspects of the work.
+MagesticAI uses a multi-agent orchestration system to implement features autonomously. Each task progresses through a series of phases, with specialized AI agents handling different aspects of the work.
 
 ### The Big Picture
 
@@ -163,10 +163,10 @@ Additional context, constraints, or considerations.
 
 | File | Location | Purpose |
 |------|----------|---------|
-| `spec.md` | `.auto-claude/specs/{task-id}/` | Feature specification |
-| `requirements.json` | `.auto-claude/specs/{task-id}/` | User requirements |
-| `context.json` | `.auto-claude/specs/{task-id}/` | Codebase context |
-| Worktree | `.auto-claude/worktrees/tasks/{task-id}/` | Isolated workspace |
+| `spec.md` | `.magestic-ai/specs/{task-id}/` | Feature specification |
+| `requirements.json` | `.magestic-ai/specs/{task-id}/` | User requirements |
+| `context.json` | `.magestic-ai/specs/{task-id}/` | Codebase context |
+| Worktree | `.magestic-ai/worktrees/tasks/{task-id}/` | Isolated workspace |
 
 ---
 
@@ -408,7 +408,7 @@ Before approving, verify:
 
 ```bash
 # Navigate to the task worktree
-cd .auto-claude/worktrees/tasks/001-dark-mode/
+cd .magestic-ai/worktrees/tasks/001-dark-mode/
 
 # View the changes
 git diff main
@@ -474,7 +474,7 @@ If conflicts arise during merge:
 2. Navigate to the worktree directory
 3. Resolve conflicts manually:
    ```bash
-   cd .auto-claude/worktrees/tasks/001-dark-mode/
+   cd .magestic-ai/worktrees/tasks/001-dark-mode/
    git status
    # Edit conflicted files
    git add .
@@ -669,14 +669,14 @@ From the Task Detail Modal, click **"Stop"** to pause execution.
 
 #### 2. Edit the Spec
 
-Navigate to `.auto-claude/specs/{task-id}/spec.md` and:
+Navigate to `.magestic-ai/specs/{task-id}/spec.md` and:
 - Clarify requirements
 - Add constraints
 - Provide examples
 
 #### 3. Edit the Implementation Plan
 
-Modify `.auto-claude/specs/{task-id}/implementation_plan.json`:
+Modify `.magestic-ai/specs/{task-id}/implementation_plan.json`:
 - Add or remove subtasks
 - Change subtask order
 - Update acceptance criteria
@@ -735,7 +735,7 @@ You can work directly in the task worktree:
 
 ```bash
 # Enter the worktree
-cd .auto-claude/worktrees/tasks/001-dark-mode/
+cd .magestic-ai/worktrees/tasks/001-dark-mode/
 
 # Make manual changes
 code .  # Open in your editor
@@ -800,7 +800,7 @@ git commit -m "Manual fix: correct theme toggle position"
 1. Pull latest changes to base branch
 2. Rebase worktree:
    ```bash
-   cd .auto-claude/worktrees/tasks/001-task/
+   cd .magestic-ai/worktrees/tasks/001-task/
    git rebase main
    ```
 3. Resolve conflicts manually
@@ -869,4 +869,4 @@ git commit -m "Manual fix: correct theme toggle position"
 
 ---
 
-**Claude Code Manager Web** - Master the AI development workflow!
+**MagesticAI** - Master the AI development workflow!

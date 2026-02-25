@@ -158,8 +158,6 @@ class ProjectAnalyzer:
             infra["ci"] = "GitHub Actions"
             workflows = list((self.project_dir / ".github" / "workflows").glob("*.yml"))
             infra["ci_workflows"] = [f.name for f in workflows]
-        elif (self.project_dir / ".gitlab-ci.yml").exists():
-            infra["ci"] = "GitLab CI"
         elif (self.project_dir / ".circleci").exists():
             infra["ci"] = "CircleCI"
 

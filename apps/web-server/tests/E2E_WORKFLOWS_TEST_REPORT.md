@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-This report documents the comprehensive end-to-end workflow tests created to validate that multiple endpoints work together correctly in realistic user scenarios. Unlike unit tests that validate individual endpoints in isolation, these workflow tests verify complete user journeys across the Auto-Claude platform.
+This report documents the comprehensive end-to-end workflow tests created to validate that multiple endpoints work together correctly in realistic user scenarios. Unlike unit tests that validate individual endpoints in isolation, these workflow tests verify complete user journeys across the Magestic AI platform.
 
 ### Test Deliverables
 
@@ -174,7 +174,7 @@ This report documents the comprehensive end-to-end workflow tests created to val
 **Endpoints Used:**
 - `scan_for_projects` - Discover projects on filesystem
 - `add_project` (via projects.json)
-- `update_project_settings` - Configure .auto-claude/.env
+- `update_project_settings` - Configure .magestic-ai/.env
 - `update_project_env` - Set environment variables
 - `initialize_repository` - Git initialization
 
@@ -182,8 +182,8 @@ This report documents the comprehensive end-to-end workflow tests created to val
 ```
 1. Scan filesystem for projects
 2. Discover project with .git and package.json
-3. Add project to Auto-Claude
-4. Create .auto-claude directory
+3. Add project to Magestic AI
+4. Create .magestic-ai directory
 5. Set up project settings
 6. Configure environment variables
 7. Initialize repository tracking
@@ -278,7 +278,7 @@ This report documents the comprehensive end-to-end workflow tests created to val
 - `create_worktree` - Parallel development
 - `squash_commits` - Clean commit history
 - `create_release` - Tag and release
-- `download_source_update` - Update Auto-Claude
+- `download_source_update` - Update Magestic AI
 
 **Test Flow:**
 ```
@@ -286,7 +286,7 @@ This report documents the comprehensive end-to-end workflow tests created to val
 2. Make multiple commits
 3. Squash commits into single commit
 4. Create release tag
-5. Update Auto-Claude source
+5. Update Magestic AI source
 ```
 
 **Validation:**
@@ -362,7 +362,7 @@ This report documents the comprehensive end-to-end workflow tests created to val
 
 **File System:**
 - `temp_dir` - Temporary directory for test isolation
-- `mock_settings_dir` - Mock .auto-claude directory
+- `mock_settings_dir` - Mock .magestic-ai directory
 - `mock_project_dir` - Mock project structure
 - `mock_projects_json` - Mock projects database
 
@@ -395,7 +395,7 @@ This report documents the comprehensive end-to-end workflow tests created to val
 ### Prerequisites
 
 ```bash
-cd <project>/PD/AutoClaude/Auto-Claude
+cd <project>/PD/AutoClaude/MagesticAI
 cd apps/web-server
 ```
 

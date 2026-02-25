@@ -264,12 +264,12 @@ async def clear_terminal_sessions(project: str | None = None):
         # Clear sessions for a specific project
         project_path = Path(project)
         if project_path.exists():
-            sessions_dir = project_path / ".auto-claude" / "terminal-sessions"
+            sessions_dir = project_path / ".magestic-ai" / "terminal-sessions"
             if sessions_dir.exists():
                 dirs_to_clear.append(sessions_dir)
     else:
         # Clear default sessions location
-        default_sessions_dir = Path.home() / ".auto-claude" / "terminal-sessions"
+        default_sessions_dir = Path.home() / ".magestic-ai" / "terminal-sessions"
         if default_sessions_dir.exists():
             dirs_to_clear.append(default_sessions_dir)
 
@@ -287,7 +287,7 @@ async def clear_terminal_sessions(project: str | None = None):
 
                 for proj in projects_list:
                     proj_path = Path(proj.get("path", "") if isinstance(proj, dict) else proj)
-                    sessions_dir = proj_path / ".auto-claude" / "terminal-sessions"
+                    sessions_dir = proj_path / ".magestic-ai" / "terminal-sessions"
                     if sessions_dir.exists():
                         dirs_to_clear.append(sessions_dir)
             except (json.JSONDecodeError, KeyError):
@@ -471,7 +471,7 @@ async def resize_terminal(terminal_id: str, request: ResizeTerminalRequest):
 async def save_terminal_buffer(terminal_id: str, request: dict):
     """Save terminal buffer to session file.
 
-    Persists terminal output to a session file in the project's .auto-claude directory.
+    Persists terminal output to a session file in the project's .magestic-ai directory.
     The buffer content is saved with a timestamp for future restoration.
 
     Args:
@@ -516,13 +516,13 @@ async def save_terminal_buffer(terminal_id: str, request: dict):
             projects = load_projects()
             if project_id in projects:
                 project_path = Path(projects[project_id]["path"])
-                sessions_dir = project_path / ".auto-claude" / "terminal-sessions"
+                sessions_dir = project_path / ".magestic-ai" / "terminal-sessions"
             else:
                 # Project not found, use default location
-                sessions_dir = Path.home() / ".auto-claude" / "terminal-sessions"
+                sessions_dir = Path.home() / ".magestic-ai" / "terminal-sessions"
         else:
             # No project ID, use default location
-            sessions_dir = Path.home() / ".auto-claude" / "terminal-sessions"
+            sessions_dir = Path.home() / ".magestic-ai" / "terminal-sessions"
 
         # Create sessions directory if it doesn't exist
         sessions_dir.mkdir(parents=True, exist_ok=True)

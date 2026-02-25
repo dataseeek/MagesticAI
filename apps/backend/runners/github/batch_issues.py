@@ -386,7 +386,7 @@ class IssueBatcher:
 
     Usage:
         batcher = IssueBatcher(
-            github_dir=Path(".auto-claude/github"),
+            github_dir=Path(".magestic-ai/github"),
             repo="owner/repo",
         )
 

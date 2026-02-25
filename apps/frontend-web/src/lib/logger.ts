@@ -20,7 +20,7 @@ export interface LogEntry {
 }
 
 // Storage keys
-const STORAGE_KEY = 'auto-claude-logs';
+const STORAGE_KEY = 'magestic-ai-logs';
 const MAX_LOGS = 1000; // Maximum number of logs to keep
 const ERROR_BATCH_INTERVAL = 5000; // Send errors to backend every 5 seconds
 
@@ -232,7 +232,7 @@ class Logger {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `auto-claude-logs-${new Date().toISOString().split('T')[0]}.${format === 'json' ? 'json' : 'txt'}`;
+    a.download = `magestic-ai-logs-${new Date().toISOString().split('T')[0]}.${format === 'json' ? 'json' : 'txt'}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

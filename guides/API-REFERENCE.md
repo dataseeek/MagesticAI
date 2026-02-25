@@ -1,6 +1,6 @@
 # API Reference Guide
 
-This document provides a comprehensive reference for the Claude Code Manager Web REST API and WebSocket events. Use this guide for integration development, extension building, and understanding the backend architecture.
+This document provides a comprehensive reference for the MagesticAI REST API and WebSocket events. Use this guide for integration development, extension building, and understanding the backend architecture.
 
 ---
 
@@ -76,7 +76,7 @@ Error Response:
 
 ## Authentication
 
-Claude Code Manager Web uses token-based authentication via the `TokenAuthMiddleware`.
+MagesticAI uses token-based authentication via the `TokenAuthMiddleware`.
 
 ### Headers
 
@@ -481,7 +481,7 @@ List all git worktrees.
   "success": true,
   "data": [
     {
-      "path": "/project/.auto-claude/worktrees/task-123",
+      "path": "/project/.magestic-ai/worktrees/task-123",
       "branch": "task/feature-x",
       "head": "abc123def",
       "prunable": false
@@ -499,7 +499,7 @@ Create a new worktree.
 {
   "basePath": "/project",
   "branch": "task/feature-x",
-  "worktreePath": "/project/.auto-claude/worktrees/task-123"
+  "worktreePath": "/project/.magestic-ai/worktrees/task-123"
 }
 ```
 
@@ -901,7 +901,7 @@ Get memory infrastructure status.
   "success": true,
   "data": {
     "kuzuInstalled": false,
-    "databasePath": "/home/user/.auto-claude/memories",
+    "databasePath": "/home/user/.magestic-ai/memories",
     "databaseExists": true,
     "databases": [],
     "ready": true
@@ -1512,7 +1512,7 @@ Project updated:
 
 ## Rate Limiting
 
-Currently, Claude Code Manager Web does not implement rate limiting. For production deployments, consider adding rate limiting middleware.
+Currently, MagesticAI does not implement rate limiting. For production deployments, consider adding rate limiting middleware.
 
 Recommended limits for high-usage scenarios:
 - API requests: 100 requests per minute per client
@@ -1590,4 +1590,4 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 
 ---
 
-**Claude Code Manager Web** - Comprehensive API for AI-powered coding task management.
+**MagesticAI** - Comprehensive API for AI-powered coding task management.

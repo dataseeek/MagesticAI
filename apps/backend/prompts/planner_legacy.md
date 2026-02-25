@@ -562,7 +562,7 @@ For high or critical risk, add security steps:
   "verification_steps": [
     {
       "name": "Secrets Scan",
-      "command": "python auto-claude/scan_secrets.py --all-files --json",
+      "command": "python magestic-ai/scan_secrets.py --all-files --json",
       "expected_outcome": "No secrets detected",
       "type": "security",
       "required": true,
@@ -634,7 +634,7 @@ Include parallelism analysis, verification strategy, and QA configuration in the
       "recommended_workers": 2,
       "speedup_estimate": "1.5x faster than sequential"
     },
-    "startup_command": "source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 001 --parallel 2"
+    "startup_command": "source magestic-ai/.venv/bin/activate && python magestic-ai/run.py --spec 001 --parallel 2"
   },
   "verification_strategy": {
     "risk_level": "medium",
@@ -807,7 +807,7 @@ The following files are gitignored and should NOT be committed:
 - `init.sh` - tracked locally only
 - `build-progress.txt` - tracked locally only
 
-These files live in `.auto-claude/specs/` which is gitignored. The orchestrator handles syncing them between worktrees and the main project.
+These files live in `.magestic-ai/specs/` which is gitignored. The orchestrator handles syncing them between worktrees and the main project.
 
 **Only code changes should be committed** - spec metadata stays local.
 
@@ -853,10 +853,10 @@ Parallelism Analysis:
 
 To continue building this spec, run:
 
-  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec [SPEC_NUMBER] --parallel [RECOMMENDED_WORKERS]
+  source magestic-ai/.venv/bin/activate && python magestic-ai/run.py --spec [SPEC_NUMBER] --parallel [RECOMMENDED_WORKERS]
 
 Example:
-  source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 001 --parallel 2
+  source magestic-ai/.venv/bin/activate && python magestic-ai/run.py --spec 001 --parallel 2
 
 === END SESSION 1 ===
 ```

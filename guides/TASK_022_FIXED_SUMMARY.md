@@ -4,7 +4,7 @@
 
 **Task:** 022-git-history-versions
 **Issue:** Stuck at "In Progress" phase, wouldn't transition to "Human Review"
-**Project:** <project>/PD/AutoClaude/Auto-Claude
+**Project:** <project>/PD/AutoClaude/MagesticAI
 
 ### Root Causes Found
 
@@ -34,13 +34,13 @@
 }
 ```
 
-**Location:** `.auto-claude/specs/022-git-history-versions/review_state.json`
+**Location:** `.magestic-ai/specs/022-git-history-versions/review_state.json`
 
 ### Fix #2: Updated Status ✅
 **Before:** `"status": "backlog"`
 **After:** `"status": "human_review"`
 
-**Location:** `.auto-claude/specs/022-git-history-versions/implementation_plan.json`
+**Location:** `.magestic-ai/specs/022-git-history-versions/implementation_plan.json`
 
 ### Fix #3: Fixed 17 Other Tasks ✅
 
@@ -79,7 +79,7 @@ Ran automated fix script that found and fixed:
 
 ### Option 2: Command Line Review
 ```bash
-cd <project>/PD/AutoClaude/Auto-Claude
+cd <project>/PD/AutoClaude/MagesticAI
 
 # View the changes
 git diff
@@ -91,7 +91,7 @@ git status
 # (Test commands based on what was modified)
 
 # Continue execution if needed
-python .auto-claude/run.py --spec 022-git-history-versions --auto-continue
+python .magestic-ai/run.py --spec 022-git-history-versions --auto-continue
 ```
 
 ## Preventing This in the Future
@@ -167,7 +167,7 @@ Use this throughout the codebase instead of string literals.
 
 ```bash
 # Verify files exist
-ls -la <project>/PD/AutoClaude/Auto-Claude/.auto-claude/specs/022-git-history-versions/
+ls -la <project>/PD/AutoClaude/MagesticAI/.magestic-ai/specs/022-git-history-versions/
 
 # Should show:
 # - implementation_plan.json (status: "human_review")
@@ -177,7 +177,7 @@ ls -la <project>/PD/AutoClaude/Auto-Claude/.auto-claude/specs/022-git-history-ve
 # Check status
 python3 -c "
 import json
-plan = json.load(open('<project>/PD/AutoClaude/Auto-Claude/.auto-claude/specs/022-git-history-versions/implementation_plan.json'))
+plan = json.load(open('<project>/PD/AutoClaude/MagesticAI/.magestic-ai/specs/022-git-history-versions/implementation_plan.json'))
 print(f\"Status: {plan['status']}\")
 print(f\"Review Reason: {plan.get('reviewReason', 'none')}\")
 "

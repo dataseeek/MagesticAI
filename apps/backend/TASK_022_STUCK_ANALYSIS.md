@@ -3,14 +3,14 @@
 ## Current State
 
 **Task ID:** 022-git-history-versions
-**Project:** <project>/PD/AutoClaude/Auto-Claude
+**Project:** <project>/PD/AutoClaude/MagesticAI
 **Status in Plan:** "backlog" (should be "human_review" or "in_progress")
 **Review Reason:** "plan_review"
 **Last Updated:** 2026-01-09T02:23:34
 
 ### Files Present
 ```
-.auto-claude/specs/022-git-history-versions/
+.magestic-ai/specs/022-git-history-versions/
 ├── build-progress.txt          ✓ Present
 ├── implementation_plan.json    ✓ Present (status: "backlog")
 ├── requirements.json           ✓ Present
@@ -67,7 +67,7 @@ Update the implementation_plan.json status field manually:
 
 ```bash
 # Navigate to spec directory
-cd <project>/PD/AutoClaude/Auto-Claude/.auto-claude/specs/022-git-history-versions/
+cd <project>/PD/AutoClaude/MagesticAI/.magestic-ai/specs/022-git-history-versions/
 
 # Edit implementation_plan.json
 # Change line 103: "status": "backlog" → "status": "in_progress"
@@ -75,7 +75,7 @@ cd <project>/PD/AutoClaude/Auto-Claude/.auto-claude/specs/022-git-history-versio
 
 Or use jq:
 ```bash
-SPEC_DIR="<project>/PD/AutoClaude/Auto-Claude/.auto-claude/specs/022-git-history-versions"
+SPEC_DIR="<project>/PD/AutoClaude/MagesticAI/.magestic-ai/specs/022-git-history-versions"
 jq '.status = "in_progress"' "$SPEC_DIR/implementation_plan.json" > tmp.json && mv tmp.json "$SPEC_DIR/implementation_plan.json"
 ```
 
@@ -84,7 +84,7 @@ jq '.status = "in_progress"' "$SPEC_DIR/implementation_plan.json" > tmp.json && 
 Create the missing file:
 
 ```bash
-SPEC_DIR="<project>/PD/AutoClaude/Auto-Claude/.auto-claude/specs/022-git-history-versions"
+SPEC_DIR="<project>/PD/AutoClaude/MagesticAI/.magestic-ai/specs/022-git-history-versions"
 
 cat > "$SPEC_DIR/review_state.json" << 'EOF'
 {
@@ -105,10 +105,10 @@ This enables the phase transition fix to work correctly.
 Resume the task execution:
 
 ```bash
-cd <project>/PD/AutoClaude/Auto-Claude
+cd <project>/PD/AutoClaude/MagesticAI
 
 # Use run.py to continue execution
-python .auto-claude/run.py --spec 022-git-history-versions --auto-continue
+python .magestic-ai/run.py --spec 022-git-history-versions --auto-continue
 ```
 
 ### Solution 4: Mark Phases Completed and Move to Review
@@ -116,7 +116,7 @@ python .auto-claude/run.py --spec 022-git-history-versions --auto-continue
 If work is actually done, mark it for human review:
 
 ```bash
-SPEC_DIR="<project>/PD/AutoClaude/Auto-Claude/.auto-claude/specs/022-git-history-versions"
+SPEC_DIR="<project>/PD/AutoClaude/MagesticAI/.magestic-ai/specs/022-git-history-versions"
 
 # Update status to human_review
 jq '.status = "human_review" | .reviewReason = "ready_for_review"' "$SPEC_DIR/implementation_plan.json" > tmp.json && mv tmp.json "$SPEC_DIR/implementation_plan.json"
@@ -140,7 +140,7 @@ EOF
 
 Review the files that were modified:
 ```bash
-cd <project>/PD/AutoClaude/Auto-Claude
+cd <project>/PD/AutoClaude/MagesticAI
 git status
 git diff
 ```
@@ -202,7 +202,7 @@ if not review_state_file.exists():
 ```python
 # Before emitting progress, validate status field
 if spec_id and project_path:
-    plan_file = project_path / ".auto-claude" / "specs" / spec_id / "implementation_plan.json"
+    plan_file = project_path / ".magestic-ai" / "specs" / spec_id / "implementation_plan.json"
     if plan_file.exists():
         plan = json.loads(plan_file.read_text())
         if plan.get("status") == "backlog":
@@ -216,21 +216,21 @@ if spec_id and project_path:
 ### Check Task State
 ```bash
 # View current status
-cat <project>/PD/AutoClaude/Auto-Claude/.auto-claude/specs/022-git-history-versions/implementation_plan.json | jq '.status, .reviewReason'
+cat <project>/PD/AutoClaude/MagesticAI/.magestic-ai/specs/022-git-history-versions/implementation_plan.json | jq '.status, .reviewReason'
 
 # Check if review_state.json exists
-ls -la <project>/PD/AutoClaude/Auto-Claude/.auto-claude/specs/022-git-history-versions/review_state.json
+ls -la <project>/PD/AutoClaude/MagesticAI/.magestic-ai/specs/022-git-history-versions/review_state.json
 ```
 
 ### Fix Status
 ```bash
 # Set to in_progress
-jq '.status = "in_progress"' <project>/PD/AutoClaude/Auto-Claude/.auto-claude/specs/022-git-history-versions/implementation_plan.json > /tmp/plan.json && mv /tmp/plan.json <project>/PD/AutoClaude/Auto-Claude/.auto-claude/specs/022-git-history-versions/implementation_plan.json
+jq '.status = "in_progress"' <project>/PD/AutoClaude/MagesticAI/.magestic-ai/specs/022-git-history-versions/implementation_plan.json > /tmp/plan.json && mv /tmp/plan.json <project>/PD/AutoClaude/MagesticAI/.magestic-ai/specs/022-git-history-versions/implementation_plan.json
 ```
 
 ### Create review_state.json
 ```bash
-cat > <project>/PD/AutoClaude/Auto-Claude/.auto-claude/specs/022-git-history-versions/review_state.json << 'EOF'
+cat > <project>/PD/AutoClaude/MagesticAI/.magestic-ai/specs/022-git-history-versions/review_state.json << 'EOF'
 {
   "approved": false,
   "approved_by": "",
@@ -244,8 +244,8 @@ EOF
 
 ### Resume Task
 ```bash
-cd <project>/PD/AutoClaude/Auto-Claude
-python .auto-claude/run.py --spec 022-git-history-versions --auto-continue
+cd <project>/PD/AutoClaude/MagesticAI
+python .magestic-ai/run.py --spec 022-git-history-versions --auto-continue
 ```
 
 ## Summary

@@ -3,7 +3,7 @@ Graphiti Integration Configuration
 ==================================
 
 Constants, status mappings, and configuration helpers for Graphiti memory integration.
-Follows the same patterns as linear_config.py for consistency.
+Configuration helpers for Graphiti memory integration.
 
 Uses LadybugDB as the embedded graph database (no Docker required, requires Python 3.12+).
 
@@ -18,8 +18,8 @@ Environment Variables:
     GRAPHITI_EMBEDDER_PROVIDER: openai|voyage|azure_openai|ollama|google (default: openai)
 
     # Database
-    GRAPHITI_DATABASE: Graph database name (default: auto_claude_memory)
-    GRAPHITI_DB_PATH: Database storage path (default: ~/.auto-claude/memories)
+    GRAPHITI_DATABASE: Graph database name (default: magestic_ai_memory)
+    GRAPHITI_DB_PATH: Database storage path (default: ~/.magestic-ai/memories)
 
     # OpenAI
     OPENAI_API_KEY: Required for OpenAI provider
@@ -64,8 +64,8 @@ from pathlib import Path
 from typing import Optional
 
 # Default configuration values
-DEFAULT_DATABASE = "auto_claude_memory"
-DEFAULT_DB_PATH = "~/.auto-claude/memories"
+DEFAULT_DATABASE = "magestic_ai_memory"
+DEFAULT_DB_PATH = "~/.magestic-ai/memories"
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 
 # Graphiti state marker file (stores connection info and status)
@@ -440,7 +440,7 @@ class GraphitiConfig:
             base_name: Base database name (default: from config)
 
         Returns:
-            Database name with provider signature (e.g., "auto_claude_memory_ollama_768")
+            Database name with provider signature (e.g., "magestic_ai_memory_ollama_768")
         """
         if base_name is None:
             base_name = self.database
@@ -464,7 +464,7 @@ class GraphitiConfig:
 
 @dataclass
 class GraphitiState:
-    """State of Graphiti integration for an auto-claude spec."""
+    """State of Graphiti integration for an magestic-ai spec."""
 
     initialized: bool = False
     database: str | None = None

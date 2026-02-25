@@ -1,1 +1,1 @@
-# Auto-Claude Web Server
+# Magestic AI Web Server

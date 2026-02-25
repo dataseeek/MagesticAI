@@ -199,7 +199,7 @@ If any issue is not fixed, go back to Phase 3.
 ## PHASE 6: COMMIT FIXES
 
 ```bash
-git add . ':!.auto-claude'
+git add . ':!.magestic-ai'
 git commit -m "fix: Address QA issues (qa-requested)
 
 Fixes:

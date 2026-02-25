@@ -123,7 +123,7 @@ async def start_task(task_id: str, request: StartTaskRequest):
         )
 
     project_path = Path(projects[project_id]["path"])
-    spec_dir = project_path / ".auto-claude" / "specs" / spec_id
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
 
     if not spec_dir.exists():
         raise HTTPException(
@@ -435,7 +435,7 @@ async def recover_task(task_id: str, request: RecoverTaskRequest = RecoverTaskRe
         )
 
     project_path = Path(projects[project_id]["path"])
-    spec_dir = project_path / ".auto-claude" / "specs" / spec_id
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
 
     if not spec_dir.exists():
         raise HTTPException(

@@ -62,7 +62,7 @@ class TestPhase2CriticalEndpoints:
     def test_set_active_profile_success(self, client, tmp_path):
         """Test set_active_profile updates claude-profiles.json"""
         # Create mock profiles file
-        profiles_dir = tmp_path / ".config" / "auto-claude"
+        profiles_dir = tmp_path / ".config" / "magestic-ai"
         profiles_dir.mkdir(parents=True, exist_ok=True)
         profiles_file = profiles_dir / "claude-profiles.json"
 
@@ -89,7 +89,7 @@ class TestPhase2CriticalEndpoints:
 
     def test_set_profile_token_valid(self, client, tmp_path):
         """Test set_profile_token with valid token"""
-        profiles_dir = tmp_path / ".config" / "auto-claude"
+        profiles_dir = tmp_path / ".config" / "magestic-ai"
         profiles_dir.mkdir(parents=True, exist_ok=True)
         profiles_file = profiles_dir / "claude-profiles.json"
 
@@ -114,7 +114,7 @@ class TestPhase2CriticalEndpoints:
 
     def test_set_active_api_profile_success(self, client, tmp_path):
         """Test set_active_api_profile updates api-profiles.json"""
-        profiles_dir = tmp_path / ".config" / "auto-claude"
+        profiles_dir = tmp_path / ".config" / "magestic-ai"
         profiles_dir.mkdir(parents=True, exist_ok=True)
         profiles_file = profiles_dir / "api-profiles.json"
 
@@ -136,9 +136,9 @@ class TestPhase2CriticalEndpoints:
             assert response.json().get("success") is True
 
     def test_update_project_settings_success(self, client, tmp_path):
-        """Test update_project_settings writes to .auto-claude/.env"""
+        """Test update_project_settings writes to .magestic-ai/.env"""
         # Create mock project
-        projects_dir = tmp_path / ".config" / "auto-claude"
+        projects_dir = tmp_path / ".config" / "magestic-ai"
         projects_dir.mkdir(parents=True, exist_ok=True)
         projects_file = projects_dir / "projects.json"
 
@@ -166,16 +166,16 @@ class TestPhase2CriticalEndpoints:
 
     def test_update_feature_status_success(self, client, tmp_path):
         """Test update_feature_status updates roadmap.json"""
-        projects_dir = tmp_path / ".config" / "auto-claude"
+        projects_dir = tmp_path / ".config" / "magestic-ai"
         projects_dir.mkdir(parents=True, exist_ok=True)
         projects_file = projects_dir / "projects.json"
 
         project_path = tmp_path / "test-project"
         project_path.mkdir()
-        auto_claude_dir = project_path / ".auto-claude"
-        auto_claude_dir.mkdir()
+        magestic_ai_dir = project_path / ".magestic-ai"
+        magestic_ai_dir.mkdir()
 
-        roadmap_file = auto_claude_dir / "roadmap.json"
+        roadmap_file = magestic_ai_dir / "roadmap.json"
         roadmap_data = {
             "features": [
                 {"id": "feat-1", "title": "Feature 1", "status": "planned"}
@@ -199,16 +199,16 @@ class TestPhase2CriticalEndpoints:
 
     def test_update_idea_status_success(self, client, tmp_path):
         """Test update_idea_status updates ideation.json"""
-        projects_dir = tmp_path / ".config" / "auto-claude"
+        projects_dir = tmp_path / ".config" / "magestic-ai"
         projects_dir.mkdir(parents=True, exist_ok=True)
         projects_file = projects_dir / "projects.json"
 
         project_path = tmp_path / "test-project"
         project_path.mkdir()
-        auto_claude_dir = project_path / ".auto-claude"
-        auto_claude_dir.mkdir()
+        magestic_ai_dir = project_path / ".magestic-ai"
+        magestic_ai_dir.mkdir()
 
-        ideation_file = auto_claude_dir / "ideation.json"
+        ideation_file = magestic_ai_dir / "ideation.json"
         ideation_data = {
             "ideas": [
                 {"id": "idea-1", "title": "Idea 1", "status": "new"}
@@ -241,7 +241,7 @@ class TestPhase3ProfileManagement:
 
     def test_rename_profile_success(self, client, tmp_path):
         """Test rename_profile updates profile name"""
-        profiles_dir = tmp_path / ".config" / "auto-claude"
+        profiles_dir = tmp_path / ".config" / "magestic-ai"
         profiles_dir.mkdir(parents=True, exist_ok=True)
         profiles_file = profiles_dir / "claude-profiles.json"
 
@@ -262,7 +262,7 @@ class TestPhase3ProfileManagement:
 
     def test_initialize_profile_success(self, client, tmp_path):
         """Test initialize_profile creates new profile"""
-        profiles_dir = tmp_path / ".config" / "auto-claude"
+        profiles_dir = tmp_path / ".config" / "magestic-ai"
         profiles_dir.mkdir(parents=True, exist_ok=True)
         profiles_file = profiles_dir / "claude-profiles.json"
 
@@ -296,7 +296,7 @@ class TestPhase3ProfileManagement:
 
     def test_retry_with_profile_success(self, client, tmp_path):
         """Test retry_with_profile switches profiles"""
-        profiles_dir = tmp_path / ".config" / "auto-claude"
+        profiles_dir = tmp_path / ".config" / "magestic-ai"
         profiles_dir.mkdir(parents=True, exist_ok=True)
         profiles_file = profiles_dir / "claude-profiles.json"
 
@@ -331,7 +331,7 @@ class TestPhase4ApiProfileManagement:
 
     def test_update_api_profile_success(self, client, tmp_path):
         """Test update_api_profile modifies profile configuration"""
-        profiles_dir = tmp_path / ".config" / "auto-claude"
+        profiles_dir = tmp_path / ".config" / "magestic-ai"
         profiles_dir.mkdir(parents=True, exist_ok=True)
         profiles_file = profiles_dir / "api-profiles.json"
 
@@ -356,7 +356,7 @@ class TestPhase4ApiProfileManagement:
 
     def test_delete_api_profile_prevents_active_deletion(self, client, tmp_path):
         """Test delete_api_profile prevents deleting active profile"""
-        profiles_dir = tmp_path / ".config" / "auto-claude"
+        profiles_dir = tmp_path / ".config" / "magestic-ai"
         profiles_dir.mkdir(parents=True, exist_ok=True)
         profiles_file = profiles_dir / "api-profiles.json"
 
@@ -389,16 +389,16 @@ class TestPhase5IdeationFileOperations:
 
     def test_dismiss_idea_success(self, client, tmp_path):
         """Test dismiss_idea sets dismissed flag"""
-        projects_dir = tmp_path / ".config" / "auto-claude"
+        projects_dir = tmp_path / ".config" / "magestic-ai"
         projects_dir.mkdir(parents=True, exist_ok=True)
         projects_file = projects_dir / "projects.json"
 
         project_path = tmp_path / "test-project"
         project_path.mkdir()
-        auto_claude_dir = project_path / ".auto-claude"
-        auto_claude_dir.mkdir()
+        magestic_ai_dir = project_path / ".magestic-ai"
+        magestic_ai_dir.mkdir()
 
-        ideation_file = auto_claude_dir / "ideation.json"
+        ideation_file = magestic_ai_dir / "ideation.json"
         ideation_data = {
             "ideas": [
                 {"id": "idea-1", "title": "Test Idea", "dismissed": False}
@@ -421,16 +421,16 @@ class TestPhase5IdeationFileOperations:
 
     def test_archive_idea_success(self, client, tmp_path):
         """Test archive_idea sets archived flag"""
-        projects_dir = tmp_path / ".config" / "auto-claude"
+        projects_dir = tmp_path / ".config" / "magestic-ai"
         projects_dir.mkdir(parents=True, exist_ok=True)
         projects_file = projects_dir / "projects.json"
 
         project_path = tmp_path / "test-project"
         project_path.mkdir()
-        auto_claude_dir = project_path / ".auto-claude"
-        auto_claude_dir.mkdir()
+        magestic_ai_dir = project_path / ".magestic-ai"
+        magestic_ai_dir.mkdir()
 
-        ideation_file = auto_claude_dir / "ideation.json"
+        ideation_file = magestic_ai_dir / "ideation.json"
         ideation_data = {
             "ideas": [
                 {"id": "idea-1", "title": "Test Idea", "archived": False}
@@ -453,16 +453,16 @@ class TestPhase5IdeationFileOperations:
 
     def test_delete_idea_removes_from_file(self, client, tmp_path):
         """Test delete_idea permanently removes idea"""
-        projects_dir = tmp_path / ".config" / "auto-claude"
+        projects_dir = tmp_path / ".config" / "magestic-ai"
         projects_dir.mkdir(parents=True, exist_ok=True)
         projects_file = projects_dir / "projects.json"
 
         project_path = tmp_path / "test-project"
         project_path.mkdir()
-        auto_claude_dir = project_path / ".auto-claude"
-        auto_claude_dir.mkdir()
+        magestic_ai_dir = project_path / ".magestic-ai"
+        magestic_ai_dir.mkdir()
 
-        ideation_file = auto_claude_dir / "ideation.json"
+        ideation_file = magestic_ai_dir / "ideation.json"
         ideation_data = {
             "ideas": [
                 {"id": "idea-1", "title": "Test Idea"}
@@ -494,7 +494,7 @@ class TestPhase9ContextManagement:
 
     def test_update_project_env_success(self, client, tmp_path):
         """Test update_project_env updates .env file"""
-        projects_dir = tmp_path / ".config" / "auto-claude"
+        projects_dir = tmp_path / ".config" / "magestic-ai"
         projects_dir.mkdir(parents=True, exist_ok=True)
         projects_file = projects_dir / "projects.json"
 
@@ -530,16 +530,16 @@ class TestPhase11BulkOperations:
 
     def test_dismiss_all_ideas_success(self, client, tmp_path):
         """Test dismiss_all_ideas dismisses all ideas at once"""
-        projects_dir = tmp_path / ".config" / "auto-claude"
+        projects_dir = tmp_path / ".config" / "magestic-ai"
         projects_dir.mkdir(parents=True, exist_ok=True)
         projects_file = projects_dir / "projects.json"
 
         project_path = tmp_path / "test-project"
         project_path.mkdir()
-        auto_claude_dir = project_path / ".auto-claude"
-        auto_claude_dir.mkdir()
+        magestic_ai_dir = project_path / ".magestic-ai"
+        magestic_ai_dir.mkdir()
 
-        ideation_file = auto_claude_dir / "ideation.json"
+        ideation_file = magestic_ai_dir / "ideation.json"
         ideation_data = {
             "ideas": [
                 {"id": "idea-1", "title": "Idea 1", "dismissed": False},
@@ -563,16 +563,16 @@ class TestPhase11BulkOperations:
 
     def test_delete_multiple_ideas_success(self, client, tmp_path):
         """Test delete_multiple_ideas removes multiple ideas"""
-        projects_dir = tmp_path / ".config" / "auto-claude"
+        projects_dir = tmp_path / ".config" / "magestic-ai"
         projects_dir.mkdir(parents=True, exist_ok=True)
         projects_file = projects_dir / "projects.json"
 
         project_path = tmp_path / "test-project"
         project_path.mkdir()
-        auto_claude_dir = project_path / ".auto-claude"
-        auto_claude_dir.mkdir()
+        magestic_ai_dir = project_path / ".magestic-ai"
+        magestic_ai_dir.mkdir()
 
-        ideation_file = auto_claude_dir / "ideation.json"
+        ideation_file = magestic_ai_dir / "ideation.json"
         ideation_data = {
             "ideas": [
                 {"id": "idea-1", "title": "Idea 1"},
@@ -607,7 +607,7 @@ class TestPhase12MediaSessionManagement:
 
     def test_save_changelog_image_success(self, client, tmp_path):
         """Test save_changelog_image saves base64 image"""
-        projects_dir = tmp_path / ".config" / "auto-claude"
+        projects_dir = tmp_path / ".config" / "magestic-ai"
         projects_dir.mkdir(parents=True, exist_ok=True)
         projects_file = projects_dir / "projects.json"
 
@@ -636,7 +636,7 @@ class TestPhase12MediaSessionManagement:
 
     def test_clear_insights_session_changelog(self, client, tmp_path):
         """Test clear_insights_session for changelog"""
-        projects_dir = tmp_path / ".config" / "auto-claude"
+        projects_dir = tmp_path / ".config" / "magestic-ai"
         projects_dir.mkdir(parents=True, exist_ok=True)
         projects_file = projects_dir / "projects.json"
 
@@ -659,7 +659,7 @@ class TestPhase12MediaSessionManagement:
 
     def test_clear_insights_session_files(self, client, tmp_path):
         """Test clear_insights_session for files"""
-        projects_dir = tmp_path / ".config" / "auto-claude"
+        projects_dir = tmp_path / ".config" / "magestic-ai"
         projects_dir.mkdir(parents=True, exist_ok=True)
         projects_file = projects_dir / "projects.json"
 
@@ -681,7 +681,7 @@ class TestPhase12MediaSessionManagement:
 
     def test_save_terminal_buffer_success(self, client, tmp_path):
         """Test save_terminal_buffer persists terminal output"""
-        projects_dir = tmp_path / ".config" / "auto-claude"
+        projects_dir = tmp_path / ".config" / "magestic-ai"
         projects_dir.mkdir(parents=True, exist_ok=True)
         projects_file = projects_dir / "projects.json"
 
@@ -740,7 +740,7 @@ class TestPhase13ProjectEnvironment:
             assert len(data["projects"]) >= 0
 
     def test_update_source_env_success(self, client, tmp_path):
-        """Test update_source_env updates Auto-Claude source .env"""
+        """Test update_source_env updates Magestic AI source .env"""
         with patch('pathlib.Path.home', return_value=tmp_path):
             response = client.patch(
                 "/api/settings/source-env",

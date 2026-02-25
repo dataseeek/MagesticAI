@@ -281,7 +281,7 @@ export interface AppSettings {
   bmadSessionSegmentation?: boolean;
 }
 
-// Auto-Claude Source Environment Configuration (for auto-claude repo .env)
+// Magestic AI Source Environment Configuration (for magestic-ai repo .env)
 export interface SourceEnvConfig {
   // Claude Authentication (required for AI features)
   hasClaudeToken: boolean;
@@ -298,7 +298,7 @@ export interface SourceEnvCheckResult {
   error?: string;
 }
 
-// Auto Claude Source Update Types
+// Magestic AI Source Update Types
 export interface AutoBuildSourceUpdateCheck {
   updateAvailable: boolean;
   currentVersion: string;

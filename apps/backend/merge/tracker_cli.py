@@ -6,9 +6,9 @@ CLI interface for the FileTimelineTracker service.
 Used by git hooks and manual operations.
 
 Usage:
-    python -m auto_claude.merge.tracker_cli notify-commit <hash>
-    python -m auto_claude.merge.tracker_cli show-timeline <file_path>
-    python -m auto_claude.merge.tracker_cli show-drift <task_id>
+    python -m magestic_ai.merge.tracker_cli notify-commit <hash>
+    python -m magestic_ai.merge.tracker_cli show-timeline <file_path>
+    python -m magestic_ai.merge.tracker_cli show-drift <task_id>
 """
 
 import argparse
@@ -19,12 +19,12 @@ from .file_timeline import FileTimelineTracker
 
 
 def find_project_root() -> Path:
-    """Find the project root by looking for .auto-claude or .git directory."""
+    """Find the project root by looking for .magestic-ai or .git directory."""
     current = Path.cwd()
 
-    # Walk up until we find .auto-claude or .git
+    # Walk up until we find .magestic-ai or .git
     while current != current.parent:
-        if (current / ".auto-claude").exists() or (current / ".git").exists():
+        if (current / ".magestic-ai").exists() or (current / ".git").exists():
             return current
         current = current.parent
 

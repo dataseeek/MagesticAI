@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Claude Code Manager Web is a web-based AI task management and agent orchestration platform that builds software through coordinated AI agent sessions. It uses the Claude Agent SDK to run agents in isolated workspaces with security controls.
+MagesticAI is a web-based AI task management and agent orchestration platform that builds software through coordinated AI agent sessions. It uses the Claude Agent SDK to run agents in isolated workspaces with security controls.
 
-**Project:** Claude Code Manager Web
-**Repository:** https://github.com/dataseeek/Claude-Code-Manager-Web
+**Project:** MagesticAI
+**Repository:** https://github.com/dataseeek/MagesticAI
 **Author:** DataSeek Team
 **License:** AGPL-3.0
 
@@ -16,7 +16,7 @@ Claude Code Manager Web is a web-based AI task management and agent orchestratio
 ## Project Structure
 
 ```
-Claude-Code-Manager-Web/
+MagesticAI/
 ├── apps/
 │   ├── backend/           # Python backend/CLI - ALL agent logic lives here
 │   │   ├── core/          # Client, auth, security
@@ -195,7 +195,7 @@ See [RELEASE.md](RELEASE.md) for detailed release process documentation.
 **Workspace & Security:**
 - **cli/worktree.py** - Git worktree isolation for safe feature development
 - **context/project_analyzer.py** - Project stack detection for dynamic tooling
-- **auto_claude_tools.py** - Custom MCP tools integration
+- **magestic_ai_tools.py** - Custom MCP tools integration
 
 **Integrations:**
 - **linear_updater.py** - Optional Linear integration for progress tracking
@@ -218,7 +218,7 @@ See [RELEASE.md](RELEASE.md) for detailed release process documentation.
 
 ### Spec Directory Structure
 
-Each spec in `.auto-claude/specs/XXX-name/` contains:
+Each spec in `.magestic-ai/specs/XXX-name/` contains:
 - `spec.md` - Feature specification
 - `requirements.json` - Structured user requirements
 - `context.json` - Discovered codebase context
@@ -228,15 +228,15 @@ Each spec in `.auto-claude/specs/XXX-name/` contains:
 
 ### Branching & Worktree Strategy
 
-Claude Code Manager Web uses git worktrees for isolated builds. All branches stay LOCAL until user explicitly pushes:
+MagesticAI uses git worktrees for isolated builds. All branches stay LOCAL until user explicitly pushes:
 
 ```
 main (user's branch)
-└── auto-claude/{spec-name}  ← spec branch (isolated worktree)
+└── magestic-ai/{spec-name}  ← spec branch (isolated worktree)
 ```
 
 **Key principles:**
-- ONE branch per spec (`auto-claude/{spec-name}`)
+- ONE branch per spec (`magestic-ai/{spec-name}`)
 - Parallel work uses subagents (agent decides when to spawn)
 - NO automatic pushes to GitHub - user controls when to push
 - User reviews in spec worktree (`.worktrees/{spec-name}/`)
@@ -270,11 +270,11 @@ Three-layer defense:
 2. **Filesystem Permissions** - Operations restricted to project directory
 3. **Command Allowlist** - Dynamic allowlist from project analysis (security.py + project_analyzer.py)
 
-Security profile cached in `.auto-claude-security.json`.
+Security profile cached in `.magestic-ai-security.json`.
 
 ### Claude Agent SDK Integration
 
-**CRITICAL: Claude Code Manager Web uses the Claude Agent SDK for ALL AI interactions. Never use the Anthropic API directly.**
+**CRITICAL: MagesticAI uses the Claude Agent SDK for ALL AI interactions. Never use the Anthropic API directly.**
 
 **Client Location:** `apps/backend/core/client.py`
 
@@ -322,7 +322,7 @@ response = client.create_agent_session(
 
 **Graphiti Memory (Mandatory)** - `integrations/graphiti/`
 
-Claude Code Manager Web uses Graphiti as its primary memory system with embedded LadybugDB (no Docker required):
+MagesticAI uses Graphiti as its primary memory system with embedded LadybugDB (no Docker required):
 
 - **Graph database with semantic search** - Knowledge graph for cross-session context
 - **Session insights** - Patterns, gotchas, discoveries automatically extracted
@@ -339,7 +339,7 @@ Claude Code Manager Web uses Graphiti as its primary memory system with embedded
 **Configuration:**
 - Set provider credentials in `apps/backend/.env` (see `.env.example`)
 - Required env vars: `GRAPHITI_ENABLED=true`, `ANTHROPIC_API_KEY` or other provider keys
-- Memory data stored in `.auto-claude/specs/XXX/graphiti/`
+- Memory data stored in `.magestic-ai/specs/XXX/graphiti/`
 
 **Usage in agents:**
 ```python
@@ -390,7 +390,7 @@ const { t } = useTranslation(['navigation', 'common']);
 
 ## Web Interface
 
-Claude Code Manager Web is a browser-based web interface. This enables:
+MagesticAI is a browser-based web interface. This enables:
 - Remote access from any device with a browser
 - Server-based deployments
 - Headless operation with web UI control
@@ -412,7 +412,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python -m server.main
-# Note: Token is printed to console and saved to ~/.auto-claude-web/.token
+# Note: Token is printed to console and saved to ~/.magestic-ai/.token
 
 # Terminal 2: Start the frontend dev server
 cd apps/frontend-web
@@ -463,7 +463,7 @@ See `apps/web-server/README.md` and `apps/frontend-web/README.md` for detailed d
 | "Claude Code not installed" | Hard refresh browser (`Ctrl+Shift+R`) |
 | UI blocked/frozen | Check browser console for errors, restart servers |
 | Can't add projects | Use project discovery dropdown or enter custom path |
-| API errors | Verify token in `~/.auto-claude-web/.token` |
+| API errors | Verify token in `~/.magestic-ai/.token` |
 | Git Repository Required keeps appearing | Click "Skip for now" or initialize git; state persists in localStorage |
 | Usage shows NaN | Backend reads stats from `~/.claude/stats-cache.json` |
 | New Task button not working | Ensure TaskCreationWizard is imported in App.tsx |
@@ -475,7 +475,7 @@ See `apps/web-server/README.md` and `apps/frontend-web/README.md` for detailed d
 | Task start 404 | Mount execution.router at `/api/tasks` prefix (not `/api/execution`) in main.py |
 | Task start 422 | Frontend must send `{}` body even when options are undefined (Pydantic needs JSON body for defaults) |
 | Terminal resize 422 | Backend endpoint must use Pydantic model for `{ cols, rows }` body, not query params |
-| Task stuck with "Stream closed" | Ensure `permission_mode="bypassPermissions"` is set in all `ClaudeAgentOptions` AND auto-claude MCP tools are in permissions allow list (see `APP_TOOLS` in `models.py`) |
+| Task stuck with "Stream closed" | Ensure `permission_mode="bypassPermissions"` is set in all `ClaudeAgentOptions` AND magestic-ai MCP tools are in permissions allow list (see `APP_TOOLS` in `models.py`) |
 | Frontend shows task "stuck" but agent is working | File sync issue - worktree files not syncing to main spec dir. Fixed in agent_service.py with periodic sync every 3 seconds |
 | Roadmap/Changelog 500 error | FastAPI `Path` shadowing `pathlib.Path` - use `from pathlib import Path as FilePath` at top of route files |
 | Roadmap progress stuck at 0% | Roadmap generation was not implemented - see `roadmap_service.py` for the service pattern |
@@ -518,8 +518,8 @@ See `apps/web-server/README.md` and `apps/frontend-web/README.md` for detailed d
 - Cache loaded children in component state to avoid refetching
 
 **Worktree File Synchronization:**
-- Agent writes files to worktree: `.auto-claude/worktrees/tasks/{spec-id}/.auto-claude/specs/{spec-id}/`
-- Frontend reads from main spec: `.auto-claude/specs/{spec-id}/`
+- Agent writes files to worktree: `.magestic-ai/worktrees/tasks/{spec-id}/.magestic-ai/specs/{spec-id}/`
+- Frontend reads from main spec: `.magestic-ai/specs/{spec-id}/`
 - `agent_service.py` syncs files every 3 seconds during task execution (`_sync_worktree_files()` method)
 - Synced files: `implementation_plan.json`, `build-progress.txt`, `context.json`, `qa_report.md`, `spec.md`, `requirements.json`
 - Final sync occurs when task completes
@@ -555,5 +555,5 @@ cd apps/frontend-web && npm run dev
 ```
 
 **Project data storage:**
-- `.auto-claude/specs/` - Per-project data (specs, plans, QA reports, memory) - gitignored
-- `~/.auto-claude-web/` - Web interface data (projects, settings, token) - for web UI only
+- `.magestic-ai/specs/` - Per-project data (specs, plans, QA reports, memory) - gitignored
+- `~/.magestic-ai/` - Web interface data (projects, settings, token) - for web UI only

@@ -1,15 +1,15 @@
-"""Centralized path helpers for Martinica data directory."""
+"""Centralized path helpers for MagesticAI data directory."""
 from pathlib import Path
 
-MARTINICA_DIR = Path.home() / ".martinica"
+MAGESTIC_AI_DIR = Path.home() / ".magestic-ai"
 
 
 def get_data_dir() -> Path:
-    """Return the Martinica data directory, creating it if needed."""
-    MARTINICA_DIR.mkdir(parents=True, exist_ok=True)
-    return MARTINICA_DIR
+    """Return the MagesticAI data directory, creating it if needed."""
+    MAGESTIC_AI_DIR.mkdir(parents=True, exist_ok=True)
+    return MAGESTIC_AI_DIR
 
 
 def get_data_file(filename: str) -> Path:
-    """Get a file path in the Martinica data directory."""
-    return MARTINICA_DIR / filename
+    """Get a file path in the MagesticAI data directory."""
+    return MAGESTIC_AI_DIR / filename

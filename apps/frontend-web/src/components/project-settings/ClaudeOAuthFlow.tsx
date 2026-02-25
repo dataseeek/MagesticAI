@@ -131,7 +131,7 @@ export function ClaudeOAuthFlow({ onSuccess, onCancel }: ClaudeOAuthFlowProps) {
                     Authenticate with Claude
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Martinica requires Claude AI authentication for AI-powered features like
+                    MagesticAI requires Claude AI authentication for AI-powered features like
                     Task automation and Insights.
                   </p>
                   <p className="text-sm text-muted-foreground">
@@ -179,7 +179,7 @@ export function ClaudeOAuthFlow({ onSuccess, onCancel }: ClaudeOAuthFlowProps) {
                       <li>Your browser should open to authenticate with Claude</li>
                       <li>Complete the OAuth flow in your browser</li>
                       <li>The terminal will display your token (starts with sk-ant-oat01-...)</li>
-                      <li>Auto Claude will automatically detect and save it</li>
+                      <li>Magestic AI will automatically detect and save it</li>
                     </ol>
                   </div>
                 </div>
@@ -204,7 +204,7 @@ export function ClaudeOAuthFlow({ onSuccess, onCancel }: ClaudeOAuthFlowProps) {
                 </p>
                 <div className="flex items-center gap-2 mt-3 text-xs text-success/70">
                   <Sparkles className="h-3 w-3" />
-                  <span>You can now use all Auto Claude AI features</span>
+                  <span>You can now use all MagesticAI features</span>
                 </div>
               </div>
             </div>

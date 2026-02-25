@@ -214,7 +214,7 @@ class SpecOrchestrator:
         This ensures QA agents receive accurate project capability information
         for dynamic MCP tool injection.
         """
-        index_file = self.project_dir / ".auto-claude" / "project_index.json"
+        index_file = self.project_dir / ".magestic-ai" / "project_index.json"
 
         if should_refresh_project_index(self.project_dir):
             if index_file.exists():
@@ -339,9 +339,6 @@ class SpecOrchestrator:
             # Update phase executor's task description
             phase_executor.task_description = self.task_description
 
-        # === CREATE LINEAR TASK (if enabled) ===
-        await self._create_linear_task_if_enabled()
-
         # === PHASE 3: AI COMPLEXITY ASSESSMENT ===
         result = await run_phase(
             "complexity_assessment",
@@ -445,24 +442,6 @@ class SpecOrchestrator:
 
         # === HUMAN REVIEW CHECKPOINT ===
         return self._run_review_checkpoint(auto_approve)
-
-    async def _create_linear_task_if_enabled(self) -> None:
-        """Create a Linear task if Linear integration is enabled."""
-        from linear_updater import create_linear_task, is_linear_enabled
-
-        if not is_linear_enabled():
-            return
-
-        print_status("Creating Linear task...", "progress")
-        linear_state = await create_linear_task(
-            spec_dir=self.spec_dir,
-            title=self.task_description or self.spec_dir.name,
-            description=f"Auto-build spec: {self.spec_dir.name}",
-        )
-        if linear_state:
-            print_status(f"Linear task created: {linear_state.task_id}", "success")
-        else:
-            print_status("Linear task creation failed (continuing without)", "warning")
 
     async def _phase_complexity_assessment_with_requirements(
         self,
@@ -718,7 +697,7 @@ class SpecOrchestrator:
             The complexity assessment
         """
         project_index = {}
-        auto_build_index = self.project_dir / "auto-claude" / "project_index.json"
+        auto_build_index = self.project_dir / "magestic-ai" / "project_index.json"
         if auto_build_index.exists():
             with open(auto_build_index) as f:
                 project_index = json.load(f)

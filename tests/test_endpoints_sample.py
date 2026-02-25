@@ -468,7 +468,7 @@ class TestEndpointErrorHandling:
     ):
         """Test handling of corrupted JSON files."""
         # Arrange - write invalid JSON
-        filepath = mock_file_system.auto_claude_dir / "claude-profiles.json"
+        filepath = mock_file_system.magestic_ai_dir / "claude-profiles.json"
         filepath.write_text("{ invalid json }")
 
         # Act
@@ -535,7 +535,7 @@ class TestEndpointSecurity:
         # Assert
         assert response.status_code == 200
         # Verify file permissions (if endpoint sets them)
-        # config_file = mock_file_system.auto_claude_dir / "claude-profiles.json"
+        # config_file = mock_file_system.magestic_ai_dir / "claude-profiles.json"
         # assert oct(config_file.stat().st_mode)[-3:] == "600"
 
 

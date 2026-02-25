@@ -27,7 +27,7 @@
     "help": "Ajuda e Feedback"
   },
   "messages": {
-    "initializeToCreateTasks": "Inicialize o Martinica para criar tarefas"
+    "initializeToCreateTasks": "Inicialize o MagesticAI para criar tarefas"
   },
   "claudeCode": {
     "checking": "Verificando Claude Code...",

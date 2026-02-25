@@ -110,7 +110,7 @@ CLI_ENDPOINTS["git.py"].extend([
         "name": "download_source_update",
         "function": "download_source_update",
         "cli_tool": "git",
-        "description": "Update Auto-Claude source via git pull"
+        "description": "Update Magestic AI source via git pull"
     },
     {
         "id": "14.2",

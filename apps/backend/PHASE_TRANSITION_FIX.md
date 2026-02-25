@@ -66,7 +66,7 @@ Modify `agent_service.py:_monitor_process()` around line 960 to check review sta
 if return_code != 0:
     # Check if this is "waiting for review" vs actual failure
     if project_path and spec_id:
-        spec_dir = project_path / ".auto-claude" / "specs" / spec_id
+        spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
         review_state_file = spec_dir / "review_state.json"
 
         # If review_state.json exists and approved=false, this is PLAN_REVIEW phase

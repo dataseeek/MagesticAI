@@ -4,8 +4,8 @@ Git Worktree Manager - Per-Spec Architecture
 =============================================
 
 Each spec gets its own worktree:
-- Worktree path: .auto-claude/worktrees/tasks/{spec-name}/
-- Branch name: auto-claude/{spec-name}
+- Worktree path: .magestic-ai/worktrees/tasks/{spec-name}/
+- Branch name: magestic-ai/{spec-name}
 
 This allows:
 1. Multiple specs to be worked on simultaneously
@@ -51,14 +51,14 @@ class WorktreeManager:
     """
     Manages per-spec Git worktrees.
 
-    Each spec gets its own worktree in .auto-claude/worktrees/tasks/{spec-name}/ with
-    a corresponding branch auto-claude/{spec-name}.
+    Each spec gets its own worktree in .magestic-ai/worktrees/tasks/{spec-name}/ with
+    a corresponding branch magestic-ai/{spec-name}.
     """
 
     def __init__(self, project_dir: Path, base_branch: str | None = None):
         self.project_dir = project_dir
         self.base_branch = base_branch or self._detect_base_branch()
-        self.worktrees_dir = project_dir / ".auto-claude" / "worktrees" / "tasks"
+        self.worktrees_dir = project_dir / ".magestic-ai" / "worktrees" / "tasks"
         self._merge_lock = asyncio.Lock()
 
     def _detect_base_branch(self) -> str:
@@ -147,10 +147,10 @@ class WorktreeManager:
     def _unstage_gitignored_files(self) -> None:
         """
         Unstage any staged files that are gitignored in the current branch,
-        plus any files in the .auto-claude directory which should never be merged.
+        plus any files in the .magestic-ai directory which should never be merged.
 
         This is needed after a --no-commit merge because files that exist in the
-        source branch (like spec files in .auto-claude/specs/) get staged even if
+        source branch (like spec files in .magestic-ai/specs/) get staged even if
         they're gitignored in the target branch.
         """
         # Get list of staged files
@@ -160,7 +160,7 @@ class WorktreeManager:
 
         staged_files = result.stdout.strip().split("\n")
 
-        # Files to unstage: gitignored files + .auto-claude directory files
+        # Files to unstage: gitignored files + .magestic-ai directory files
         files_to_unstage = set()
 
         # 1. Check which staged files are gitignored
@@ -180,23 +180,23 @@ class WorktreeManager:
                 if file.strip():
                     files_to_unstage.add(file.strip())
 
-        # 2. Always unstage .auto-claude directory files - these are project-specific
+        # 2. Always unstage .magestic-ai directory files - these are project-specific
         # and should never be merged from the worktree branch
-        auto_claude_patterns = [".auto-claude/", "auto-claude/specs/"]
+        magestic_ai_patterns = [".magestic-ai/", "magestic-ai/specs/"]
         for file in staged_files:
             file = file.strip()
             if not file:
                 continue
-            for pattern in auto_claude_patterns:
+            for pattern in magestic_ai_patterns:
                 if file.startswith(pattern) or f"/{pattern}" in file:
                     files_to_unstage.add(file)
                     break
 
         if files_to_unstage:
             print(
-                f"Unstaging {len(files_to_unstage)} auto-claude/gitignored file(s)..."
+                f"Unstaging {len(files_to_unstage)} magestic-ai/gitignored file(s)..."
             )
-            logger.info(f"Unstaging {len(files_to_unstage)} auto-claude/gitignored files", extra={
+            logger.info(f"Unstaging {len(files_to_unstage)} magestic-ai/gitignored files", extra={
                 "files": list(files_to_unstage)[:10],  # Log first 10 files
                 "total_count": len(files_to_unstage),
             })
@@ -216,7 +216,7 @@ class WorktreeManager:
 
     def get_branch_name(self, spec_name: str) -> str:
         """Get the branch name for a spec."""
-        return f"auto-claude/{spec_name}"
+        return f"magestic-ai/{spec_name}"
 
     def worktree_exists(self, spec_name: str) -> bool:
         """Check if a worktree exists for a spec."""
@@ -257,19 +257,19 @@ class WorktreeManager:
 
     def _check_branch_namespace_conflict(self) -> str | None:
         """
-        Check if a branch named 'auto-claude' exists, which would block creating
-        branches in the 'auto-claude/*' namespace.
+        Check if a branch named 'magestic-ai' exists, which would block creating
+        branches in the 'magestic-ai/*' namespace.
 
         Git stores branch refs as files under .git/refs/heads/, so a branch named
-        'auto-claude' creates a file that prevents creating the 'auto-claude/'
-        directory needed for 'auto-claude/{spec-name}' branches.
+        'magestic-ai' creates a file that prevents creating the 'magestic-ai/'
+        directory needed for 'magestic-ai/{spec-name}' branches.
 
         Returns:
             The conflicting branch name if found, None otherwise.
         """
-        result = self._run_git(["rev-parse", "--verify", "auto-claude"])
+        result = self._run_git(["rev-parse", "--verify", "magestic-ai"])
         if result.returncode == 0:
-            return "auto-claude"
+            return "magestic-ai"
         return None
 
     def _get_worktree_stats(self, spec_name: str) -> dict:
@@ -327,14 +327,14 @@ class WorktreeManager:
         worktree_path = self.get_worktree_path(spec_name)
         branch_name = self.get_branch_name(spec_name)
 
-        # Check for branch namespace conflict (e.g., 'auto-claude' blocking 'auto-claude/*')
+        # Check for branch namespace conflict (e.g., 'magestic-ai' blocking 'magestic-ai/*')
         conflicting_branch = self._check_branch_namespace_conflict()
         if conflicting_branch:
             raise WorktreeError(
                 f"Branch '{conflicting_branch}' exists and blocks creating '{branch_name}'.\n"
                 f"\n"
-                f"Git branch names work like file paths - a branch named 'auto-claude' prevents\n"
-                f"creating branches under 'auto-claude/' (like 'auto-claude/{spec_name}').\n"
+                f"Git branch names work like file paths - a branch named 'magestic-ai' prevents\n"
+                f"creating branches under 'magestic-ai/' (like 'magestic-ai/{spec_name}').\n"
                 f"\n"
                 f"Fix: Rename the conflicting branch:\n"
                 f"  git branch -m {conflicting_branch} {conflicting_branch}-backup"
@@ -475,8 +475,8 @@ class WorktreeManager:
         # These are untracked files created by agents that would collide with
         # the same untracked files coming from the worktree branch.
         _INTERNAL_MERGE_BLOCKERS = [
-            ".auto-claude-security.json",
-            ".auto-claude-status",
+            ".magestic-ai-security.json",
+            ".magestic-ai-status",
         ]
         for fname in _INTERNAL_MERGE_BLOCKERS:
             blocker = self.project_dir / fname
@@ -503,7 +503,7 @@ class WorktreeManager:
             # --no-commit stages the merge but doesn't create the commit
             merge_args.append("--no-commit")
         else:
-            merge_args.extend(["-m", f"auto-claude: Merge {info.branch}"])
+            merge_args.extend(["-m", f"magestic-ai: Merge {info.branch}"])
 
         result = self._run_git(merge_args)
 
@@ -580,8 +580,8 @@ class WorktreeManager:
         return worktrees
 
     def list_all_spec_branches(self) -> list[str]:
-        """List all auto-claude branches (even if worktree removed)."""
-        result = self._run_git(["branch", "--list", "auto-claude/*"])
+        """List all magestic-ai branches (even if worktree removed)."""
+        result = self._run_git(["branch", "--list", "magestic-ai/*"])
         if result.returncode != 0:
             return []
 

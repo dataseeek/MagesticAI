@@ -35,7 +35,7 @@
     "cancel": "Cancel"
   },
   "messages": {
-    "initializeToCreateTasks": "Initialize Martinica to create tasks"
+    "initializeToCreateTasks": "Initialize MagesticAI to create tasks"
   },
   "claudeCode": {
     "checking": "Checking Claude Code...",

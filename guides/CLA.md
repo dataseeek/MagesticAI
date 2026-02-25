@@ -1,6 +1,6 @@
-# Claude Code Manager Web - Contributor License Agreement
+# MagesticAI - Contributor License Agreement
 
-Thank you for your interest in contributing to Claude Code Manager Web.
+Thank you for your interest in contributing to MagesticAI.
 
 ## Summary
 
@@ -17,7 +17,7 @@ By contributing to this project, you agree that:
 
 - **"You"** means the individual submitting a contribution
 - **"Contribution"** means any code, documentation, or other work submitted to this project
-- **"Project"** means Claude Code Manager Web, available at https://github.com/dataseeek/Claude-Code-Manager-Web
+- **"Project"** means MagesticAI, available at https://github.com/dataseeek/Claude-Code-Manager-Web
 - **"Project Maintainers"** means DataSeek Team and designated collaborators
 
 ### 2. License Grant

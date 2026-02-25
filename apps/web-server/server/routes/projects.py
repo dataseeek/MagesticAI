@@ -1,7 +1,7 @@
 """
 Project management routes.
 
-Handles CRUD operations for projects (git repositories that Auto-Claude manages).
+Handles CRUD operations for projects (git repositories that Magestic AI manages).
 """
 
 import json
@@ -21,19 +21,17 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 MemoryBackendType = Literal["graphiti", "file"]
 
 from ..config import get_settings
-from . import changelog, context, files, git, github, gitlab
+from . import changelog, context, files, git, github
 
 router = APIRouter()
 
 # Include project-specific sub-routers
 # These will be available under /api/projects/{projectId}/...
 router.include_router(github.project_router, prefix="/{projectId}/github", tags=["GitHub"])
-router.include_router(gitlab.project_router, prefix="/{projectId}/gitlab", tags=["GitLab"])
 router.include_router(changelog.router, prefix="/{projectId}/changelog", tags=["Changelog"])
 router.include_router(changelog.insights_router, prefix="/{projectId}/insights", tags=["Insights"])
 router.include_router(files.insights_router, prefix="/{projectId}/files/insights", tags=["Files Insights"])
 router.include_router(context.project_router, prefix="/{projectId}", tags=["Context"])
-router.include_router(context.linear_router, prefix="/{projectId}/linear", tags=["Linear"])
 router.include_router(git.project_router, prefix="", tags=["Git"])
 router.include_router(git.releases_router, prefix="/{projectId}/releases", tags=["Releases"])
 
@@ -71,8 +69,6 @@ class ProjectSettings(BaseModel):
     model: str = Field(default="claude-sonnet-4-5-20250929")
     # BUG-1.2-003: Validate memoryBackend against allowed values
     memoryBackend: MemoryBackendType = Field(default="file", alias="memory_backend")
-    linearSync: bool = Field(default=False, alias="linear_sync")
-    linearTeamId: str | None = Field(default=None, alias="linear_team_id")
     # BUG-1.2-004: notifications now properly typed
     notifications: NotificationSettings = Field(default_factory=NotificationSettings)
     graphitiMcpEnabled: bool = Field(default=False, alias="graphiti_mcp_enabled")
@@ -111,7 +107,7 @@ class Project(ProjectBase):
     name: str = Field(..., description="Display name")
     createdAt: str = Field(..., alias="created_at", description="ISO timestamp when project was added")
     updatedAt: str = Field(..., alias="updated_at", description="ISO timestamp when project was last updated")
-    autoBuildPath: str | None = Field(None, alias="auto_build_path", description="Path to .auto-claude if initialized")
+    autoBuildPath: str | None = Field(None, alias="auto_build_path", description="Path to .magestic-ai if initialized")
     settings: ProjectSettings = Field(default_factory=ProjectSettings)
 
 
@@ -142,25 +138,25 @@ def save_projects(projects: dict[str, dict]) -> None:
 
 
 def analyze_project(path: str) -> dict:
-    """Analyze a project directory for git and Auto-Claude status."""
+    """Analyze a project directory for git and Magestic AI status."""
     project_path = Path(path)
 
     # Check if it's a git repository
     is_git_repo = (project_path / ".git").exists()
 
-    # Check for .auto-claude directory
-    auto_claude_dir = project_path / ".auto-claude"
-    has_auto_claude = auto_claude_dir.exists()
+    # Check for .magestic-ai directory
+    magestic_ai_dir = project_path / ".magestic-ai"
+    has_magestic_ai = magestic_ai_dir.exists()
 
     # Count specs/tasks
     task_count = 0
-    specs_dir = auto_claude_dir / "specs"
+    specs_dir = magestic_ai_dir / "specs"
     if specs_dir.exists():
         task_count = len([d for d in specs_dir.iterdir() if d.is_dir()])
 
     return {
         "is_git_repo": is_git_repo,
-        "has_auto_claude": has_auto_claude,
+        "has_magestic_ai": has_magestic_ai,
         "task_count": task_count,
     }
 
@@ -169,8 +165,8 @@ def project_to_response(project_id: str, project_data: dict) -> dict:
     """Convert stored project data to response dict matching frontend expectations."""
     analysis = analyze_project(project_data["path"])
 
-    # Convert has_auto_claude to autoBuildPath (string path or empty string)
-    auto_build_path = ".auto-claude" if analysis["has_auto_claude"] else ""
+    # Convert has_magestic_ai to autoBuildPath (string path or empty string)
+    auto_build_path = ".magestic-ai" if analysis["has_magestic_ai"] else ""
 
     return {
         "id": project_id,
@@ -182,8 +178,6 @@ def project_to_response(project_id: str, project_data: dict) -> dict:
         "settings": {
             "model": "claude-sonnet-4-5-20250929",
             "memoryBackend": "file",
-            "linearSync": False,
-            "linearTeamId": None,
             "notifications": {
                 "onTaskComplete": True,
                 "onTaskFailed": True,
@@ -224,7 +218,7 @@ class DiscoveredProject(BaseModel):
     has_git: bool = False
     has_package_json: bool = False
     has_requirements: bool = False
-    has_auto_claude: bool = False
+    has_magestic_ai: bool = False
     has_claude_md: bool = False
 
 
@@ -237,14 +231,14 @@ class ScanProjectsRequest(BaseModel):
 @router.post("/scan")
 async def scan_for_projects(request: ScanProjectsRequest):
     """
-    Scan filesystem for Auto-Claude projects.
+    Scan filesystem for Magestic AI projects.
 
     Recursively scans a directory tree to find potential project directories.
     Identifies projects by looking for indicators like:
     - .git directory (version control)
     - package.json (Node.js projects)
     - requirements.txt or pyproject.toml (Python projects)
-    - .auto-claude directory (Auto-Claude initialized projects)
+    - .magestic-ai directory (Magestic AI initialized projects)
     - CLAUDE.md file (Claude project documentation)
 
     Args:
@@ -300,7 +294,7 @@ async def scan_for_projects(request: ScanProjectsRequest):
                         (entry / 'requirements.txt').exists() or
                         (entry / 'pyproject.toml').exists()
                     )
-                    has_auto_claude = (entry / '.auto-claude').exists()
+                    has_magestic_ai = (entry / '.magestic-ai').exists()
                     has_claude_md = (entry / 'CLAUDE.md').exists()
 
                     # If it looks like a project, add it
@@ -311,7 +305,7 @@ async def scan_for_projects(request: ScanProjectsRequest):
                             has_git=has_git,
                             has_package_json=has_package,
                             has_requirements=has_requirements,
-                            has_auto_claude=has_auto_claude,
+                            has_magestic_ai=has_magestic_ai,
                             has_claude_md=has_claude_md,
                         ))
                     elif current_depth < request.maxDepth:
@@ -344,7 +338,7 @@ async def scan_for_projects(request: ScanProjectsRequest):
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def add_project(project: ProjectCreate):
-    """Add a new project (register a directory as an Auto-Claude project).
+    """Add a new project (register a directory as an Magestic AI project).
 
     Returns project dict directly (not wrapped) because
     the frontend api-client.ts adds the {success, data} wrapper automatically.
@@ -458,7 +452,7 @@ async def remove_project(project_id: str):
 
 @router.post("/{project_id}/initialize")
 async def initialize_project(project_id: str):
-    """Initialize Auto-Claude in a project (create .auto-claude directory).
+    """Initialize Magestic AI in a project (create .magestic-ai directory).
 
     Returns InitializationResult format expected by frontend.
     """
@@ -473,13 +467,13 @@ async def initialize_project(project_id: str):
     project_path = Path(project_data["path"])
 
     try:
-        # Create .auto-claude directory structure
-        auto_claude_dir = project_path / ".auto-claude"
-        (auto_claude_dir / "specs").mkdir(parents=True, exist_ok=True)
+        # Create .magestic-ai directory structure
+        magestic_ai_dir = project_path / ".magestic-ai"
+        (magestic_ai_dir / "specs").mkdir(parents=True, exist_ok=True)
 
         # Update timestamp and autoBuildPath
         project_data["updated_at"] = datetime.now().isoformat()
-        project_data["autoBuildPath"] = ".auto-claude"
+        project_data["autoBuildPath"] = ".magestic-ai"
         projects[project_id] = project_data
         save_projects(projects)
 
@@ -491,7 +485,7 @@ async def initialize_project(project_id: str):
 
 @router.get("/{project_id}/version")
 async def check_project_version(project_id: str):
-    """Check Auto-Claude version info for a project."""
+    """Check Magestic AI version info for a project."""
     projects = load_projects()
     if project_id not in projects:
         raise HTTPException(
@@ -501,12 +495,12 @@ async def check_project_version(project_id: str):
 
     project_data = projects[project_id]
     project_path = Path(project_data["path"])
-    auto_claude_dir = project_path / ".auto-claude"
+    magestic_ai_dir = project_path / ".magestic-ai"
 
     return {
         "success": True,
         "data": {
-            "isInitialized": auto_claude_dir.exists(),
+            "isInitialized": magestic_ai_dir.exists(),
             "updateAvailable": False
         }
     }
@@ -529,8 +523,6 @@ class ProjectSettingsUpdate(BaseModel):
     model: str | None = None
     # BUG-1.2-003: Validate memoryBackend against allowed values
     memoryBackend: MemoryBackendType | None = None
-    linearSync: bool | None = None
-    linearTeamId: str | None = None
     # BUG-1.2-005: Added notifications field so preferences can be updated via API
     notifications: NotificationSettingsUpdate | None = None
     graphitiMcpEnabled: bool | None = None
@@ -564,7 +556,7 @@ async def update_project_settings(project_id: str, settings: ProjectSettingsUpda
     try:
         project_data = projects[project_id]
         project_path = Path(project_data["path"])
-        env_path = project_path / ".auto-claude" / ".env"
+        env_path = project_path / ".magestic-ai" / ".env"
 
         # Read existing .env or start fresh
         existing = {}
@@ -580,16 +572,14 @@ async def update_project_settings(project_id: str, settings: ProjectSettingsUpda
         settings_dict = settings.model_dump(exclude_none=True)
 
         env_mapping = {
-            "model": "AUTO_CLAUDE_MODEL",
+            "model": "MAGESTIC_AI_MODEL",
             "memoryBackend": "MEMORY_BACKEND",
-            "linearTeamId": "LINEAR_TEAM_ID",
             "graphitiMcpUrl": "GRAPHITI_MCP_URL",
             "mainBranch": "MAIN_BRANCH",
         }
 
         # Handle boolean settings with "true"/"false" string values
         bool_mapping = {
-            "linearSync": "LINEAR_SYNC",
             "graphitiMcpEnabled": "GRAPHITI_ENABLED",
             "useClaudeMd": "USE_CLAUDE_MD",
         }
@@ -604,7 +594,7 @@ async def update_project_settings(project_id: str, settings: ProjectSettingsUpda
             if settings_key in settings_dict:
                 existing[env_key] = "true" if settings_dict[settings_key] else "false"
 
-        # Ensure .auto-claude directory exists
+        # Ensure .magestic-ai directory exists
         env_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write back to .env file
@@ -708,7 +698,7 @@ async def list_project_worktrees(project_id: str):
         if current:
             raw_worktrees.append(current)
 
-        # Filter to only auto-claude spec worktrees and enrich with stats
+        # Filter to only magestic-ai spec worktrees and enrich with stats
         enriched_worktrees = []
         for wt in raw_worktrees:
             wt_path = wt.get("path", "")
@@ -718,9 +708,9 @@ async def list_project_worktrees(project_id: str):
             if wt.get("bare") or wt_path == str(project_path):
                 continue
 
-            # Extract spec name from path (e.g., .auto-claude/worktrees/tasks/001-feature)
-            # Pattern: auto-claude worktrees are in .auto-claude/worktrees/tasks/{spec-name}
-            spec_match = re.search(r'/\.auto-claude/worktrees/tasks/([^/]+)$', wt_path)
+            # Extract spec name from path (e.g., .magestic-ai/worktrees/tasks/001-feature)
+            # Pattern: magestic-ai worktrees are in .magestic-ai/worktrees/tasks/{spec-name}
+            spec_match = re.search(r'/\.magestic-ai/worktrees/tasks/([^/]+)$', wt_path)
             if not spec_match:
                 continue
 
@@ -860,8 +850,8 @@ async def create_project_task(project_id: str, task_data: TaskCreateRequest):
     # Use the create_task logic
     project_path = Path(projects[project_id]["path"])
 
-    # Ensure .auto-claude/specs exists
-    specs_dir = project_path / ".auto-claude" / "specs"
+    # Ensure .magestic-ai/specs exists
+    specs_dir = project_path / ".magestic-ai" / "specs"
     specs_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate spec ID and create directory
@@ -882,7 +872,7 @@ async def create_project_task(project_id: str, task_data: TaskCreateRequest):
 
 ## Notes
 
-Created via Auto-Claude Web UI
+Created via Magestic AI Web UI
 """
     (spec_dir / "spec.md").write_text(spec_content)
 
@@ -978,7 +968,7 @@ async def archive_tasks(project_id: str, request: ArchiveTasksRequest):
         )
 
     project_path = Path(projects[project_id]["path"])
-    specs_dir = project_path / ".auto-claude" / "specs"
+    specs_dir = project_path / ".magestic-ai" / "specs"
 
     archived_count = 0
     errors = []
@@ -1041,7 +1031,7 @@ async def unarchive_tasks(project_id: str, request: UnarchiveTasksRequest):
         )
 
     project_path = Path(projects[project_id]["path"])
-    specs_dir = project_path / ".auto-claude" / "specs"
+    specs_dir = project_path / ".magestic-ai" / "specs"
 
     unarchived_count = 0
     errors = []

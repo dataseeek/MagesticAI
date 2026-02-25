@@ -1,6 +1,6 @@
-# Claude Code Manager Web - Getting Started
+# MagesticAI - Getting Started
 
-Welcome to **Claude Code Manager Web**! This guide will walk you through installation, first-run configuration, and creating your first AI-powered coding task.
+Welcome to **MagesticAI**! This guide will walk you through installation, first-run configuration, and creating your first AI-powered coding task.
 
 ---
 
@@ -19,7 +19,7 @@ Welcome to **Claude Code Manager Web**! This guide will walk you through install
 
 ## Prerequisites
 
-Before installing Claude Code Manager Web, ensure you have the following:
+Before installing MagesticAI, ensure you have the following:
 
 ### Required Software
 
@@ -215,7 +215,7 @@ INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000
 ```
 
-> **Important:** Note the API Token displayed in the console. You'll need this to access the web interface. The token is also saved to `~/.auto-claude-web/.token`.
+> **Important:** Note the API Token displayed in the console. You'll need this to access the web interface. The token is also saved to `~/.magestic-ai/.token`.
 
 #### Terminal 2 - Frontend Development Server
 
@@ -252,9 +252,9 @@ http://localhost:5173
 On first access, you'll see a login screen asking for your API token.
 
 1. Copy the token from your Terminal 1 output (where you started the web server)
-2. Or read it from `~/.auto-claude-web/.token`:
+2. Or read it from `~/.magestic-ai/.token`:
    ```bash
-   cat ~/.auto-claude-web/.token
+   cat ~/.magestic-ai/.token
    ```
 3. Paste the token and click "Connect"
 
@@ -277,7 +277,7 @@ Click **"Add Project"** or use the **+** button in the project tab bar.
 
 A file browser dialog will appear. Navigate to and select the root directory of an existing Git repository you want to work with.
 
-> **Important:** Claude Code Manager Web works with existing Git repositories. Make sure your project:
+> **Important:** MagesticAI works with existing Git repositories. Make sure your project:
 > - Is a Git repository (`git init` has been run)
 > - Has at least one commit
 > - Has a clean working directory (or you're okay with the current state)
@@ -290,7 +290,7 @@ Give your project a meaningful name (optional - defaults to the directory name).
 
 The system will:
 1. Index your project structure
-2. Create the `.auto-claude/` directory for task data
+2. Create the `.magestic-ai/` directory for task data
 3. Load any existing tasks (if any)
 
 You'll now see your project tab in the tab bar and the Kanban board view.
@@ -367,7 +367,7 @@ When the task reaches **Human Review**:
 2. Review the changes in the **Code Review** tab
 3. Test the implementation in the task's worktree:
    ```bash
-   cd .auto-claude/worktrees/tasks/YOUR-TASK-ID/
+   cd .magestic-ai/worktrees/tasks/YOUR-TASK-ID/
    # Run your project's test/build commands
    npm run dev  # or your project's command
    ```
@@ -419,7 +419,7 @@ When the task reaches **Human Review**:
 
 ## Next Steps
 
-Congratulations! You've completed your first task with Claude Code Manager Web. Here's what to explore next:
+Congratulations! You've completed your first task with MagesticAI. Here's what to explore next:
 
 ### Explore More Features
 
@@ -469,13 +469,13 @@ cd apps/frontend-web && npm run dev
 
 | File | Purpose |
 |------|---------|
-| `~/.auto-claude-web/.token` | API authentication token |
-| `~/.auto-claude-web/settings.json` | Application settings |
+| `~/.magestic-ai/.token` | API authentication token |
+| `~/.magestic-ai/settings.json` | Application settings |
 | `apps/backend/.env` | Backend configuration |
 | `apps/web-server/.env` | Web server configuration |
-| `.auto-claude/specs/` | Task specifications |
-| `.auto-claude/worktrees/` | Isolated task worktrees |
+| `.magestic-ai/specs/` | Task specifications |
+| `.magestic-ai/worktrees/` | Isolated task worktrees |
 
 ---
 
-**Claude Code Manager Web** - Get started building with AI agents!
+**MagesticAI** - Get started building with AI agents!

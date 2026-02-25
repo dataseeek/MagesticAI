@@ -26,9 +26,9 @@ export function useXterm({ terminalId, onCommandEnter, onResize }: UseXtermOptio
     const xterm = new XTerm({
       cursorBlink: true,
       cursorStyle: 'block',
-      fontSize: 13,
+      fontSize: 18,
       fontFamily: 'var(--font-mono), "JetBrains Mono", Menlo, Monaco, "Courier New", monospace',
-      lineHeight: 1.2,
+      lineHeight: 2,
       letterSpacing: 0,
       theme: {
         background: '#0B0B0F',

@@ -616,7 +616,14 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
                 {/* Files Tab */}
                 {showFilesTab && (
                   <TabsContent value="files" className="flex-1 min-h-0 overflow-hidden mt-0">
-                    <TaskFiles task={task} />
+                    <TaskFiles
+                      task={task}
+                      worktreeSpecsPath={
+                        state.worktreeStatus?.exists && state.worktreeStatus.worktreePath
+                          ? state.worktreeStatus.worktreePath
+                          : undefined
+                      }
+                    />
                   </TabsContent>
                 )}
               </Tabs>

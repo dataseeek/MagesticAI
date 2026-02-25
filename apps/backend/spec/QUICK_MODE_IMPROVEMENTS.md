@@ -44,7 +44,7 @@ Specs now generate a beautiful, interactive HTML version of the implementation p
 - 🔍 **Table of contents** for easy navigation
 - ✨ **Hover effects** and smooth animations
 
-**Location:** `.auto-claude/specs/{spec-name}/plan_review.html`
+**Location:** `.magestic-ai/specs/{spec-name}/plan_review.html`
 
 **Usage:**
 ```bash
@@ -52,7 +52,7 @@ Specs now generate a beautiful, interactive HTML version of the implementation p
 python spec_runner.py --task "Add feature"
 
 # Or generate manually
-python -m review.html_generator .auto-claude/specs/001-feature --open
+python -m review.html_generator .magestic-ai/specs/001-feature --open
 ```
 
 **Screenshot:**
@@ -158,10 +158,10 @@ Manual generation:
 ```bash
 # Generate HTML for existing spec
 cd apps/backend
-python -m review.html_generator .auto-claude/specs/001-feature
+python -m review.html_generator .magestic-ai/specs/001-feature
 
 # Generate and auto-open in browser
-python -m review.html_generator .auto-claude/specs/001-feature --open
+python -m review.html_generator .magestic-ai/specs/001-feature --open
 ```
 
 ### Adding Custom Templates
@@ -209,7 +209,7 @@ QUICK_TEMPLATES.append({
 ### Required
 
 - Python 3.10+
-- Existing Claude Code Manager Web dependencies
+- Existing MagesticAI dependencies
 
 ### Optional (for HTML generation)
 

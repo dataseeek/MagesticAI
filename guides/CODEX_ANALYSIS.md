@@ -1,4 +1,4 @@
-# Codex Research Analyst: Claude Code Manager Web - Technical Code Analysis
+# Codex Research Analyst: MagesticAI - Technical Code Analysis
 
 **Analysis Date:** January 8, 2026
 **Analyst:** Codex Research Analyst Agent
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-This technical code analysis examines Claude Code Manager Web from a software engineering perspective, focusing on code quality, architectural patterns, and implementation details. The project demonstrates mature engineering practices with a well-structured monorepo, modern async patterns, and thoughtful separation of concerns. This analysis identifies specific code-level improvements to enhance maintainability, performance, and security.
+This technical code analysis examines MagesticAI from a software engineering perspective, focusing on code quality, architectural patterns, and implementation details. The project demonstrates mature engineering practices with a well-structured monorepo, modern async patterns, and thoughtful separation of concerns. This analysis identifies specific code-level improvements to enhance maintainability, performance, and security.
 
 **Overall Code Quality Score: 8.2/10**
 
@@ -193,7 +193,7 @@ type Task = z.infer<typeof TaskSchema>;
 
 #### 2.1.3 File-Based Storage Scalability
 
-**Location:** `~/.auto-claude-web/`
+**Location:** `~/.magestic-ai/`
 **Debt Score:** Medium
 
 **Current State:**
@@ -425,7 +425,7 @@ Layer 3: Command Allowlist (Dynamic based on stack)
 **Issue:** API token stored in plain text file
 
 ```
-~/.auto-claude-web/.token  # Plain text, 0644 permissions assumed
+~/.magestic-ai/.token  # Plain text, 0644 permissions assumed
 ```
 
 **Recommendations:**
@@ -558,7 +558,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 set -e
 
-echo "Setting up Claude Code Manager Web development environment..."
+echo "Setting up MagesticAI development environment..."
 
 # Check prerequisites
 check_version() {
@@ -754,7 +754,7 @@ Accepted
 We need a storage mechanism for project and task data.
 
 ## Decision
-Use JSON files in ~/.auto-claude-web/ instead of a database.
+Use JSON files in ~/.magestic-ai/ instead of a database.
 
 ## Consequences
 - (+) Zero infrastructure required
@@ -834,7 +834,7 @@ Use JSON files in ~/.auto-claude-web/ instead of a database.
 
 ## 8. Conclusion
 
-Claude Code Manager Web demonstrates strong engineering fundamentals with modern technology choices and clean architecture. The codebase is well-organized, documented, and follows industry best practices for the most part.
+MagesticAI demonstrates strong engineering fundamentals with modern technology choices and clean architecture. The codebase is well-organized, documented, and follows industry best practices for the most part.
 
 **Key Technical Strengths:**
 - Modern async-first architecture

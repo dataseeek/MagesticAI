@@ -121,7 +121,7 @@ export function ImportCredentialsStep({
                   {t('importCredentials.found', 'Claude Code CLI credentials found')}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {t('importCredentials.foundDescription', 'A valid OAuth token was found in ~/.claude/.credentials.json. Would you like to import it into Martinica?')}
+                  {t('importCredentials.foundDescription', 'A valid OAuth token was found in ~/.claude/.credentials.json. Would you like to import it into MagesticAI?')}
                 </p>
               </div>
             </div>

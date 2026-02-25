@@ -1,16 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LinearTaskImportModal } from '../LinearTaskImportModal';
 import { SettingsSection } from './SettingsSection';
 import { useProjectSettings, UseProjectSettingsReturn } from '../project-settings/hooks/useProjectSettings';
-import { loadTasks } from '../../stores/task-store';
 import { EmptyProjectState } from './common/EmptyProjectState';
 import { ErrorDisplay } from './common/ErrorDisplay';
 import { SectionRouter } from './sections/SectionRouter';
 import { createHookProxy } from './utils/hookProxyFactory';
 import type { Project } from '../../shared/types';
 
-export type ProjectSettingsSection = 'general' | 'linear' | 'github' | 'gitlab' | 'memory';
+export type ProjectSettingsSection = 'general' | 'github' | 'memory';
 
 interface ProjectSettingsContentProps {
   project: Project | undefined;
@@ -84,8 +82,6 @@ function ProjectSettingsContentInner({
     isLoadingEnv,
     envError,
     updateEnvConfig,
-    showLinearKey,
-    setShowLinearKey,
     showOpenAIKey,
     setShowOpenAIKey,
     showGitHubToken,
@@ -94,14 +90,6 @@ function ProjectSettingsContentInner({
     toggleSection: _toggleSection,
     gitHubConnectionStatus,
     isCheckingGitHub,
-    showGitLabToken,
-    setShowGitLabToken,
-    gitLabConnectionStatus,
-    isCheckingGitLab,
-    showLinearImportModal,
-    setShowLinearImportModal,
-    linearConnectionStatus,
-    isCheckingLinear,
     handleInitialize,
     error
   } = hook;
@@ -132,38 +120,16 @@ function ProjectSettingsContentInner({
         isLoadingEnv={isLoadingEnv}
         envError={envError}
         updateEnvConfig={updateEnvConfig}
-        showLinearKey={showLinearKey}
-        setShowLinearKey={setShowLinearKey}
         showOpenAIKey={showOpenAIKey}
         setShowOpenAIKey={setShowOpenAIKey}
         showGitHubToken={showGitHubToken}
         setShowGitHubToken={setShowGitHubToken}
         gitHubConnectionStatus={gitHubConnectionStatus}
         isCheckingGitHub={isCheckingGitHub}
-        showGitLabToken={showGitLabToken}
-        setShowGitLabToken={setShowGitLabToken}
-        gitLabConnectionStatus={gitLabConnectionStatus}
-        isCheckingGitLab={isCheckingGitLab}
-        linearConnectionStatus={linearConnectionStatus}
-        isCheckingLinear={isCheckingLinear}
         handleInitialize={handleInitialize}
-        onOpenLinearImport={() => setShowLinearImportModal(true)}
       />
 
       <ErrorDisplay error={error} envError={envError} />
-
-      {/* Linear Task Import Modal */}
-      <LinearTaskImportModal
-        projectId={project.id}
-        open={showLinearImportModal}
-        onOpenChange={setShowLinearImportModal}
-        onImportComplete={async (result) => {
-          // Refresh task list to show imported tasks (even on partial success)
-          if (result.imported > 0) {
-            await loadTasks(project.id);
-          }
-        }}
-      />
     </>
   );
 }

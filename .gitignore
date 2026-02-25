@@ -52,11 +52,14 @@ lerna-debug.log*
 .worktrees/
 
 # ===========================
-# Auto Claude Generated
+# MagesticAI Generated
 # ===========================
+.magestic-ai/
 .auto-claude/
 .auto-build-security.json
+.magestic-ai-security.json
 .auto-claude-security.json
+.magestic-ai-status
 .auto-claude-status
 .claude_settings.json
 .update-metadata.json

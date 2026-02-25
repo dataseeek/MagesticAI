@@ -1,5 +1,5 @@
 # =============================================================================
-# Martinica - Docker Compose
+# MagesticAI - Docker Compose
 # =============================================================================
 # Deploys with a static LAN IP (<gateway>72) via macvlan.
 # No port mapping needed — the container is directly reachable on the LAN.
@@ -13,10 +13,10 @@
 #   containers directly. To enable host-to-container communication,
 #   create a macvlan shim interface on the host:
 #
-#     sudo ip link add martinica-shim link <nic> type macvlan mode bridge
-#     sudo ip addr add <host-ip>/32 dev martinica-shim
-#     sudo ip link set martinica-shim up
-#     sudo ip route add <gateway>72/32 dev martinica-shim
+#     sudo ip link add magesticai-shim link <nic> type macvlan mode bridge
+#     sudo ip addr add <host-ip>/32 dev magesticai-shim
+#     sudo ip link set magesticai-shim up
+#     sudo ip route add <gateway>72/32 dev magesticai-shim
 #
 #   To make it persistent, add to /etc/networkd-dispatcher or rc.local.
 # =============================================================================
@@ -24,16 +24,16 @@
 services:
   app:
     build: .
-    container_name: martinica
+    container_name: magesticai
     restart: unless-stopped
     networks:
-      martinica-lan:
+      magesticai-lan:
         ipv4_address: <gateway>72
     volumes:
       # Persistent data (SQLite DB, tokens, JWT secrets)
-      - martinica-data:/home/martinica/.martinica
+      - magesticai-data:/home/magesticai/.magestic-ai
       # Optional: bind-mount a host directory for agent project work
-      # - /path/to/host/projects:/home/martinica/projects
+      # - /path/to/host/projects:/home/magesticai/projects
     environment:
       # All optional — configure via the web UI onboarding wizard
       - APP_DEBUG=false                 # Set to true for Swagger docs at /docs
@@ -45,7 +45,7 @@ services:
     # tty: true
 
 networks:
-  martinica-lan:
+  magesticai-lan:
     driver: macvlan
     driver_opts:
       parent: <nic>                  # Host's physical NIC
@@ -56,4 +56,4 @@ networks:
           ip_range: <gateway>72/32   # Reserve only this IP for Docker
 
 volumes:
-  martinica-data:
+  magesticai-data:

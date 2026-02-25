@@ -104,7 +104,7 @@ All GitLab endpoints use `glab` CLI tool for merge request operations.
 | 14.2  | create_release | `create_release()` | 1049 | ✅ IMPLEMENTED |
 
 **Implementation Details:**
-- 14.1: Updates Auto-Claude source via git pull
+- 14.1: Updates Magestic AI source via git pull
   - Checks for uncommitted changes
   - Verifies remote is configured
   - Checks if updates available before pulling

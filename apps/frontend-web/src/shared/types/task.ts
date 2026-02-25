@@ -173,16 +173,11 @@ export type TaskCategory =
 
 export interface TaskMetadata {
   // Origin tracking
-  sourceType?: 'manual' | 'imported' | 'insights' | 'linear' | 'github' | 'gitlab';
-  linearIssueId?: string;  // Reference to Linear issue if from Linear
-  linearIdentifier?: string;  // Linear issue identifier (e.g., 'ABC-123')
-  linearUrl?: string;  // Linear issue URL
+  sourceType?: 'manual' | 'imported' | 'insights' | 'github';
   githubIssueNumber?: number;  // Reference to GitHub issue number if from GitHub (single issue)
   githubIssueNumbers?: number[];  // Reference to multiple GitHub issues if from a batch
   githubUrl?: string;  // GitHub issue URL
   githubBatchTheme?: string;  // Theme/title of the GitHub issue batch
-  gitlabIssueIid?: number;  // Reference to GitLab issue IID if from GitLab
-  gitlabUrl?: string;  // GitLab issue URL
 
   // Classification
   category?: TaskCategory;
@@ -259,7 +254,7 @@ export interface Task {
   updatedAt: Date;
 }
 
-// Implementation Plan (from auto-claude)
+// Implementation Plan (from magestic-ai)
 export interface ImplementationPlan {
   feature?: string;  // Some plans use 'feature', some use 'title'
   title?: string;    // Alternative to 'feature' for task name

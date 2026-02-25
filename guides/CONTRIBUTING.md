@@ -1,4 +1,4 @@
-# Contributing to Claude Code Manager Web
+# Contributing to MagesticAI
 
 Thank you for your interest in contributing! This document provides guidelines and instructions for contributing to the project.
 
@@ -426,4 +426,4 @@ For detailed architecture, see [DOCS.md](DOCS.md).
 - **Issues:** https://github.com/dataseeek/Claude-Code-Manager-Web/issues
 - **Discussions:** https://github.com/dataseeek/Claude-Code-Manager-Web/discussions
 
-Thank you for contributing to Claude Code Manager Web!
+Thank you for contributing to MagesticAI!

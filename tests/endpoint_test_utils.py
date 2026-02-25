@@ -97,35 +97,35 @@ def mock_file_system(temp_dir: Path):
     class MockFileSystem:
         def __init__(self, base_path: Path):
             self.base_path = base_path
-            self.auto_claude_dir = base_path / ".auto-claude"
-            self.auto_claude_dir.mkdir(parents=True, exist_ok=True)
+            self.magestic_ai_dir = base_path / ".magestic-ai"
+            self.magestic_ai_dir.mkdir(parents=True, exist_ok=True)
 
         def write_json(self, filename: str, data: dict) -> Path:
             """Write JSON data to file."""
-            filepath = self.auto_claude_dir / filename
+            filepath = self.magestic_ai_dir / filename
             filepath.write_text(json.dumps(data, indent=2))
             return filepath
 
         def read_json(self, filename: str) -> dict:
             """Read JSON data from file."""
-            filepath = self.auto_claude_dir / filename
+            filepath = self.magestic_ai_dir / filename
             if not filepath.exists():
                 raise FileNotFoundError(f"{filename} not found")
             return json.loads(filepath.read_text())
 
         def exists(self, filename: str) -> bool:
             """Check if file exists."""
-            return (self.auto_claude_dir / filename).exists()
+            return (self.magestic_ai_dir / filename).exists()
 
         def delete(self, filename: str):
             """Delete a file."""
-            filepath = self.auto_claude_dir / filename
+            filepath = self.magestic_ai_dir / filename
             if filepath.exists():
                 filepath.unlink()
 
         def list_files(self) -> List[str]:
-            """List all files in .auto-claude directory."""
-            return [f.name for f in self.auto_claude_dir.iterdir() if f.is_file()]
+            """List all files in .magestic-ai directory."""
+            return [f.name for f in self.magestic_ai_dir.iterdir() if f.is_file()]
 
     return MockFileSystem(temp_dir)
 

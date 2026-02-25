@@ -157,8 +157,8 @@ Both endpoints use git commands to perform repository operations.
 - **Status:** ✅ VERIFIED
 - **Features:**
   - ✓ Validates worktree name (alphanumeric, dashes, underscores)
-  - ✓ Creates worktree in `.auto-claude/worktrees/tasks/{name}`
-  - ✓ Optional branch creation with auto-claude/tasks/{name} pattern
+  - ✓ Creates worktree in `.magestic-ai/worktrees/tasks/{name}`
+  - ✓ Optional branch creation with magestic-ai/tasks/{name} pattern
   - ✓ Prevents duplicate worktrees/branches
   - ✓ Cleanup on failure
   - ✓ Command: `git worktree add [-b branch] path base`
@@ -174,7 +174,7 @@ Both endpoints use git commands to perform repository operations.
 - **CLI Tool:** git
 - **Status:** ✅ VERIFIED
 - **Features:**
-  - ✓ Determines Auto-Claude source directory
+  - ✓ Determines Magestic AI source directory
   - ✓ Validates it's a git repository
   - ✓ Checks for uncommitted changes (prevents pull)
   - ✓ Fetches updates from origin
@@ -457,14 +457,14 @@ All CLI integration endpoints identified in task 012 have been successfully impl
 To re-run verification:
 
 ```bash
-cd <project>/PD/AutoClaude/Auto-Claude
+cd <project>/PD/AutoClaude/MagesticAI
 python3 apps/web-server/tests/verify_cli_integration_endpoints.py
 ```
 
 To run unit tests:
 
 ```bash
-cd <project>/PD/AutoClaude/Auto-Claude
+cd <project>/PD/AutoClaude/MagesticAI
 pytest apps/web-server/tests/test_cli_integration_endpoints.py -v
 ```
 
@@ -473,5 +473,5 @@ pytest apps/web-server/tests/test_cli_integration_endpoints.py -v
 **Report Generated:** 2026-01-07
 **Verification Tool:** verify_cli_integration_endpoints.py
 **Test Framework:** pytest
-**Auto-Claude Task:** 012-search-this-project-files-for-
+**Magestic AI Task:** 012-search-this-project-files-for-
 **Subtask:** 15.2 - Integration tests for CLI operations

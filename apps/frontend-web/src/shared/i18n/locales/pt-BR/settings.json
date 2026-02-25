@@ -7,7 +7,7 @@
   "sections": {
     "appearance": {
       "title": "Aparência",
-      "description": "Personalize como o Martinica aparece"
+      "description": "Personalize como o MagesticAI aparece"
     },
     "display": {
       "title": "Exibição",
@@ -39,7 +39,7 @@
     },
     "updates": {
       "title": "Atualizações",
-      "description": "Atualizações do Martinica"
+      "description": "Atualizações do MagesticAI"
     },
     "notifications": {
       "title": "Notificações",
@@ -68,7 +68,7 @@
     "otherAgentSettingsDescription": "Opções adicionais de configuração do agente",
     "agentFramework": "Framework do Agente",
     "agentFrameworkDescription": "O framework de codificação usado para tarefas autônomas",
-    "agentFrameworkAutoClaude": "Martinica",
+    "agentFrameworkAutoClaude": "MagesticAI",
     "aiTerminalNaming": "Nomeação de Terminal por IA",
     "aiTerminalNamingDescription": "Nomear terminais automaticamente com base nos comandos (usa Haiku)",
     "featureModelSettings": "Configurações de Modelo de Funcionalidades",
@@ -99,9 +99,9 @@
     "sourceBundled": "Empacotado",
     "sourceFallback": "Fallback",
     "notDetected": "Não detectado",
-    "autoClaudePath": "Caminho do Martinica",
-    "autoClaudePathDescription": "Caminho relativo para o diretório auto-claude nos projetos",
-    "autoClaudePathPlaceholder": "auto-claude (padrão)",
+    "autoClaudePath": "Caminho do MagesticAI",
+    "autoClaudePathDescription": "Caminho relativo para o diretório magestic-ai nos projetos",
+    "autoClaudePathPlaceholder": "magestic-ai (padrão)",
     "autoNameTerminals": "Nomear terminais automaticamente",
     "autoNameTerminalsDescription": "Usar IA para gerar nomes descritivos para abas de terminal com base na atividade",
     "bmadSessionSegmentation": "Segmentação de Sessão BMad",
@@ -109,7 +109,7 @@
   },
   "theme": {
     "title": "Aparência",
-    "description": "Personalize como o Martinica aparece",
+    "description": "Personalize como o MagesticAI aparece",
     "mode": "Modo",
     "modeDescription": "Escolha entre temas claro e escuro",
     "light": "Claro",
@@ -125,14 +125,14 @@
     "detectAgain": "Detectar Novamente",
     "ide": {
       "label": "IDE Preferida",
-      "description": "Martinica abrirá worktrees neste editor",
+      "description": "MagesticAI abrirá worktrees neste editor",
       "placeholder": "Selecione a IDE...",
       "customPath": "Caminho da IDE Personalizada",
       "customPathPlaceholder": "/caminho/para/sua/ide"
     },
     "terminal": {
       "label": "Terminal Preferido",
-      "description": "Martinica abrirá sessões de terminal aqui",
+      "description": "MagesticAI abrirá sessões de terminal aqui",
       "placeholder": "Selecione o terminal...",
       "customPath": "Caminho do Terminal Personalizado",
       "customPathPlaceholder": "/caminho/para/seu/terminal"
@@ -144,7 +144,7 @@
   },
   "updates": {
     "title": "Atualizações",
-    "description": "Gerencie atualizações do Martinica",
+    "description": "Gerencie atualizações do MagesticAI",
     "appUpdateReady": "Atualização do App Pronta",
     "newVersion": "Nova Versão",
     "released": "Lançado",
@@ -161,7 +161,7 @@
     "unableToCheck": "Não foi possível verificar atualizações",
     "checkForUpdates": "Verificar Atualizações",
     "autoUpdateProjects": "Auto-Atualizar Projetos",
-    "autoUpdateProjectsDescription": "Atualizar automaticamente Martinica nos projetos quando uma nova versão estiver disponível",
+    "autoUpdateProjectsDescription": "Atualizar automaticamente MagesticAI nos projetos quando uma nova versão estiver disponível",
     "betaUpdates": "Atualizações Beta",
     "betaUpdatesDescription": "Receber versões beta de pré-lançamento com novos recursos (pode ser menos estável)"
   },
@@ -192,13 +192,6 @@
     "claude": {
       "title": "Auth Claude",
       "description": "Autenticação Claude"
-    },
-    "linear": {
-      "title": "Linear",
-      "description": "Integração Linear",
-      "integrationTitle": "Integração Linear",
-      "integrationDescription": "Conecte ao Linear para rastreamento de issues e importação de tarefas",
-      "syncDescription": "Sincronizar com Linear para rastreamento de issues"
     },
     "github": {
       "title": "GitHub",
@@ -342,7 +335,7 @@
     "noProjectSelected": "Nenhum Projeto Selecionado",
     "noProjectSelectedDescription": "Selecione um projeto no dropdown para visualizar e configurar servidores MCP.",
     "projectNotInitialized": "Projeto Não Inicializado",
-    "projectNotInitializedDescription": "Inicialize o Martinica para este projeto para configurar servidores MCP.",
+    "projectNotInitializedDescription": "Inicialize o MagesticAI para este projeto para configurar servidores MCP.",
     "browserAutomation": "Automação de Navegador (somente agentes QA)",
     "alwaysEnabled": "sempre habilitado",
     "addServer": "Adicionar Servidor",
@@ -365,11 +358,6 @@
         "description": "Grafo de conhecimento para contexto entre sessões",
         "notConfigured": "Requer configuração de memória (veja configurações de Memória)"
       },
-      "linear": {
-        "name": "Linear",
-        "description": "Integração de gerenciamento de projetos",
-        "notConfigured": "Requer integração Linear (veja configurações do Linear)"
-      },
       "electron": {
         "name": "Electron",
         "description": "Automação de app desktop via Chrome DevTools"
@@ -379,7 +367,7 @@
         "description": "Automação de navegador web para testes"
       },
       "autoClaude": {
-        "name": "Auto-Claude Tools",
+        "name": "Magestic AI Tools",
         "description": "Rastreamento de progresso de build"
       }
     },

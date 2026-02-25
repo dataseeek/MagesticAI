@@ -4,7 +4,7 @@ Small helper to sanity-check Claude SDK connectivity with the active Claude prof
 Uses the Claude Agent SDK via create_client (core.client) — never calls the raw Anthropic API.
 It pulls a token from, in order:
 1) CLAUDE_CODE_OAUTH_TOKEN env var
-2) Active/first usable profile in ~/.auto-claude-web/claude-profiles.json
+2) Active/first usable profile in ~/.magestic-ai/claude-profiles.json
 3) ~/.claude/oauth_token
 
 Then it sends a simple "hello" prompt and streams the response.
@@ -28,7 +28,7 @@ from core.client import create_client  # noqa: E402
 
 def load_token_from_profiles() -> str | None:
     """Load OAuth token from active/usable Claude profile."""
-    profiles_path = Path.home() / ".auto-claude-web" / "claude-profiles.json"
+    profiles_path = Path.home() / ".magestic-ai" / "claude-profiles.json"
     if not profiles_path.exists():
         return None
 

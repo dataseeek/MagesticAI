@@ -27,14 +27,14 @@ All 26 file-based endpoints have been implemented and verified through:
 - ✅ **Implementation**: Saves API key securely to .env file
 - ✅ **Security**: Validates key type, format, length; Sets 0o600 permissions
 - ✅ **Error Handling**: Comprehensive validation and error messages
-- ✅ **Commit**: 54a4071 (auto-claude session)
+- ✅ **Commit**: 54a4071 (magestic-ai session)
 - **Verification**: Manual code review confirmed full implementation with validation
 
 ### 2.2 - set_active_profile (settings.py:500-520)
 - ✅ **Implementation**: Sets active Claude profile in claude-profiles.json
 - ✅ **Security**: Validates profile exists, uses secure save_profiles()
 - ✅ **Error Handling**: Returns error if profile not found
-- ✅ **Commit**: c49b8c4 (auto-claude session 3.2)
+- ✅ **Commit**: c49b8c4 (magestic-ai session 3.2)
 - **Verification**: Already fully implemented from previous session
 
 ### 2.3 - set_profile_token (settings.py:560-599)
@@ -48,11 +48,11 @@ All 26 file-based endpoints have been implemented and verified through:
 - ✅ **Implementation**: Sets active API profile in api-profiles.json
 - ✅ **Security**: Profile validation, 0o600 permissions via save_api_profiles()
 - ✅ **Error Handling**: Profile existence check
-- ✅ **Commit**: 4105099 (auto-claude session 3.4), enhanced in 4fbf794
+- ✅ **Commit**: 4105099 (magestic-ai session 3.4), enhanced in 4fbf794
 - **Verification**: Fully implemented with secure file permissions
 
 ### 2.5 - update_project_settings (projects.py:358-441)
-- ✅ **Implementation**: Saves project settings to .auto-claude/.env
+- ✅ **Implementation**: Saves project settings to .magestic-ai/.env
 - ✅ **Security**: Maps fields to env vars, 0o600 permissions
 - ✅ **Error Handling**: Project validation, file merge, comprehensive errors
 - ✅ **Commit**: 5dccf9e
@@ -220,14 +220,14 @@ All 26 file-based endpoints have been implemented and verified through:
 **Total: 2 endpoints** | **Status: ✅ All Verified**
 
 ### 13.1 - scan_for_projects (projects.py:318-442)
-- ✅ **Implementation**: Scans filesystem for Auto-Claude projects
+- ✅ **Implementation**: Scans filesystem for Magestic AI projects
 - ✅ **Security**: Path validation, maxDepth limit (1-5)
 - ✅ **Error Handling**: Permission errors, directory exclusions
 - ✅ **Commit**: 4e20ef9
-- **Verification**: 125 lines added, finds .git/package.json/.auto-claude
+- **Verification**: 125 lines added, finds .git/package.json/.magestic-ai
 
 ### 13.2 - update_source_env (settings.py:1188-1345)
-- ✅ **Implementation**: Updates Auto-Claude source .env
+- ✅ **Implementation**: Updates Magestic AI source .env
 - ✅ **Security**: Token validation (min 10), URL validation, 0o600
 - ✅ **Error Handling**: Comprehensive field validation
 - ✅ **Commit**: 11d5aa6

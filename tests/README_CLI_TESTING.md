@@ -1,6 +1,6 @@
 # CLI Integration Endpoints Testing Guide
 
-Complete testing infrastructure for all 10 CLI integration endpoints in Auto-Claude.
+Complete testing infrastructure for all 10 CLI integration endpoints in Magestic AI.
 
 ---
 
@@ -87,7 +87,7 @@ def mock_projects_file(tmp_path):
 
 @pytest.fixture
 def mock_project_dir(tmp_path):
-    """Mock project directory with .git and .auto-claude"""
+    """Mock project directory with .git and .magestic-ai"""
 ```
 
 ### Mocking Strategy
@@ -405,7 +405,7 @@ jobs:
 - **File-Based Endpoints:** `README_ENDPOINT_TESTING.md`
 - **Test Report:** `CLI_INTEGRATION_ENDPOINTS_TEST_REPORT.md`
 - **Verification:** `verify_cli_integration_endpoints.py`
-- **Implementation Plan:** `.auto-claude/specs/012-.../implementation_plan.json`
+- **Implementation Plan:** `.magestic-ai/specs/012-.../implementation_plan.json`
 
 ---
 

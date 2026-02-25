@@ -1,7 +1,7 @@
 {
-  "name": "claude-code-manager-web",
+  "name": "magestic-ai",
   "version": "1.0.0",
-  "description": "Web-based AI task management and agent orchestration platform powered by Claude AI",
+  "description": "MagesticAI - Web-based AI task management and agent orchestration platform powered by Claude AI",
   "license": "AGPL-3.0",
   "author": "DataSeek Team",
   "workspaces": [
@@ -24,15 +24,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/dataseeek/Claude-Code-Manager-Web.git"
+    "url": "https://github.com/dataseeek/MagesticAI.git"
   },
-  "homepage": "https://github.com/dataseeek/Claude-Code-Manager-Web",
+  "homepage": "https://github.com/dataseeek/MagesticAI",
   "bugs": {
-    "url": "https://github.com/dataseeek/Claude-Code-Manager-Web/issues"
+    "url": "https://github.com/dataseeek/MagesticAI/issues"
   },
   "keywords": [
     "ai",
-    "claude",
+    "magestic-ai",
     "task-management",
     "agent-orchestration",
     "web-ui",

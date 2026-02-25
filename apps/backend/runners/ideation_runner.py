@@ -14,19 +14,19 @@ Analyzes project context, existing features, and generates three types of ideas:
 3. High-Value Features - Strategic features for target users
 
 Usage:
-    python auto-claude/ideation_runner.py --project /path/to/project
-    python auto-claude/ideation_runner.py --project /path/to/project --types low_hanging_fruit,high_value_features
-    python auto-claude/ideation_runner.py --project /path/to/project --refresh
+    python magestic-ai/ideation_runner.py --project /path/to/project
+    python magestic-ai/ideation_runner.py --project /path/to/project --types low_hanging_fruit,high_value_features
+    python magestic-ai/ideation_runner.py --project /path/to/project --refresh
 """
 
 import asyncio
 import sys
 from pathlib import Path
 
-# Add auto-claude to path
+# Add magestic-ai to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Load .env file from auto-claude/ directory
+# Load .env file from magestic-ai/ directory
 from dotenv import load_dotenv
 
 env_file = Path(__file__).parent.parent / ".env"
@@ -68,7 +68,7 @@ def main():
     parser.add_argument(
         "--output",
         type=Path,
-        help="Output directory for ideation files (default: project/auto-claude/ideation)",
+        help="Output directory for ideation files (default: project/magestic-ai/ideation)",
     )
     parser.add_argument(
         "--types",

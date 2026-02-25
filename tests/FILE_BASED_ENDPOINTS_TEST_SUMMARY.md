@@ -11,7 +11,7 @@
 2. **set_active_profile** - Updates activeProfileId in claude-profiles.json
 3. **set_profile_token** - Validates token format (sess-/sk-ant-), sets secure permissions
 4. **set_active_api_profile** - Updates activeProfileId in api-profiles.json
-5. **update_project_settings** - Saves project settings to .auto-claude/.env
+5. **update_project_settings** - Saves project settings to .magestic-ai/.env
 6. **update_feature_status** - Updates feature status in roadmap.json
 7. **update_idea_status** - Updates idea status in ideation.json
 
@@ -44,8 +44,8 @@
 23. **save_terminal_buffer** - Persists terminal output to session file
 
 ### Phase 13: Project & Environment (2 endpoints) ✅
-24. **scan_for_projects** - Recursively scans for Auto-Claude projects
-25. **update_source_env** - Updates Auto-Claude source environment config
+24. **scan_for_projects** - Recursively scans for Magestic AI projects
+25. **update_source_env** - Updates Magestic AI source environment config
 
 ## Test Results
 
@@ -213,6 +213,6 @@ The test file provides a foundation for ongoing quality assurance and regression
 
 ---
 
-**Test Author:** Auto-Claude Agent
+**Test Author:** Magestic AI Agent
 **Review Date:** 2026-01-07
 **Status:** COMPLETE ✅

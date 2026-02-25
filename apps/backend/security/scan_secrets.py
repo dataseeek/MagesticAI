@@ -99,8 +99,6 @@ SERVICE_PATTERNS = [
     (r"pypi-[a-zA-Z0-9]{60,}", "PyPI API Token"),
     # Supabase/JWT
     (r"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]{50,}", "Supabase/JWT Token"),
-    # Linear
-    (r"lin_api_[a-zA-Z0-9]{40,}", "Linear API Key"),
     # Vercel
     (r"[a-zA-Z0-9]{24}_[a-zA-Z0-9]{28,}", "Potential Vercel Token"),
     # Heroku

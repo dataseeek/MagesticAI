@@ -1,6 +1,6 @@
-# Auto-Claude Prompts Summary
+# Magestic AI Prompts Summary
 
-This document provides a comprehensive overview of all 46 prompt files used by Auto-Claude agents.
+This document provides a comprehensive overview of all 46 prompt files used by Magestic AI agents.
 
 ## Table of Contents
 

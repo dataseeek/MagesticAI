@@ -192,12 +192,11 @@ def invalidate_project_cache(project_dir: Path | None = None) -> None:
 
 
 from agents.tools_pkg import (
-    AUTO_CLAUDE_TOOLS,
+    MAGESTIC_AI_TOOLS,
     CONTEXT7_TOOLS,
     GRAPHITI_MCP_TOOLS,
-    LINEAR_TOOLS,
     PUPPETEER_TOOLS,
-    create_auto_claude_mcp_server,
+    create_magestic_ai_mcp_server,
     get_allowed_tools,
     get_required_mcp_servers,
     is_tools_available,
@@ -205,7 +204,6 @@ from agents.tools_pkg import (
 from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient
 from claude_agent_sdk.types import HookMatcher
 from core.auth import get_sdk_env_vars, require_auth_token
-from linear_updater import is_linear_enabled
 from prompts_pkg.project_context import detect_project_capabilities, load_project_index
 from security import bash_security_hook
 
@@ -373,11 +371,10 @@ def _validate_custom_mcp_server(server: dict) -> bool:
 
 def load_project_mcp_config(project_dir: Path) -> dict:
     """
-    Load MCP configuration from project's .auto-claude/.env file.
+    Load MCP configuration from project's .magestic-ai/.env file.
 
     Returns a dict of MCP-related env vars:
     - CONTEXT7_ENABLED (default: true)
-    - LINEAR_MCP_ENABLED (default: true)
     - PUPPETEER_MCP_ENABLED (default: false)
     - AGENT_MCP_<agent>_ADD (per-agent MCP additions)
     - AGENT_MCP_<agent>_REMOVE (per-agent MCP removals)
@@ -389,14 +386,13 @@ def load_project_mcp_config(project_dir: Path) -> dict:
     Returns:
         Dict of MCP configuration values (string values, except CUSTOM_MCP_SERVERS which is parsed JSON)
     """
-    env_path = project_dir / ".auto-claude" / ".env"
+    env_path = project_dir / ".magestic-ai" / ".env"
     if not env_path.exists():
         return {}
 
     config = {}
     mcp_keys = {
         "CONTEXT7_ENABLED",
-        "LINEAR_MCP_ENABLED",
         "PUPPETEER_MCP_ENABLED",
     }
 
@@ -575,19 +571,15 @@ def create_client(
     else:
         logger.info("[Fast Mode] inactive — not requested for this client")
 
-    # Check if Linear integration is enabled
-    linear_enabled = is_linear_enabled()
-    linear_api_key = os.environ.get("LINEAR_API_KEY", "")
-
-    # Check if custom auto-claude tools are available
-    auto_claude_tools_enabled = is_tools_available()
+    # Check if custom magestic-ai tools are available
+    magestic_ai_tools_enabled = is_tools_available()
 
     # Load project capabilities for dynamic MCP tool selection
     # This enables context-aware tool injection based on project type
     # Uses caching to avoid reloading on every create_client() call
     project_index, project_capabilities = _get_cached_project_data(project_dir)
 
-    # Load per-project MCP configuration from .auto-claude/.env
+    # Load per-project MCP configuration from .magestic-ai/.env
     mcp_config = load_project_mcp_config(project_dir)
 
     # Get allowed tools using phase-aware configuration
@@ -596,7 +588,6 @@ def create_client(
     allowed_tools_list = get_allowed_tools(
         agent_type,
         project_capabilities,
-        linear_enabled,
         mcp_config,
     )
 
@@ -606,7 +597,6 @@ def create_client(
     required_servers = get_required_mcp_servers(
         agent_type,
         project_capabilities,
-        linear_enabled,
         mcp_config,
     )
 
@@ -626,16 +616,16 @@ def create_client(
 
     # Detect if we're running in a worktree and get the original project directory
     # Worktrees are located in either:
-    # - .auto-claude/worktrees/tasks/{spec-name}/ (new location)
+    # - .magestic-ai/worktrees/tasks/{spec-name}/ (new location)
     # - .worktrees/{spec-name}/ (legacy location)
     # When running in a worktree, we need to allow access to both the worktree
-    # and the original project's .auto-claude/ directory for spec files
+    # and the original project's .magestic-ai/ directory for spec files
     original_project_permissions = []
     resolved_project_path = project_dir.resolve()
 
     worktree_markers = [
-        "/.auto-claude/worktrees/tasks/",  # Spec/task worktrees
-        "/.auto-claude/github/pr/worktrees/",  # PR review worktrees
+        "/.magestic-ai/worktrees/tasks/",  # Spec/task worktrees
+        "/.magestic-ai/github/pr/worktrees/",  # PR review worktrees
         "/.worktrees/",  # Legacy worktree location
     ]
     project_path_posix = str(resolved_project_path).replace("\\", "/")
@@ -647,7 +637,7 @@ def create_client(
 
             permission_ops = ["Read", "Write", "Edit", "Glob", "Grep"]
             dirs_to_permit = [
-                original_project_dir / ".auto-claude",
+                original_project_dir / ".magestic-ai",
                 original_project_dir / ".worktrees",  # Legacy support
             ]
 
@@ -682,7 +672,7 @@ def create_client(
                 f"Read({spec_path_str}/**)",
                 f"Write({spec_path_str}/**)",
                 f"Edit({spec_path_str}/**)",
-                # Allow original project's .auto-claude/ and .worktrees/ directories
+                # Allow original project's .magestic-ai/ and .worktrees/ directories
                 # when running in a worktree (fixes permission errors)
                 *original_project_permissions,
                 # Bash permission granted here, but actual commands are validated
@@ -699,20 +689,15 @@ def create_client(
                     else []
                 ),
                 *(
-                    [f"{tool}(*)" for tool in LINEAR_TOOLS]
-                    if "linear" in required_servers
-                    else []
-                ),
-                *(
                     [f"{tool}(*)" for tool in GRAPHITI_MCP_TOOLS]
                     if graphiti_mcp_enabled
                     else []
                 ),
                 *[f"{tool}(*)" for tool in browser_tools_permissions],
-                # Auto-Claude MCP tools for build management
+                # Magestic AI MCP tools for build management
                 *(
-                    [f"{tool}(*)" for tool in AUTO_CLAUDE_TOOLS]
-                    if "auto-claude" in required_servers
+                    [f"{tool}(*)" for tool in MAGESTIC_AI_TOOLS]
+                    if "magestic-ai" in required_servers
                     else []
                 ),
             ],
@@ -747,12 +732,10 @@ def create_client(
         mcp_servers_list.append("context7 (documentation)")
     if "puppeteer" in required_servers:
         mcp_servers_list.append("puppeteer (browser automation)")
-    if "linear" in required_servers:
-        mcp_servers_list.append("linear (project management)")
     if graphiti_mcp_enabled:
         mcp_servers_list.append("graphiti-memory (knowledge graph)")
-    if "auto-claude" in required_servers and auto_claude_tools_enabled:
-        mcp_servers_list.append(f"auto-claude ({agent_type} tools)")
+    if "magestic-ai" in required_servers and magestic_ai_tools_enabled:
+        mcp_servers_list.append(f"magestic-ai ({agent_type} tools)")
     if mcp_servers_list:
         print(f"   - MCP servers: {', '.join(mcp_servers_list)}")
     else:
@@ -785,13 +768,6 @@ def create_client(
             "args": ["puppeteer-mcp-server"],
         }
 
-    if "linear" in required_servers:
-        mcp_servers["linear"] = {
-            "type": "http",
-            "url": "https://mcp.linear.app/mcp",
-            "headers": {"Authorization": f"Bearer {linear_api_key}"},
-        }
-
     # Graphiti MCP server for knowledge graph memory
     if graphiti_mcp_enabled:
         mcp_servers["graphiti-memory"] = {
@@ -799,11 +775,11 @@ def create_client(
             "url": get_graphiti_mcp_url(),
         }
 
-    # Add custom auto-claude MCP server if required and available
-    if "auto-claude" in required_servers and auto_claude_tools_enabled:
-        auto_claude_mcp_server = create_auto_claude_mcp_server(spec_dir, project_dir)
-        if auto_claude_mcp_server:
-            mcp_servers["auto-claude"] = auto_claude_mcp_server
+    # Add custom magestic-ai MCP server if required and available
+    if "magestic-ai" in required_servers and magestic_ai_tools_enabled:
+        magestic_ai_mcp_server = create_magestic_ai_mcp_server(spec_dir, project_dir)
+        if magestic_ai_mcp_server:
+            mcp_servers["magestic-ai"] = magestic_ai_mcp_server
 
     # Add custom MCP servers from project config
     custom_servers = mcp_config.get("CUSTOM_MCP_SERVERS", [])

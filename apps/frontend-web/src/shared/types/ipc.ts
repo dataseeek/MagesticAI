@@ -95,29 +95,12 @@ import type {
   InsightsModelConfig
 } from './insights';
 import type {
-  LinearTeam,
-  LinearProject,
-  LinearIssue,
-  LinearImportResult,
-  LinearSyncStatus,
   GitHubRepository,
   GitHubIssue,
   GitHubSyncStatus,
   GitHubImportResult,
   GitHubInvestigationResult,
-  GitHubInvestigationStatus,
-  GitLabProject,
-  GitLabIssue,
-  GitLabMergeRequest,
-  GitLabNote,
-  GitLabGroup,
-  GitLabSyncStatus,
-  GitLabImportResult,
-  GitLabInvestigationResult,
-  GitLabInvestigationStatus,
-  GitLabMRReviewResult,
-  GitLabMRReviewProgress,
-  GitLabNewCommitsCheck
+  GitHubInvestigationStatus
 } from './integrations';
 import type { APIProfile, ProfilesFile, TestConnectionResult, DiscoverModelsResult } from './profile';
 
@@ -136,7 +119,7 @@ export interface DiscoveredProject {
   has_git: boolean;
   has_package_json: boolean;
   has_requirements: boolean;
-  has_auto_claude: boolean;
+  has_magestic_ai: boolean;
   has_claude_md: boolean;
 }
 
@@ -332,13 +315,6 @@ export interface API {
     apiKey: string;
   }) => Promise<IPCResult<GraphitiConnectionTestResult>>;
 
-  // Linear integration operations
-  getLinearTeams: (projectId: string) => Promise<IPCResult<LinearTeam[]>>;
-  getLinearProjects: (projectId: string, teamId: string) => Promise<IPCResult<LinearProject[]>>;
-  getLinearIssues: (projectId: string, teamId?: string, projectId_?: string) => Promise<IPCResult<LinearIssue[]>>;
-  importLinearIssues: (projectId: string, issueIds: string[]) => Promise<IPCResult<LinearImportResult>>;
-  checkLinearConnection: (projectId: string) => Promise<IPCResult<LinearSyncStatus>>;
-
   // GitHub integration operations
   getGitHubRepositories: (projectId: string) => Promise<IPCResult<GitHubRepository[]>>;
   getGitHubIssues: (projectId: string, state?: 'open' | 'closed' | 'all') => Promise<IPCResult<GitHubIssue[]>>;
@@ -396,103 +372,6 @@ export interface API {
     callback: (projectId: string, error: string) => void
   ) => () => void;
 
-  // GitLab integration operations
-  getGitLabProjects: (projectId: string) => Promise<IPCResult<GitLabProject[]>>;
-  getGitLabIssues: (projectId: string, state?: 'opened' | 'closed' | 'all') => Promise<IPCResult<GitLabIssue[]>>;
-  getGitLabIssue: (projectId: string, issueIid: number) => Promise<IPCResult<GitLabIssue>>;
-  getGitLabIssueNotes: (projectId: string, issueIid: number) => Promise<IPCResult<GitLabNote[]>>;
-  checkGitLabConnection: (projectId: string) => Promise<IPCResult<GitLabSyncStatus>>;
-  investigateGitLabIssue: (projectId: string, issueIid: number, selectedNoteIds?: number[]) => void;
-  importGitLabIssues: (projectId: string, issueIids: number[]) => Promise<IPCResult<GitLabImportResult>>;
-  createGitLabRelease: (
-    projectId: string,
-    tagName: string,
-    releaseNotes: string,
-    options?: { ref?: string }
-  ) => Promise<IPCResult<{ url: string }>>;
-
-  // GitLab Merge Request operations
-  getGitLabMergeRequests: (projectId: string, state?: 'opened' | 'closed' | 'merged' | 'all') => Promise<IPCResult<GitLabMergeRequest[]>>;
-  getGitLabMergeRequest: (projectId: string, mrIid: number) => Promise<IPCResult<GitLabMergeRequest>>;
-  createGitLabMergeRequest: (
-    projectId: string,
-    options: {
-      title: string;
-      description?: string;
-      sourceBranch: string;
-      targetBranch: string;
-      labels?: string[];
-      assigneeIds?: number[];
-      removeSourceBranch?: boolean;
-      squash?: boolean;
-    }
-  ) => Promise<IPCResult<GitLabMergeRequest>>;
-  updateGitLabMergeRequest: (
-    projectId: string,
-    mrIid: number,
-    updates: { title?: string; description?: string; labels?: string[]; state_event?: 'close' | 'reopen' }
-  ) => Promise<IPCResult<GitLabMergeRequest>>;
-
-  // GitLab MR Review operations (AI-powered)
-  getGitLabMRReview: (projectId: string, mrIid: number) => Promise<GitLabMRReviewResult | null>;
-  runGitLabMRReview: (projectId: string, mrIid: number) => void;
-  runGitLabMRFollowupReview: (projectId: string, mrIid: number) => void;
-  postGitLabMRReview: (projectId: string, mrIid: number, selectedFindingIds?: string[]) => Promise<boolean>;
-  postGitLabMRNote: (projectId: string, mrIid: number, body: string) => Promise<boolean>;
-  mergeGitLabMR: (projectId: string, mrIid: number, mergeMethod?: 'merge' | 'squash' | 'rebase') => Promise<boolean>;
-  assignGitLabMR: (projectId: string, mrIid: number, userIds: number[]) => Promise<boolean>;
-  approveGitLabMR: (projectId: string, mrIid: number) => Promise<boolean>;
-  cancelGitLabMRReview: (projectId: string, mrIid: number) => Promise<boolean>;
-  checkGitLabMRNewCommits: (projectId: string, mrIid: number) => Promise<GitLabNewCommitsCheck>;
-
-  // GitLab MR Review event listeners
-  onGitLabMRReviewProgress: (
-    callback: (projectId: string, progress: GitLabMRReviewProgress) => void
-  ) => () => void;
-  onGitLabMRReviewComplete: (
-    callback: (projectId: string, result: GitLabMRReviewResult) => void
-  ) => () => void;
-  onGitLabMRReviewError: (
-    callback: (projectId: string, data: { mrIid: number; error: string }) => void
-  ) => () => void;
-
-  // GitLab OAuth operations (glab CLI)
-  checkGitLabCli: () => Promise<IPCResult<{ installed: boolean; version?: string }>>;
-  installGitLabCli: () => Promise<IPCResult<{ command: string }>>;
-  checkGitLabAuth: (hostname?: string) => Promise<IPCResult<{ authenticated: boolean; username?: string }>>;
-  startGitLabAuth: (hostname?: string) => Promise<IPCResult<{
-    success: boolean;
-    message?: string;
-    browserOpened?: boolean;
-    fallbackUrl?: string;
-  }>>;
-  getGitLabToken: (hostname?: string) => Promise<IPCResult<{ token: string }>>;
-  getGitLabUser: (hostname?: string) => Promise<IPCResult<{ username: string; name?: string }>>;
-  listGitLabUserProjects: (hostname?: string) => Promise<IPCResult<{ projects: Array<{ pathWithNamespace: string; description: string | null; visibility: string }> }>>;
-  detectGitLabProject: (projectPath: string) => Promise<IPCResult<{ project: string; instanceUrl: string } | null>>;
-  getGitLabBranches: (projectPath: string, token: string, instanceUrl?: string) => Promise<IPCResult<string[]>>;
-  createGitLabProject: (
-    projectName: string,
-    options: { description?: string; visibility?: 'private' | 'internal' | 'public'; projectPath: string; namespaceId?: number; hostname?: string }
-  ) => Promise<IPCResult<{ pathWithNamespace: string; webUrl: string }>>;
-  addGitLabRemote: (
-    projectPath: string,
-    projectPathWithNamespace: string,
-    instanceUrl?: string
-  ) => Promise<IPCResult<{ remoteUrl: string }>>;
-  listGitLabGroups: (hostname?: string) => Promise<IPCResult<{ groups: GitLabGroup[] }>>;
-
-  // GitLab event listeners
-  onGitLabInvestigationProgress: (
-    callback: (projectId: string, status: GitLabInvestigationStatus) => void
-  ) => () => void;
-  onGitLabInvestigationComplete: (
-    callback: (projectId: string, result: GitLabInvestigationResult) => void
-  ) => () => void;
-  onGitLabInvestigationError: (
-    callback: (projectId: string, error: string) => void
-  ) => () => void;
-
   // Release operations
   getReleaseableVersions: (projectId: string) => Promise<IPCResult<ReleaseableVersion[]>>;
   runReleasePreflightCheck: (projectId: string, version: string) => Promise<IPCResult<ReleasePreflightStatus>>;
@@ -509,12 +388,12 @@ export interface API {
     callback: (projectId: string, error: string) => void
   ) => () => void;
 
-  // Auto Claude source update operations
+  // Magestic AI source update operations
   checkAutoBuildSourceUpdate: () => Promise<IPCResult<AutoBuildSourceUpdateCheck>>;
   downloadAutoBuildSourceUpdate: () => void;
   getAutoBuildSourceVersion: () => Promise<IPCResult<string>>;
 
-  // Auto Claude source update event listeners
+  // Magestic AI source update event listeners
   onAutoBuildSourceUpdateProgress: (
     callback: (progress: AutoBuildSourceUpdateProgress) => void
   ) => () => void;
@@ -539,7 +418,7 @@ export interface API {
   openExternal: (url: string) => Promise<void>;
   openTerminal: (dirPath: string) => Promise<IPCResult<void>>;
 
-  // Auto Claude source environment operations
+  // Magestic AI source environment operations
   getSourceEnv: () => Promise<IPCResult<SourceEnvConfig>>;
   updateSourceEnv: (config: { claudeOAuthToken?: string }) => Promise<IPCResult>;
   checkSourceToken: () => Promise<IPCResult<SourceEnvCheckResult>>;

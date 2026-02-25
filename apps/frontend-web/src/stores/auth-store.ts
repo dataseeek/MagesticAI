@@ -99,7 +99,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'auto-claude-auth',
+      name: 'magestic-ai-auth',
       partialize: (state) => ({
         // Don't persist isAuthenticated - always re-check on load
       }),

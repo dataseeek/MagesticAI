@@ -1,5 +1,5 @@
 """
-Authentication middleware for Auto-Claude Web Server.
+Authentication middleware for Magestic AI Web Server.
 
 Supports dual authentication:
 1. JWT tokens (primary) - validated via python-jose, populates request.state.user

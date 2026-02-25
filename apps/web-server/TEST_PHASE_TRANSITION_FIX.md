@@ -19,7 +19,7 @@
 ```python
 # Check if exit code 1 is actually "waiting for review" not a failure
 if return_code != 0 and project_path and spec_id:
-    spec_dir = project_path / ".auto-claude" / "specs" / spec_id
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
     review_state_file = spec_dir / "review_state.json"
 
     # If review_state.json exists with approved=false, task is waiting for human review
@@ -158,7 +158,7 @@ Watch the task progress:
 
 After spec creation, the following files should exist:
 ```
-.auto-claude/specs/{spec-id}/
+.magestic-ai/specs/{spec-id}/
 ├── spec.md                      ← Spec document
 ├── implementation_plan.json     ← Implementation plan
 ├── requirements.json            ← Requirements

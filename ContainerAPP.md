@@ -1,9 +1,9 @@
-# Martinica Docker Container - Test & Deploy Steps
+# MagesticAI Docker Container - Test & Deploy Steps
 
 ## Build & Run
 
 ```bash
-cd <project>/PD/Martinica
+cd <project>/PD/MagesticAI
 
 # Build and start (clean)
 sudo docker compose down -v && sudo docker compose build && sudo docker compose up -d
@@ -18,7 +18,7 @@ sudo docker compose up -d
 - **Token:** Auto-generated on first run, retrieve with:
 
 ```bash
-sudo docker exec martinica cat /home/martinica/.martinica/.token
+sudo docker exec magesticai cat /home/magesticai/.magestic-ai/.token
 ```
 
 ## Useful Commands
@@ -28,19 +28,19 @@ sudo docker exec martinica cat /home/martinica/.martinica/.token
 sudo docker compose ps
 
 # View logs (last 30 lines)
-sudo docker logs martinica --tail 30
+sudo docker logs magesticai --tail 30
 
 # Follow logs in real time
-sudo docker logs martinica -f
+sudo docker logs magesticai -f
 
-# Shell into container (as martinica user)
-sudo docker exec -it martinica bash
+# Shell into container (as magesticai user)
+sudo docker exec -it magesticai bash
 
 # Shell as root
-sudo docker exec -it -u root martinica bash
+sudo docker exec -it -u root magesticai bash
 
 # Check Claude Code CLI inside container
-sudo docker exec martinica bash -l -c "claude --version"
+sudo docker exec magesticai bash -l -c "claude --version"
 ```
 
 ## Stop & Clean Up
@@ -72,11 +72,11 @@ Set in `docker-compose.yml` or `.env` file. Key vars:
 ## Architecture
 
 - **Base image:** Ubuntu 24.04
-- **Runtime user:** `martinica` (non-root)
-- **Python venv:** `/home/projects/Martinica/.venv`
+- **Runtime user:** `magesticai` (non-root)
+- **Python venv:** `/home/projects/MagesticAI/.venv`
 - **Node.js:** Copied from build stage (for frontend build + npm available at runtime)
 - **Frontend:** Pre-built static files served from `apps/web-server/static/`
-- **Data directory:** `/home/martinica/.martinica/` (persisted via Docker volume)
+- **Data directory:** `/home/magesticai/.magestic-ai/` (persisted via Docker volume)
 
 ## Onboarding Flow
 

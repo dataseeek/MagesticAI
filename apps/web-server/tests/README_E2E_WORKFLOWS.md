@@ -1,6 +1,6 @@
 # End-to-End Workflow Tests - Quick Start Guide
 
-This guide helps you understand, run, and extend the end-to-end workflow tests for Auto-Claude.
+This guide helps you understand, run, and extend the end-to-end workflow tests for Magestic AI.
 
 ---
 
@@ -44,7 +44,7 @@ def test_gitlab_issue_to_merge_workflow():
 ### 1. Run All Workflow Tests
 
 ```bash
-cd <project>/PD/AutoClaude/Auto-Claude/apps/web-server
+cd <project>/PD/AutoClaude/MagesticAI/apps/web-server
 pytest tests/test_e2e_workflows.py -v
 ```
 
@@ -125,7 +125,7 @@ pytest tests/test_e2e_workflows.py::TestGitLabWorkflow -v
 
 ### 4. Project Setup
 
-**What it tests:** Onboarding new projects into Auto-Claude
+**What it tests:** Onboarding new projects into Magestic AI
 
 **User story:**
 > "As a new user, I want to scan my filesystem, add my project, and configure settings."
@@ -470,7 +470,7 @@ Add your workflow to `E2E_WORKFLOWS_TEST_REPORT.md`:
 **Solution:**
 ```bash
 # Ensure you're in the correct directory
-cd <project>/PD/AutoClaude/Auto-Claude/apps/web-server
+cd <project>/PD/AutoClaude/MagesticAI/apps/web-server
 
 # Install in development mode
 pip install -e .
@@ -658,8 +658,8 @@ jobs:
 
 ### Documentation
 
-- Implementation Plan: `.auto-claude/specs/012-*/implementation_plan.json`
-- Build Progress: `.auto-claude/specs/012-*/build-progress.txt`
+- Implementation Plan: `.magestic-ai/specs/012-*/implementation_plan.json`
+- Build Progress: `.magestic-ai/specs/012-*/build-progress.txt`
 - Endpoint Tests: `tests/*_TEST_REPORT.md`
 
 ---

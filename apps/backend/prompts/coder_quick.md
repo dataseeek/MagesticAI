@@ -113,7 +113,7 @@ After successful verification:
 
 ```bash
 git add .
-git commit -m "auto-claude: Complete [subtask-id] - [description]
+git commit -m "magestic-ai: Complete [subtask-id] - [description]
 
 - Files modified: [list]
 - Verification: passed"

@@ -288,7 +288,7 @@ Please confirm you're ready by saying: I'm ready to work on ${selectedTask.title
 
       <div
         ref={terminalRef}
-        className="flex-1 p-1"
+        className="flex-1 px-3 py-2"
         style={{ minHeight: 0 }}
       />
 

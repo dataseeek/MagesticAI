@@ -10,9 +10,7 @@ import type {
   ProjectSettings as ProjectSettingsType,
   AutoBuildVersionInfo,
   ProjectEnvConfig,
-  LinearSyncStatus,
-  GitHubSyncStatus,
-  GitLabSyncStatus
+  GitHubSyncStatus
 } from '../../../shared/types';
 
 export interface UseProjectSettingsReturn {
@@ -40,8 +38,6 @@ export interface UseProjectSettingsReturn {
   // Password visibility toggles
   showClaudeToken: boolean;
   setShowClaudeToken: React.Dispatch<React.SetStateAction<boolean>>;
-  showLinearKey: boolean;
-  setShowLinearKey: React.Dispatch<React.SetStateAction<boolean>>;
   showOpenAIKey: boolean;
   setShowOpenAIKey: React.Dispatch<React.SetStateAction<boolean>>;
   showGitHubToken: boolean;
@@ -55,22 +51,10 @@ export interface UseProjectSettingsReturn {
   gitHubConnectionStatus: GitHubSyncStatus | null;
   isCheckingGitHub: boolean;
 
-  // GitLab state
-  showGitLabToken: boolean;
-  setShowGitLabToken: React.Dispatch<React.SetStateAction<boolean>>;
-  gitLabConnectionStatus: GitLabSyncStatus | null;
-  isCheckingGitLab: boolean;
-
   // Claude auth state
   isCheckingClaudeAuth: boolean;
   claudeAuthStatus: 'checking' | 'authenticated' | 'not_authenticated' | 'error';
   setClaudeAuthStatus: React.Dispatch<React.SetStateAction<'checking' | 'authenticated' | 'not_authenticated' | 'error'>>;
-
-  // Linear state
-  showLinearImportModal: boolean;
-  setShowLinearImportModal: React.Dispatch<React.SetStateAction<boolean>>;
-  linearConnectionStatus: LinearSyncStatus | null;
-  isCheckingLinear: boolean;
 
   // Actions
   handleInitialize: () => Promise<void>;
@@ -98,13 +82,11 @@ export function useProjectSettings(
 
   // Password visibility toggles
   const [showClaudeToken, setShowClaudeToken] = useState(false);
-  const [showLinearKey, setShowLinearKey] = useState(false);
   const [showOpenAIKey, setShowOpenAIKey] = useState(false);
 
   // Collapsible sections
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     claude: true,
-    linear: false,
     github: false,
     graphiti: false
   });
@@ -114,19 +96,9 @@ export function useProjectSettings(
   const [gitHubConnectionStatus, setGitHubConnectionStatus] = useState<GitHubSyncStatus | null>(null);
   const [isCheckingGitHub, setIsCheckingGitHub] = useState(false);
 
-  // GitLab state
-  const [showGitLabToken, setShowGitLabToken] = useState(false);
-  const [gitLabConnectionStatus, setGitLabConnectionStatus] = useState<GitLabSyncStatus | null>(null);
-  const [isCheckingGitLab, setIsCheckingGitLab] = useState(false);
-
   // Claude auth state
   const [isCheckingClaudeAuth, setIsCheckingClaudeAuth] = useState(false);
   const [claudeAuthStatus, setClaudeAuthStatus] = useState<'checking' | 'authenticated' | 'not_authenticated' | 'error'>('checking');
-
-  // Linear import state
-  const [showLinearImportModal, setShowLinearImportModal] = useState(false);
-  const [linearConnectionStatus, setLinearConnectionStatus] = useState<LinearSyncStatus | null>(null);
-  const [isCheckingLinear, setIsCheckingLinear] = useState(false);
 
   // Reset settings when project changes
   useEffect(() => {
@@ -191,32 +163,6 @@ export function useProjectSettings(
     checkAuth();
   }, [open, project.id, project.autoBuildPath]);
 
-  // Check Linear connection when API key changes
-  useEffect(() => {
-    const checkLinearConnection = async () => {
-      if (!envConfig?.linearEnabled || !envConfig.linearApiKey) {
-        setLinearConnectionStatus(null);
-        return;
-      }
-
-      setIsCheckingLinear(true);
-      try {
-        const result = await window.API.checkLinearConnection(project.id);
-        if (result.success && result.data) {
-          setLinearConnectionStatus(result.data);
-        }
-      } catch {
-        setLinearConnectionStatus({ connected: false, error: 'Failed to check connection' });
-      } finally {
-        setIsCheckingLinear(false);
-      }
-    };
-
-    if (envConfig?.linearEnabled && envConfig.linearApiKey) {
-      checkLinearConnection();
-    }
-  }, [envConfig?.linearEnabled, envConfig?.linearApiKey, project.id]);
-
   // Check GitHub connection when token/repo changes
   // Also updates the global GitHub store so other components (like GitHub Issues) see the change
   useEffect(() => {
@@ -245,32 +191,6 @@ export function useProjectSettings(
       checkGitHubConnection();
     }
   }, [envConfig?.githubEnabled, envConfig?.githubToken, envConfig?.githubRepo, project.id]);
-
-  // Check GitLab connection when token/project changes
-  useEffect(() => {
-    const checkGitLabConnection = async () => {
-      if (!envConfig?.gitlabEnabled || !envConfig.gitlabToken || !envConfig.gitlabProject) {
-        setGitLabConnectionStatus(null);
-        return;
-      }
-
-      setIsCheckingGitLab(true);
-      try {
-        const status = await window.API.checkGitLabConnection(project.id);
-        if (status.success && status.data) {
-          setGitLabConnectionStatus(status.data);
-        }
-      } catch {
-        setGitLabConnectionStatus({ connected: false, error: 'Failed to check connection' });
-      } finally {
-        setIsCheckingGitLab(false);
-      }
-    };
-
-    if (envConfig?.gitlabEnabled && envConfig.gitlabToken && envConfig.gitlabProject) {
-      checkGitLabConnection();
-    }
-  }, [envConfig?.gitlabEnabled, envConfig?.gitlabToken, envConfig?.gitlabProject, project.id]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -397,8 +317,6 @@ export function useProjectSettings(
     updateEnvConfig,
     showClaudeToken,
     setShowClaudeToken,
-    showLinearKey,
-    setShowLinearKey,
     showOpenAIKey,
     setShowOpenAIKey,
     showGitHubToken,
@@ -407,17 +325,9 @@ export function useProjectSettings(
     toggleSection,
     gitHubConnectionStatus,
     isCheckingGitHub,
-    showGitLabToken,
-    setShowGitLabToken,
-    gitLabConnectionStatus,
-    isCheckingGitLab,
     isCheckingClaudeAuth,
     claudeAuthStatus,
     setClaudeAuthStatus,
-    showLinearImportModal,
-    setShowLinearImportModal,
-    linearConnectionStatus,
-    isCheckingLinear,
     handleInitialize,
     handleSaveEnv,
     handleClaudeSetup,

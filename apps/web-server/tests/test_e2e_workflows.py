@@ -1,5 +1,5 @@
 """
-End-to-End Workflow Tests for Auto-Claude API
+End-to-End Workflow Tests for Magestic AI API
 
 This test suite validates complete user workflows that span multiple endpoints.
 Unlike unit tests that validate individual endpoints, these tests verify realistic
@@ -38,18 +38,18 @@ def temp_dir() -> Generator[Path, None, None]:
 @pytest.fixture
 def mock_settings_dir(temp_dir: Path) -> Path:
     """Create mock settings directory structure."""
-    settings_dir = temp_dir / ".auto-claude"
+    settings_dir = temp_dir / ".magestic-ai"
     settings_dir.mkdir(parents=True)
     return settings_dir
 
 
 @pytest.fixture
 def mock_project_dir(temp_dir: Path) -> Path:
-    """Create mock project directory with .auto-claude."""
+    """Create mock project directory with .magestic-ai."""
     project_dir = temp_dir / "test-project"
     project_dir.mkdir(parents=True)
-    auto_claude_dir = project_dir / ".auto-claude"
-    auto_claude_dir.mkdir(parents=True)
+    magestic_ai_dir = project_dir / ".magestic-ai"
+    magestic_ai_dir.mkdir(parents=True)
     return project_dir
 
 
@@ -224,7 +224,7 @@ class TestRoadmapIdeationWorkflow:
         This simulates a real user managing their product roadmap.
         """
         # Setup: Create ideation.json
-        ideation_file = mock_project_dir / ".auto-claude" / "ideation.json"
+        ideation_file = mock_project_dir / ".magestic-ai" / "ideation.json"
         ideation_data = {
             "ideas": [
                 {
@@ -257,7 +257,7 @@ class TestRoadmapIdeationWorkflow:
         ideation_file.write_text(json.dumps(ideation_data, indent=2))
 
         # Setup: Create roadmap.json
-        roadmap_file = mock_project_dir / ".auto-claude" / "roadmap.json"
+        roadmap_file = mock_project_dir / ".magestic-ai" / "roadmap.json"
         roadmap_data = {
             "features": [
                 {
@@ -476,7 +476,7 @@ class TestProjectSetupWorkflow:
         Test complete project setup workflow:
         1. Scan filesystem for projects
         2. Add discovered project
-        3. Update project settings (.auto-claude/.env)
+        3. Update project settings (.magestic-ai/.env)
         4. Update project environment variables
         5. Initialize git repository (if needed)
 
@@ -496,7 +496,7 @@ class TestProjectSetupWorkflow:
                     "path": str(project_dir),
                     "has_git": True,
                     "has_package_json": True,
-                    "has_auto_claude": False
+                    "has_magestic_ai": False
                 }
             ]
 
@@ -510,7 +510,7 @@ class TestProjectSetupWorkflow:
 
             # Subsequent steps would test:
             # - Adding project to projects.json
-            # - Creating .auto-claude directory
+            # - Creating .magestic-ai directory
             # - Setting up .env file
             # - Configuring project settings
             pass
@@ -525,7 +525,7 @@ class TestSettingsConfigurationWorkflow:
 
     def test_initial_setup_workflow(self, temp_dir: Path, mock_settings_dir: Path):
         """
-        Test initial Auto-Claude setup workflow:
+        Test initial Magestic AI setup workflow:
         1. Update source environment (.env for backend)
         2. Set Anthropic API key
         3. Create API profile

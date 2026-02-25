@@ -25,7 +25,7 @@ echo "Example 2: Interactive HTML plan review"
 echo "Generating HTML plan for the spec created above..."
 echo ""
 # Find the most recent spec directory
-SPEC_DIR=$(ls -td .auto-claude/specs/*/ | head -1)
+SPEC_DIR=$(ls -td .magestic-ai/specs/*/ | head -1)
 if [ -n "$SPEC_DIR" ]; then
     echo "Generating HTML for: $SPEC_DIR"
     python -m review.html_generator "$SPEC_DIR" --open

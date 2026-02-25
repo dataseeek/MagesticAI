@@ -1,6 +1,6 @@
-# Claude Code Manager Web - Configuration Guide
+# MagesticAI - Configuration Guide
 
-This comprehensive guide covers all environment variables, configuration files, and customization options for Claude Code Manager Web. It includes settings for development, production, and enterprise deployments.
+This comprehensive guide covers all environment variables, configuration files, and customization options for MagesticAI. It includes settings for development, production, and enterprise deployments.
 
 ---
 
@@ -23,7 +23,7 @@ This comprehensive guide covers all environment variables, configuration files, 
 
 ## Configuration Overview
 
-Claude Code Manager Web uses a layered configuration system:
+MagesticAI uses a layered configuration system:
 
 ```
 Configuration Hierarchy
@@ -31,9 +31,9 @@ Configuration Hierarchy
 │   ├── apps/backend/.env         # AI agent configuration
 │   └── apps/web-server/.env      # API server configuration
 ├── Application Settings
-│   └── ~/.auto-claude-web/settings.json
+│   └── ~/.magestic-ai/settings.json
 ├── Project-Level Settings
-│   └── .auto-claude/ (per project)
+│   └── .magestic-ai/ (per project)
 └── Runtime Settings
     └── Web UI Settings Panel
 ```
@@ -52,12 +52,12 @@ Configuration Hierarchy
 
 | File | Location | Purpose |
 |------|----------|---------|
-| **API Token** | `~/.auto-claude-web/.token` | Authentication token for API access |
-| **Settings** | `~/.auto-claude-web/settings.json` | Application preferences |
-| **SSL Certificates** | `~/.auto-claude-web/ssl/` | HTTPS certificates (when enabled) |
-| **Claude Profiles** | `~/.auto-claude-web/claude-profiles.json` | Saved Claude profiles |
-| **Tab State** | `~/.auto-claude-web/tab-state.json` | UI state persistence |
-| **Memory Database** | `~/.auto-claude/memories/` | Graphiti memory storage |
+| **API Token** | `~/.magestic-ai/.token` | Authentication token for API access |
+| **Settings** | `~/.magestic-ai/settings.json` | Application preferences |
+| **SSL Certificates** | `~/.magestic-ai/ssl/` | HTTPS certificates (when enabled) |
+| **Claude Profiles** | `~/.magestic-ai/claude-profiles.json` | Saved Claude profiles |
+| **Tab State** | `~/.magestic-ai/tab-state.json` | UI state persistence |
+| **Memory Database** | `~/.magestic-ai/memories/` | Graphiti memory storage |
 
 ### Application Files
 
@@ -71,11 +71,11 @@ Configuration Hierarchy
 
 | File | Location | Purpose |
 |------|----------|---------|
-| **Specs** | `.auto-claude/specs/` | Task specifications |
-| **Worktrees** | `.auto-claude/worktrees/` | Isolated task branches |
-| **Project Index** | `.auto-claude/project_index.json` | Codebase indexing data |
-| **Roadmap** | `.auto-claude/roadmap/` | Generated roadmaps |
-| **Ideation** | `.auto-claude/ideation/` | Feature ideas |
+| **Specs** | `.magestic-ai/specs/` | Task specifications |
+| **Worktrees** | `.magestic-ai/worktrees/` | Isolated task branches |
+| **Project Index** | `.magestic-ai/project_index.json` | Codebase indexing data |
+| **Roadmap** | `.magestic-ai/roadmap/` | Generated roadmaps |
+| **Ideation** | `.magestic-ai/ideation/` | Feature ideas |
 
 ---
 
@@ -168,7 +168,7 @@ DEBUG=true
 DEBUG_LEVEL=1
 
 # Log to file instead of stdout
-DEBUG_LOG_FILE=auto-claude/debug.log
+DEBUG_LOG_FILE=magestic-ai/debug.log
 ```
 
 ### UI Settings
@@ -224,7 +224,7 @@ APP_DEBUG=true
 # APP_API_TOKEN=your-secure-token-here
 ```
 
-The API token is automatically generated on first run and saved to `~/.auto-claude-web/.token`.
+The API token is automatically generated on first run and saved to `~/.magestic-ai/.token`.
 
 ### SSL/HTTPS Configuration
 
@@ -296,7 +296,7 @@ APP_PROJECTS_DATA_DIR=/path/to/data/directory
 
 ## Application Settings (settings.json)
 
-Application settings are stored in `~/.auto-claude-web/settings.json` and can be modified through the Settings panel in the web UI.
+Application settings are stored in `~/.magestic-ai/settings.json` and can be modified through the Settings panel in the web UI.
 
 ### General Settings
 
@@ -377,11 +377,11 @@ GRAPHITI_ENABLED=true
 ### Database Settings
 
 ```bash
-# Database name (default: auto_claude_memory)
-GRAPHITI_DATABASE=auto_claude_memory
+# Database name (default: magestic_ai_memory)
+GRAPHITI_DATABASE=magestic_ai_memory
 
-# Storage path (default: ~/.auto-claude/memories)
-GRAPHITI_DB_PATH=~/.auto-claude/memories
+# Storage path (default: ~/.magestic-ai/memories)
+GRAPHITI_DB_PATH=~/.magestic-ai/memories
 ```
 
 ### Provider Selection
@@ -531,11 +531,11 @@ All sensitive configuration files are automatically set to secure permissions:
 
 | File | Permissions | Purpose |
 |------|-------------|---------|
-| `~/.auto-claude-web/.token` | `0o600` | API authentication token |
-| `~/.auto-claude-web/claude-profiles.json` | `0o600` | OAuth tokens |
-| `~/.auto-claude-web/api-profiles.json` | `0o600` | API keys |
+| `~/.magestic-ai/.token` | `0o600` | API authentication token |
+| `~/.magestic-ai/claude-profiles.json` | `0o600` | OAuth tokens |
+| `~/.magestic-ai/api-profiles.json` | `0o600` | API keys |
 | `apps/backend/.env` | `0o600` | Environment secrets |
-| `~/.auto-claude-web/ssl/*.pem` | `0o600` | SSL certificates |
+| `~/.magestic-ai/ssl/*.pem` | `0o600` | SSL certificates |
 
 ### API Token Security
 
@@ -765,8 +765,8 @@ Available models:
 | `DEBUG_LOG_FILE` | No | - | Log file path |
 | `ENABLE_FANCY_UI` | No | `true` | Terminal UI enhancements |
 | `GRAPHITI_ENABLED` | No | `true` | Enable memory system |
-| `GRAPHITI_DATABASE` | No | `auto_claude_memory` | Database name |
-| `GRAPHITI_DB_PATH` | No | `~/.auto-claude/memories` | Storage path |
+| `GRAPHITI_DATABASE` | No | `magestic_ai_memory` | Database name |
+| `GRAPHITI_DB_PATH` | No | `~/.magestic-ai/memories` | Storage path |
 | `GRAPHITI_LLM_PROVIDER` | No | `openai` | LLM provider |
 | `GRAPHITI_EMBEDDER_PROVIDER` | No | `openai` | Embedding provider |
 | `LINEAR_API_KEY` | No | - | Linear integration |
@@ -792,7 +792,7 @@ Available models:
 | `APP_MAX_TERMINALS` | No | `20` | Max terminals |
 | `APP_MAX_CONCURRENT_TASKS` | No | `5` | Max concurrent tasks |
 | `APP_BACKEND_PATH` | No | Auto-detect | Backend path |
-| `APP_PROJECTS_DATA_DIR` | No | `~/.auto-claude-web` | Data directory |
+| `APP_PROJECTS_DATA_DIR` | No | `~/.magestic-ai` | Data directory |
 
 ---
 
@@ -812,4 +812,4 @@ Available models:
 
 ---
 
-**Claude Code Manager Web** - Comprehensive configuration for every deployment scenario!
+**MagesticAI** - Comprehensive configuration for every deployment scenario!

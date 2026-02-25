@@ -27,6 +27,7 @@ import type { FileNode } from '../../shared/types/project';
 
 interface TaskFilesProps {
   task: Task;
+  worktreeSpecsPath?: string;
 }
 
 // File extensions to display
@@ -61,9 +62,12 @@ function getFileIcon(filename: string) {
   return <FileText className="h-4 w-4 text-muted-foreground" />;
 }
 
-export function TaskFiles({ task }: TaskFilesProps) {
+export function TaskFiles({ task, worktreeSpecsPath }: TaskFilesProps) {
   const { t } = useTranslation(['tasks']);
   const { settings } = useSettingsStore();
+
+  // Use worktree specs path when available (during human review, files are in the worktree)
+  const effectivePath = worktreeSpecsPath || task.specsPath;
 
   // State for file listing
   const [files, setFiles] = useState<FileNode[]>([]);
@@ -81,13 +85,13 @@ export function TaskFiles({ task }: TaskFilesProps) {
 
   // Load files from spec directory
   const loadFiles = useCallback(async () => {
-    if (!task.specsPath) return;
+    if (!effectivePath) return;
 
     setIsLoadingFiles(true);
     setFilesError(null);
 
     try {
-      const result = await window.API.listDirectory(task.specsPath);
+      const result = await window.API.listDirectory(effectivePath);
       if (!result.success || !result.data) {
         throw new Error(result.error || 'Failed to load directory');
       }
@@ -113,7 +117,7 @@ export function TaskFiles({ task }: TaskFilesProps) {
     } finally {
       setIsLoadingFiles(false);
     }
-  }, [task.specsPath]);
+  }, [effectivePath]);
 
   // Load file content
   const loadFileContent = useCallback(async (filePath: string) => {
@@ -140,7 +144,7 @@ export function TaskFiles({ task }: TaskFilesProps) {
     setSelectedFile(null);
     setFileContent(null);
     setContentError(null);
-  }, [task.specsPath]);
+  }, [effectivePath]);
 
   // Load files on mount and when specsPath changes
   useEffect(() => {
@@ -158,18 +162,18 @@ export function TaskFiles({ task }: TaskFilesProps) {
 
   // Open spec directory in IDE
   const handleOpenInIDE = useCallback(async () => {
-    if (!settings.preferredIDE || !task.specsPath) return;
+    if (!settings.preferredIDE || !effectivePath) return;
 
     try {
       await window.API.worktreeOpenInIDE(
-        task.specsPath,
+        effectivePath,
         settings.preferredIDE,
         settings.customIDEPath
       );
     } catch (err) {
       console.error('Failed to open in IDE:', err);
     }
-  }, [settings.preferredIDE, settings.customIDEPath, task.specsPath]);
+  }, [settings.preferredIDE, settings.customIDEPath, effectivePath]);
 
   // Download current file
   const handleDownloadFile = useCallback(() => {
@@ -220,7 +224,7 @@ export function TaskFiles({ task }: TaskFilesProps) {
   }, [files, selectedFile, loadFileContent]);
 
   // Handle no specsPath
-  if (!task.specsPath) {
+  if (!effectivePath) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center py-12">

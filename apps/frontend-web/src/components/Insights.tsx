@@ -132,7 +132,7 @@ export function Insights({ projectId }: InsightsProps) {
     if (!message || status.phase === 'thinking' || status.phase === 'streaming') return;
 
     setInputValue('');
-    sendMessage(projectId, message);
+    sendMessage(projectId, message, session?.modelConfig);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

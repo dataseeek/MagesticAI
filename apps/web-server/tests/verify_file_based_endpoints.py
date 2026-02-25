@@ -201,7 +201,7 @@ class EndpointVerifier:
         self.verify_endpoint("settings.py", "set_active_api_profile", "2.4",
                            "Set active API profile")
         self.verify_endpoint("projects.py", "update_project_settings", "2.5",
-                           "Save project settings to .auto-claude/.env")
+                           "Save project settings to .magestic-ai/.env")
         self.verify_endpoint("roadmap.py", "update_feature_status", "2.6",
                            "Update feature status in roadmap.json")
         self.verify_endpoint("roadmap.py", "update_idea_status", "2.7",
@@ -288,9 +288,9 @@ class EndpointVerifier:
         print("=" * 80)
 
         self.verify_endpoint("projects.py", "scan_for_projects", "13.1",
-                           "Scan filesystem for Auto-Claude projects")
+                           "Scan filesystem for Magestic AI projects")
         self.verify_endpoint("settings.py", "update_source_env", "13.2",
-                           "Update Auto-Claude source environment config")
+                           "Update Magestic AI source environment config")
 
     def print_summary(self):
         """Print verification summary."""
