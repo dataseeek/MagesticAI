@@ -37,6 +37,7 @@ interface KanbanBoardProps {
   onNewTaskClick?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  isInitialized?: boolean;
 }
 
 interface DroppableColumnProps {
@@ -329,7 +330,7 @@ const DroppableColumn = memo(function DroppableColumn({ status, tasks, onTaskCli
   );
 }, droppableColumnPropsAreEqual);
 
-export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isRefreshing }: KanbanBoardProps) {
+export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isRefreshing, isInitialized }: KanbanBoardProps) {
   const { t } = useTranslation('tasks');
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
@@ -503,7 +504,7 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
               tasks={tasksByStatus[status]}
               onTaskClick={onTaskClick}
               isOver={overColumnId === status}
-              onAddClick={status === 'backlog' ? onNewTaskClick : undefined}
+              onAddClick={status === 'backlog' && isInitialized ? onNewTaskClick : undefined}
               onArchiveAll={status === 'done' ? handleArchiveAll : undefined}
               archivedCount={status === 'done' ? archivedCount : undefined}
               showArchived={status === 'done' ? showArchived : undefined}
