@@ -564,9 +564,8 @@ export const webAPI: API & { _isWebMode: boolean } = {
   getGitHubIssue: (projectId: string, issueNumber: number) =>
     get(`/projects/${projectId}/github/issues/${issueNumber}`),
   checkGitHubConnection: (projectId: string) => get(`/projects/${projectId}/github/status`),
-  investigateGitHubIssue: (projectId: string, issueNumber: number, selectedCommentIds?: number[]) => {
-    post(`/projects/${projectId}/github/issues/${issueNumber}/investigate`, { selectedCommentIds });
-  },
+  investigateGitHubIssue: (projectId: string, issueNumber: number, selectedCommentIds?: number[]) =>
+    post(`/projects/${projectId}/github/issues/${issueNumber}/investigate`, { selectedCommentIds }),
   getIssueComments: (projectId: string, issueNumber: number) =>
     get(`/projects/${projectId}/github/issues/${issueNumber}/comments`),
   importGitHubIssues: (projectId: string, issueNumbers: number[]) =>
@@ -599,9 +598,8 @@ export const webAPI: API & { _isWebMode: boolean } = {
   getReleaseableVersions: (projectId: string) => get(`/projects/${projectId}/releases/versions`),
   runReleasePreflightCheck: (projectId: string, version: string) =>
     post(`/projects/${projectId}/releases/preflight`, { version }),
-  createRelease: (request: CreateReleaseRequest) => {
-    post(`/projects/${request.projectId}/releases`, request);
-  },
+  createRelease: (request: CreateReleaseRequest) =>
+    post(`/projects/${request.projectId}/releases`, request),
   onReleaseProgress: (callback) => registerCallback('release:progress', callback),
   onReleaseComplete: (callback) => registerCallback('release:complete', callback),
   onReleaseError: (callback) => registerCallback('release:error', callback),
