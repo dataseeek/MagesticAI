@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Code, Terminal, RefreshCw, Loader2, Check, FolderOpen } from 'lucide-react';
+import { Terminal, RefreshCw, Loader2, Check, FolderOpen } from 'lucide-react';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Button } from '../ui/button';
 import { SettingsSection } from './SettingsSection';
-import type { AppSettings, SupportedIDE, SupportedTerminal } from '../../shared/types';
+import type { AppSettings, SupportedTerminal } from '../../shared/types';
 
 interface DevToolsSettingsProps {
   settings: AppSettings;
@@ -24,31 +24,6 @@ interface DetectedTools {
   ides: DetectedTool[];
   terminals: DetectedTool[];
 }
-
-// IDE display names - alphabetically sorted for easy scanning
-const IDE_NAMES: Partial<Record<SupportedIDE, string>> = {
-  androidstudio: 'Android Studio',
-  clion: 'CLion',
-  cursor: 'Cursor',
-  emacs: 'Emacs',
-  goland: 'GoLand',
-  intellij: 'IntelliJ IDEA',
-  neovim: 'Neovim',
-  nova: 'Nova',
-  phpstorm: 'PhpStorm',
-  pycharm: 'PyCharm',
-  rider: 'Rider',
-  rubymine: 'RubyMine',
-  sublime: 'Sublime Text',
-  vim: 'Vim',
-  vscode: 'Visual Studio Code',
-  vscodium: 'VSCodium',
-  webstorm: 'WebStorm',
-  windsurf: 'Windsurf',
-  xcode: 'Xcode',
-  zed: 'Zed',
-  custom: 'Custom...'  // Always last
-};
 
 // Terminal display names - alphabetically sorted
 const TERMINAL_NAMES: Partial<Record<SupportedTerminal, string>> = {
@@ -74,7 +49,7 @@ const TERMINAL_NAMES: Partial<Record<SupportedTerminal, string>> = {
 };
 
 /**
- * Developer Tools settings component for configuring preferred IDE and terminal
+ * Developer Tools settings component for configuring preferred terminal
  */
 export function DevToolsSettings({ settings, onSettingsChange }: DevToolsSettingsProps) {
   const { t } = useTranslation('settings');
@@ -111,15 +86,6 @@ export function DevToolsSettings({ settings, onSettingsChange }: DevToolsSetting
     detectTools();
   }, [detectTools]);
 
-  const handleIDEChange = (ide: SupportedIDE) => {
-    onSettingsChange({
-      ...settings,
-      preferredIDE: ide,
-      // Clear custom path when switching away from custom
-      customIDEPath: ide === 'custom' ? settings.customIDEPath : undefined
-    });
-  };
-
   const handleTerminalChange = (terminal: SupportedTerminal) => {
     onSettingsChange({
       ...settings,
@@ -129,48 +95,12 @@ export function DevToolsSettings({ settings, onSettingsChange }: DevToolsSetting
     });
   };
 
-  const handleCustomIDEPathChange = (path: string) => {
-    onSettingsChange({
-      ...settings,
-      customIDEPath: path
-    });
-  };
-
   const handleCustomTerminalPathChange = (path: string) => {
     onSettingsChange({
       ...settings,
       customTerminalPath: path
     });
   };
-
-  // Build IDE options with detection status
-  const ideOptions: Array<{ value: SupportedIDE; label: string; detected: boolean }> = [];
-
-  // Add detected IDEs first
-  if (detectedTools) {
-    for (const tool of detectedTools.ides) {
-      ideOptions.push({
-        value: tool.id as SupportedIDE,
-        label: tool.name,
-        detected: true
-      });
-    }
-  }
-
-  // Add remaining IDEs that weren't detected
-  const detectedIDEIds = new Set(detectedTools?.ides.map(t => t.id) || []);
-  for (const [id, name] of Object.entries(IDE_NAMES)) {
-    if (id !== 'custom' && !detectedIDEIds.has(id)) {
-      ideOptions.push({
-        value: id as SupportedIDE,
-        label: name,
-        detected: false
-      });
-    }
-  }
-
-  // Add custom option last
-  ideOptions.push({ value: 'custom', label: 'Custom...', detected: false });
 
   // Build Terminal options with detection status
   const terminalOptions: Array<{ value: SupportedTerminal; label: string; detected: boolean }> = [];
@@ -214,7 +144,7 @@ export function DevToolsSettings({ settings, onSettingsChange }: DevToolsSetting
   return (
     <SettingsSection
       title={t('devtools.title', 'Developer Tools')}
-      description={t('devtools.description', 'Configure your preferred IDE and terminal for working with worktrees')}
+      description={t('devtools.description', 'Configure your preferred terminal for working with worktrees')}
     >
       <div className="space-y-6">
         {/* Detect Tools Button */}
@@ -239,67 +169,6 @@ export function DevToolsSettings({ settings, onSettingsChange }: DevToolsSetting
             {detectError}
           </div>
         )}
-
-        {/* IDE Selection */}
-        <div className="space-y-2">
-          <Label htmlFor="preferred-ide" className="flex items-center gap-2">
-            <Code className="h-4 w-4" />
-            {t('devtools.ide.label', 'Preferred IDE')}
-          </Label>
-          <Select
-            value={settings.preferredIDE || 'vscode'}
-            onValueChange={(value) => handleIDEChange(value as SupportedIDE)}
-          >
-            <SelectTrigger id="preferred-ide">
-              <SelectValue placeholder={t('devtools.ide.placeholder', 'Select IDE...')} />
-            </SelectTrigger>
-            <SelectContent>
-              {ideOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  <div className="flex items-center gap-2">
-                    <span>{option.label}</span>
-                    {option.detected && (
-                      <Check className="h-3 w-3 text-green-500" />
-                    )}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            {t('devtools.ide.description', 'Magestic AI will open worktrees in this editor')}
-          </p>
-
-          {/* Custom IDE Path */}
-          {settings.preferredIDE === 'custom' && (
-            <div className="mt-3 space-y-2">
-              <Label htmlFor="custom-ide-path">
-                {t('devtools.customPath', 'Custom path')}
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="custom-ide-path"
-                  value={settings.customIDEPath || ''}
-                  onChange={(e) => handleCustomIDEPathChange(e.target.value)}
-                  placeholder="/path/to/your/ide"
-                  className="flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={async () => {
-                    const result = await window.API.selectDirectory();
-                    if (result) {
-                      handleCustomIDEPathChange(result);
-                    }
-                  }}
-                >
-                  <FolderOpen className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* Terminal Selection */}
         <div className="space-y-2">
@@ -367,13 +236,10 @@ export function DevToolsSettings({ settings, onSettingsChange }: DevToolsSetting
           <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
             <p className="font-medium mb-1">{t('devtools.detected', 'Detected on your system')}:</p>
             <ul className="list-disc list-inside space-y-0.5">
-              {detectedTools.ides.map((ide) => (
-                <li key={ide.id}>{ide.name}</li>
-              ))}
               {detectedTools.terminals.filter(t => t.id !== 'system').map((term) => (
                 <li key={term.id}>{term.name}</li>
               ))}
-              {detectedTools.ides.length === 0 && detectedTools.terminals.filter(t => t.id !== 'system').length === 0 && (
+              {detectedTools.terminals.filter(t => t.id !== 'system').length === 0 && (
                 <li>{t('devtools.noToolsDetected', 'No additional tools detected')}</li>
               )}
             </ul>

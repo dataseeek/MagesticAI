@@ -81,6 +81,11 @@ class TokenAuthMiddleware(BaseHTTPMiddleware):
         # Initialize user state to None for every request
         request.state.user = None
 
+        # Skip all auth when disabled (development mode)
+        settings = get_settings()
+        if settings.DISABLE_AUTH:
+            return await call_next(request)
+
         # Skip auth for public paths
         if path in self.PUBLIC_PATHS:
             return await call_next(request)
@@ -178,6 +183,9 @@ async def verify_websocket_token(websocket: WebSocket) -> bool:
     """
     settings = get_settings()
 
+    if settings.DISABLE_AUTH:
+        return True
+
     # Try query parameter first
     token = websocket.query_params.get("token")
 
@@ -216,6 +224,9 @@ async def authenticate_websocket(websocket: WebSocket) -> dict | None:
     - ``role``: global role
     """
     settings = get_settings()
+
+    if settings.DISABLE_AUTH:
+        return None
 
     # Try query parameter first
     token = websocket.query_params.get("token")

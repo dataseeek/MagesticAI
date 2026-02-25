@@ -4,21 +4,16 @@ import {
   Settings,
   Save,
   Loader2,
-  Palette,
   Bot,
-  FolderOpen,
+  Cpu,
   Key,
-  Package,
   Bell,
   Settings2,
   Github,
   Database,
   Sparkles,
-  Monitor,
   Globe,
-  Code,
-  Bug,
-  Server
+  Bug
 } from 'lucide-react';
 
 import {
@@ -34,16 +29,12 @@ import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '../../lib/utils';
 import { useSettings } from './hooks/useSettings';
-import { ThemeSettings } from './ThemeSettings';
-import { DisplaySettings } from './DisplaySettings';
 import { LanguageSettings } from './LanguageSettings';
 import { GeneralSettings } from './GeneralSettings';
 import { IntegrationSettings } from './IntegrationSettings';
 import { AdvancedSettings } from './AdvancedSettings';
-import { DevToolsSettings } from './DevToolsSettings';
 import { DebugSettings } from './DebugSettings';
-import { ProfileList } from './ProfileList';
-import { LLMProviderSettings } from './sections/LLMProviderSettings';
+import { LLMProvidersPage } from './sections/LLMProvidersPage';
 import { ProjectSelector } from './ProjectSelector';
 import { ProjectSettingsContent, ProjectSettingsSection } from './ProjectSettingsContent';
 import { useProjectStore } from '../../stores/project-store';
@@ -58,7 +49,7 @@ interface AppSettingsDialogProps {
 }
 
 // App-level settings sections
-export type AppSection = 'appearance' | 'display' | 'language' | 'devtools' | 'agent' | 'llmProvider' | 'paths' | 'integrations' | 'api-profiles' | 'updates' | 'notifications' | 'debug';
+export type AppSection = 'language' | 'agent' | 'llmProvider' | 'integrations' | 'notifications' | 'debug';
 
 interface NavItemConfig<T extends string> {
   id: T;
@@ -66,16 +57,10 @@ interface NavItemConfig<T extends string> {
 }
 
 const appNavItemsConfig: NavItemConfig<AppSection>[] = [
-  { id: 'appearance', icon: Palette },
-  { id: 'display', icon: Monitor },
   { id: 'language', icon: Globe },
-  { id: 'devtools', icon: Code },
   { id: 'agent', icon: Bot },
-  { id: 'llmProvider', icon: Bot },
-  { id: 'paths', icon: FolderOpen },
+  { id: 'llmProvider', icon: Cpu },
   { id: 'integrations', icon: Key },
-  { id: 'api-profiles', icon: Server },
-  { id: 'updates', icon: Package },
   { id: 'notifications', icon: Bell },
   { id: 'debug', icon: Bug }
 ];
@@ -97,7 +82,7 @@ export function AppSettingsDialog({ open, onOpenChange, initialSection, initialP
 
   // Track which top-level section is active
   const [activeTopLevel, setActiveTopLevel] = useState<'app' | 'project'>('app');
-  const [appSection, setAppSection] = useState<AppSection>(initialSection || 'appearance');
+  const [appSection, setAppSection] = useState<AppSection>(initialSection || 'language');
   const [projectSection, setProjectSection] = useState<ProjectSettingsSection>('general');
 
   // Navigate to initial section when dialog opens with a specific section
@@ -170,26 +155,14 @@ export function AppSettingsDialog({ open, onOpenChange, initialSection, initialP
 
   const renderAppSection = () => {
     switch (appSection) {
-      case 'appearance':
-        return <ThemeSettings settings={settings} onSettingsChange={setSettings} />;
-      case 'display':
-        return <DisplaySettings settings={settings} onSettingsChange={setSettings} />;
       case 'language':
         return <LanguageSettings settings={settings} onSettingsChange={setSettings} />;
-      case 'devtools':
-        return <DevToolsSettings settings={settings} onSettingsChange={setSettings} />;
       case 'agent':
         return <GeneralSettings settings={settings} onSettingsChange={setSettings} section="agent" />;
       case 'llmProvider':
-        return <LLMProviderSettings settings={settings} onSettingsChange={(partial) => setSettings(prev => ({ ...prev, ...partial }))} />;
-      case 'paths':
-        return <GeneralSettings settings={settings} onSettingsChange={setSettings} section="paths" />;
+        return <LLMProvidersPage settings={settings} onSettingsChange={setSettings} isOpen={open} />;
       case 'integrations':
-        return <IntegrationSettings settings={settings} onSettingsChange={setSettings} isOpen={open} />;
-      case 'api-profiles':
-        return <ProfileList />;
-      case 'updates':
-        return <AdvancedSettings settings={settings} onSettingsChange={setSettings} section="updates" version={version} />;
+        return <IntegrationSettings />;
       case 'notifications':
         return <AdvancedSettings settings={settings} onSettingsChange={setSettings} section="notifications" version={version} />;
       case 'debug':
@@ -239,7 +212,7 @@ export function AppSettingsDialog({ open, onOpenChange, initialSection, initialP
         <FullScreenDialogBody>
           <div className="flex h-full">
             {/* Navigation sidebar */}
-            <nav className="w-80 border-r border-border bg-muted/30 p-4">
+            <nav className="w-96 border-r border-border bg-muted/30 p-4">
               <ScrollArea className="h-full">
                 <div className="space-y-6">
                   {/* APPLICATION Section */}

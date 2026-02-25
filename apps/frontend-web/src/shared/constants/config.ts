@@ -9,7 +9,7 @@
 
 export const UI_SCALE_MIN = 75;
 export const UI_SCALE_MAX = 200;
-export const UI_SCALE_DEFAULT = 100;
+export const UI_SCALE_DEFAULT = 125;
 export const UI_SCALE_STEP = 5;
 
 // ============================================
@@ -21,9 +21,6 @@ export const DEFAULT_APP_SETTINGS = {
   colorTheme: 'ocean' as const,
   defaultModel: 'opus',
   agentFramework: 'magestic-ai',
-  pythonPath: undefined as string | undefined,
-  gitPath: undefined as string | undefined,
-  githubCLIPath: undefined as string | undefined,
   autoBuildPath: undefined as string | undefined,
   autoUpdateAutoBuild: true,
   autoNameTerminals: true,
@@ -43,7 +40,7 @@ export const DEFAULT_APP_SETTINGS = {
   changelogFormat: 'keep-a-changelog' as const,
   changelogAudience: 'user-facing' as const,
   changelogEmojiLevel: 'none' as const,
-  // UI Scale (default 100% - standard size)
+  // UI Scale (default 125%)
   uiScale: UI_SCALE_DEFAULT,
   // Beta updates opt-in (receive pre-release versions)
   betaUpdates: false,

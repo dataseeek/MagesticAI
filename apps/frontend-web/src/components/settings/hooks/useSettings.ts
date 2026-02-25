@@ -21,11 +21,9 @@ export function useSettings() {
   // This allows us to revert if the user cancels
   const originalThemeRef = useRef<{
     theme: AppSettings['theme'];
-    colorTheme: AppSettings['colorTheme'];
     uiScale: number;
   }>({
     theme: currentSettings.theme,
-    colorTheme: currentSettings.colorTheme,
     uiScale: currentSettings.uiScale ?? UI_SCALE_DEFAULT
   });
 
@@ -40,7 +38,6 @@ export function useSettings() {
     // Update the original theme ref when settings load
     originalThemeRef.current = {
       theme: currentSettings.theme,
-      colorTheme: currentSettings.colorTheme,
       uiScale: currentSettings.uiScale ?? UI_SCALE_DEFAULT
     };
   }, []);
@@ -94,7 +91,6 @@ export function useSettings() {
     const original = originalThemeRef.current;
     updateStoreSettings({
       theme: original.theme,
-      colorTheme: original.colorTheme,
       uiScale: original.uiScale
     });
   }, [updateStoreSettings]);
@@ -106,10 +102,9 @@ export function useSettings() {
   const commitTheme = useCallback(() => {
     originalThemeRef.current = {
       theme: settings.theme,
-      colorTheme: settings.colorTheme,
       uiScale: settings.uiScale ?? UI_SCALE_DEFAULT
     };
-  }, [settings.theme, settings.colorTheme, settings.uiScale]);
+  }, [settings.theme, settings.uiScale]);
 
   return {
     settings,

@@ -10,6 +10,20 @@
     <title>MagesticAI</title>
   </head>
   <body>
+    <script>
+      // Apply theme synchronously before first paint to prevent color flash.
+      // Always Ocean color theme; light/dark from localStorage cache written by App.tsx.
+      (function() {
+        try {
+          var theme = localStorage.getItem('magestic-theme') || 'system';
+          var root = document.documentElement;
+          root.setAttribute('data-theme', 'ocean');
+          if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            root.classList.add('dark');
+          }
+        } catch(e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

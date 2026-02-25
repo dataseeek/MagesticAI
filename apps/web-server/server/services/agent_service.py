@@ -1611,23 +1611,20 @@ class AgentService:
                 await emit_task_status(task_id, "failed", "invalid_plan")
                 return
 
-            # Map internal status to frontend-compatible status
-            status_map = {
-                "completed": "human_review",  # Completed tasks go to review column
-                "failed": "qa_failed",        # Failed tasks go to QA failed column
+            # Map internal status to frontend-compatible status using the canonical helpers
+            phase_enum_map = {
+                "completed": TaskPhase.COMPLETED,
+                "failed": TaskPhase.FAILED,
+                "human_review": TaskPhase.PLAN_REVIEW,
             }
-            plan["status"] = status_map.get(status, status)
-
-            # Set reviewReason based on the INPUT status (not the mapped output status)
-            # This ensures we set the correct reviewReason for the original completion state
-            review_reason_map = {
-                "completed": "completed",     # Task finished successfully
-                "failed": "errors",           # Task failed with errors
-                "human_review": "plan_review", # Plan needs approval
-            }
-            # Use the INPUT status parameter to determine reviewReason
-            if status in review_reason_map:
-                plan["reviewReason"] = review_reason_map[status]
+            phase_enum = phase_enum_map.get(status)
+            if phase_enum:
+                plan["status"] = phase_to_status(phase_enum)
+                review_reason = phase_to_review_reason(phase_enum)
+                if review_reason:
+                    plan["reviewReason"] = review_reason
+            else:
+                plan["status"] = status
 
             logger.info(f"[AgentService._update_plan_status] About to write file with status={plan.get('status')}, reviewReason={plan.get('reviewReason')}")
             plan_file.write_text(json.dumps(plan, indent=2))

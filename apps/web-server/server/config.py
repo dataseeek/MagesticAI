@@ -27,6 +27,7 @@ class Settings(BaseSettings):
 
     # Authentication
     API_TOKEN: str = ""  # Will generate default if not set
+    DISABLE_AUTH: bool = False  # Set to True to disable auth (dev only)
 
     # JWT Configuration
     JWT_SECRET: str = ""  # Auto-generated if not set

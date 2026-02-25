@@ -23,8 +23,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, AliasChoices
 # BUG-4.1-005: Theme must be one of these values
 ThemeType = Literal["light", "dark", "system"]
 
-# BUG-4.1-006: Color theme must be one of these values
-ColorThemeType = Literal["default", "dusk", "lime", "ocean", "retro", "neo", "forest"]
+# Color theme — Ocean only
+ColorThemeType = Literal["ocean"]
 
 # BUG-4.1-011: Memory embedding provider must be one of these values
 MemoryEmbeddingProviderType = Literal[
@@ -51,10 +51,10 @@ class AppSettings(BaseModel):
     # BUG-4.1-005: Validate theme against allowed values
     theme: ThemeType = Field("dark", description="UI theme (dark/light/system)")
     # BUG-4.1-006: Validate colorTheme against allowed values
-    colorTheme: ColorThemeType | None = Field("default", description="Color theme (default/dusk/lime/ocean/retro/neo/forest)")
+    colorTheme: ColorThemeType | None = Field("ocean", description="Color theme (default/dusk/lime/ocean/retro/neo/forest)")
     language: str = Field("en", description="UI language code")
     # BUG-4.1-008: uiScale with min/max validation (75-200)
-    uiScale: int | None = Field(100, ge=75, le=200, description="UI scale percentage (75-200)")
+    uiScale: int | None = Field(125, ge=75, le=200, description="UI scale percentage (75-200)")
 
     @field_validator("theme", mode="before")
     @classmethod
@@ -71,27 +71,21 @@ class AppSettings(BaseModel):
     @field_validator("colorTheme", mode="before")
     @classmethod
     def validate_color_theme(cls, v):
-        """Validate and normalize colorTheme value for backward compatibility."""
-        if v is None:
-            return "default"
-        valid_color_themes = ["default", "dusk", "lime", "ocean", "retro", "neo", "forest"]
-        if v not in valid_color_themes:
-            # Fall back to default for invalid values (backward compatibility)
-            return "default"
-        return v
+        """Normalize any color theme value to 'ocean' (sole supported theme)."""
+        return "ocean"
 
     @field_validator("uiScale", mode="before")
     @classmethod
     def validate_ui_scale(cls, v):
         """Validate and clamp uiScale to valid range for backward compatibility."""
         if v is None:
-            return 100
+            return 125
         try:
             scale = int(v)
             # Clamp to valid range instead of rejecting (backward compatibility)
             return max(75, min(200, scale))
         except (TypeError, ValueError):
-            return 100
+            return 125
 
     # Claude settings - using camelCase with snake_case aliases for backward compatibility
     defaultModel: str = Field(
@@ -159,9 +153,6 @@ class AppSettings(BaseModel):
         return v
 
     # Paths
-    pythonPath: str | None = Field(None, description="Python executable path")
-    gitPath: str | None = Field(None, description="Git executable path")
-    claudePath: str | None = Field(None, description="Claude CLI path")
     autoBuildPath: str | None = Field(
         None,
         description="Path to Magestic AI backend (apps/backend directory)",
@@ -261,9 +252,6 @@ class SettingsUpdate(BaseModel):
     graphitiEnabled: bool | None = Field(None, alias="graphiti_enabled")
     memoryEnabled: bool | None = None
     memoryEmbeddingProvider: str | None = None
-    pythonPath: str | None = None
-    gitPath: str | None = None
-    claudePath: str | None = None
     autoBuildPath: str | None = None
     autoUpdateAutoBuild: bool | None = None
     globalClaudeOAuthToken: str | None = None
@@ -1899,24 +1887,6 @@ async def check_source_token():
 # --------------------------------------------------------------------------
 # CLI Tools Info
 # --------------------------------------------------------------------------
-
-@router.get("/cli-tools")
-async def get_cli_tools_info():
-    """Get information about installed CLI tools."""
-    import shutil
-    return {
-        "success": True,
-        "data": {
-            "git": shutil.which("git") is not None,
-            "gh": shutil.which("gh") is not None,
-            "glab": shutil.which("glab") is not None,
-            "claude": shutil.which("claude") is not None,
-            "node": shutil.which("node") is not None,
-            "npm": shutil.which("npm") is not None,
-            "python": shutil.which("python") is not None,
-        }
-    }
-
 
 @router.get("/auth-status")
 async def get_auth_status():

@@ -25,13 +25,53 @@
       "title": "Configurações do Agente",
       "description": "Modelo e framework padrão"
     },
-    "paths": {
-      "title": "Caminhos",
-      "description": "Caminhos de ferramentas CLI e framework"
+    "llmProvider": {
+      "title": "Provedores LLM",
+      "description": "LLMs locais, contas Claude e chaves de API",
+      "localLlms": {
+        "title": "LLMs Locais",
+        "description": "Conecte-se a modelos locais via Ollama"
+      },
+      "accounts": {
+        "title": "Contas LLM",
+        "description": "Gerencie perfis Claude e alternância automática de conta"
+      },
+      "apiKeys": {
+        "title": "Chaves de API",
+        "description": "Chaves de API dos provedores usadas como padrão em todos os projetos",
+        "info": "Chaves definidas aqui são usadas como padrão. Projetos individuais podem substituí-las em suas configurações.",
+        "anthropic": {
+          "label": "Chave de API Anthropic",
+          "description": "Usada para acesso à API Claude da Anthropic"
+        },
+        "openai": {
+          "label": "Chave de API OpenAI",
+          "description": "Usada para modelos OpenAI (ChatGPT)"
+        },
+        "google": {
+          "label": "Chave de API Google AI",
+          "description": "Usada para modelos Google AI (Gemini)"
+        },
+        "groq": {
+          "label": "Chave de API Groq",
+          "description": "Usada para aceleração de inferência Groq"
+        },
+        "openrouter": {
+          "label": "Chave de API OpenRouter",
+          "description": "Usada para gateway multi-modelo OpenRouter"
+        }
+      },
+      "ollama": {
+        "baseUrl": "URL Base do Ollama",
+        "model": "Modelo",
+        "refreshModels": "Atualizar Modelos",
+        "downloadModel": "Baixar Modelo"
+      },
+      "testConnection": "Testar Conexão"
     },
     "integrations": {
       "title": "Integrações",
-      "description": "Chaves de API e contas Claude"
+      "description": "Conexões com serviços de terceiros (em breve)"
     },
     "api-profiles": {
       "title": "Perfis de API",
@@ -75,33 +115,6 @@
     "featureModelSettingsDescription": "Modelo e nível de raciocínio para Chat e funcionalidades do GitHub",
     "model": "Modelo",
     "thinkingLevel": "Nível de Raciocínio",
-    "paths": "Caminhos",
-    "pathsDescription": "Configure caminhos de executáveis e framework",
-    "pythonPath": "Caminho do Python",
-    "pythonPathDescription": "Caminho para o executável Python (deixe vazio para auto-detecção)",
-    "pythonPathPlaceholder": "python3 (padrão)",
-    "gitPath": "Caminho do Git",
-    "gitPathDescription": "Caminho para o executável Git (deixe vazio para auto-detecção)",
-    "gitPathPlaceholder": "git (padrão)",
-    "githubCLIPath": "Caminho do GitHub CLI",
-    "githubCLIPathDescription": "Caminho para o executável GitHub CLI (gh) (deixe vazio para auto-detecção)",
-    "githubCLIPathPlaceholder": "gh (padrão)",
-    "claudePath": "Caminho do Claude CLI",
-    "claudePathDescription": "Caminho para o executável Claude CLI (deixe vazio para auto-detecção)",
-    "claudePathPlaceholder": "claude (padrão)",
-    "detectedPath": "Auto-detectado",
-    "detectedVersion": "Versão",
-    "detectedSource": "Fonte",
-    "sourceUserConfig": "Configuração do Usuário",
-    "sourceVenv": "Ambiente Virtual",
-    "sourceHomebrew": "Homebrew",
-    "sourceSystemPath": "PATH do Sistema",
-    "sourceBundled": "Empacotado",
-    "sourceFallback": "Fallback",
-    "notDetected": "Não detectado",
-    "autoClaudePath": "Caminho do MagesticAI",
-    "autoClaudePathDescription": "Caminho relativo para o diretório magestic-ai nos projetos",
-    "autoClaudePathPlaceholder": "magestic-ai (padrão)",
     "autoNameTerminals": "Nomear terminais automaticamente",
     "autoNameTerminalsDescription": "Usar IA para gerar nomes descritivos para abas de terminal com base na atividade",
     "bmadSessionSegmentation": "Segmentação de Sessão BMad",
@@ -114,9 +127,7 @@
     "modeDescription": "Escolha entre temas claro e escuro",
     "light": "Claro",
     "dark": "Escuro",
-    "system": "Sistema",
-    "colorTheme": "Tema de Cores",
-    "colorThemeDescription": "Escolha sua paleta de cores preferida"
+    "system": "Sistema"
   },
   "devtools": {
     "title": "Ferramentas de Desenvolvimento",
@@ -302,7 +313,8 @@
     "apiKeys": "Chaves de API",
     "apiKeysInfo": "Chaves definidas aqui são usadas como padrão. Projetos individuais podem substituí-las em suas configurações.",
     "openaiKey": "Chave de API OpenAI",
-    "openaiKeyDescription": "Necessária para backend de memória Graphiti (embeddings)"
+    "openaiKeyDescription": "Usada para modelos OpenAI (ChatGPT)",
+    "comingSoon": "Integrações de terceiros (Linear, Jira, Slack, etc.) em breve. Contas Claude e chaves de API foram movidas para a página Provedores LLM."
   },
   "debug": {
     "title": "Debug e Logs",
@@ -323,6 +335,10 @@
       "title": "Nenhum Projeto Selecionado",
       "description": "Selecione um projeto na barra lateral para configurar suas preferências."
     }
+  },
+  "connection": {
+    "successTitle": "Conexão bem-sucedida",
+    "successDescription": "Suas credenciais de API são válidas."
   },
   "mcp": {
     "title": "Visão Geral do Servidor MCP",
