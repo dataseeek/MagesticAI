@@ -76,9 +76,6 @@
     "loginInTerminal": "Connexion",
     "waitingForAuth": "En attente...",
     "importCredentials": "Importer les identifiants",
-    "removeCredentials": "Supprimer les identifiants",
-    "setApiKey": "Définir la clé API",
-    "apiKeyPlaceholder": "Coller la clé API...",
     "loginHintCodex": "Terminez la connexion dans votre navigateur. Codex CLI s'authentifiera via OpenAI.",
     "loginHintGemini": "Terminez la connexion dans votre navigateur. Gemini CLI s'authentifiera via Google."
   }

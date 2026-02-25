@@ -62,9 +62,6 @@
     "loginInTerminal": "Login",
     "waitingForAuth": "Aguardando...",
     "importCredentials": "Importar credenciais",
-    "removeCredentials": "Remover credenciais",
-    "setApiKey": "Definir chave de API",
-    "apiKeyPlaceholder": "Cole a chave de API...",
     "loginHintCodex": "Complete o login na janela do navegador. O Codex CLI se autenticará via OpenAI.",
     "loginHintGemini": "Complete o login na janela do navegador. O Gemini CLI se autenticará via Google."
   }

@@ -228,6 +228,16 @@
     "followup": "Acompanhamento",
     "initial": "Inicial"
   },
+  "insights": {
+    "modelSelector": {
+      "quickProfiles": "Perfis Rápidos",
+      "providers": "Provedores",
+      "custom": "Personalizado...",
+      "detecting": "Detectando provedores...",
+      "noProviders": "Nenhum provedor disponível",
+      "via": "via {{provider}}"
+    }
+  },
   "downloads": {
     "toggleExpand": "Expandir detalhes do download",
     "downloading": "Baixando {{count}} modelo",

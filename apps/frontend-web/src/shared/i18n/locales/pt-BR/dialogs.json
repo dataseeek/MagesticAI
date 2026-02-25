@@ -82,8 +82,10 @@
   "customModel": {
     "title": "Configuração de Modelo Personalizado",
     "description": "Configure o modelo e nível de raciocínio para esta sessão de chat.",
+    "provider": "Provedor",
     "model": "Modelo",
     "thinkingLevel": "Nível de Raciocínio",
+    "thinkingLevelHint": "Nível de raciocínio disponível apenas para Claude",
     "cancel": "Cancelar",
     "apply": "Aplicar"
   },

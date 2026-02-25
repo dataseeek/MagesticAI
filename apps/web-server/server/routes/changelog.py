@@ -769,6 +769,17 @@ class InsightsMessageRequest(BaseModel):
     modelConfig: dict | None = None
 
 
+@insights_router.get("/providers")
+async def detect_insights_providers(projectId: str = Path(...)):
+    """Detect all available LLM providers for insights chat."""
+    from ..services.insights_providers import detect_all_providers
+    providers = await detect_all_providers()
+    return {
+        "success": True,
+        "data": [p.to_dict() for p in providers],
+    }
+
+
 class CreateTaskRequest(BaseModel):
     title: str
     description: str

@@ -44,7 +44,8 @@ import {
   TASK_CATEGORY_LABELS,
   TASK_CATEGORY_COLORS,
   TASK_COMPLEXITY_LABELS,
-  TASK_COMPLEXITY_COLORS
+  TASK_COMPLEXITY_COLORS,
+  PROVIDER_INFO
 } from '../shared/constants';
 
 // Safe link renderer for ReactMarkdown to prevent phishing and ensure external links open safely
@@ -239,6 +240,7 @@ export function Insights({ projectId }: InsightsProps) {
           </div>
           <div className="flex items-center gap-2">
             <InsightsModelSelector
+              projectId={projectId}
               currentConfig={session?.modelConfig}
               onConfigChange={handleModelConfigChange}
               disabled={isLoading}
@@ -420,8 +422,13 @@ function MessageBubble({
         )}
       </div>
       <div className="flex-1 space-y-2">
-        <div className="text-sm font-medium text-foreground">
-          {isUser ? 'You' : 'Assistant'}
+        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+          <span>{isUser ? 'You' : 'Assistant'}</span>
+          {!isUser && message.provider && message.provider !== 'claude' && (
+            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
+              via {PROVIDER_INFO[message.provider]?.displayName || message.provider}
+            </span>
+          )}
         </div>
         <div className="prose prose-sm dark:prose-invert max-w-none">
           <ReactMarkdown

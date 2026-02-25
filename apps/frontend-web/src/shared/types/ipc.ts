@@ -94,7 +94,8 @@ import type {
   InsightsSessionSummary,
   InsightsChatStatus,
   InsightsStreamChunk,
-  InsightsModelConfig
+  InsightsModelConfig,
+  InsightsProviderInfo
 } from './insights';
 import type {
   GitHubRepository,
@@ -474,6 +475,7 @@ export interface API {
 
   // Insights operations
   getInsightsSession: (projectId: string) => Promise<IPCResult<InsightsSession | null>>;
+  detectInsightsProviders: (projectId: string) => Promise<IPCResult<InsightsProviderInfo[]>>;
   sendInsightsMessage: (projectId: string, message: string, modelConfig?: InsightsModelConfig) => void;
   clearInsightsSession: (projectId: string) => Promise<IPCResult>;
   createTaskFromInsights: (

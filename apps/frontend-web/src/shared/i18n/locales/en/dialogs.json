@@ -82,8 +82,10 @@
   "customModel": {
     "title": "Custom Model Configuration",
     "description": "Configure the model and thinking level for this chat session.",
+    "provider": "Provider",
     "model": "Model",
     "thinkingLevel": "Thinking Level",
+    "thinkingLevelHint": "Thinking level is only available for Claude",
     "cancel": "Cancel",
     "apply": "Apply"
   },

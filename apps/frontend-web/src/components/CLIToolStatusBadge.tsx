@@ -8,15 +8,9 @@ import {
   Download,
   RefreshCw,
   LogIn,
-  Trash2,
   KeyRound,
-  ChevronDown,
-  ChevronRight,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import {
   Popover,
   PopoverContent,
@@ -53,11 +47,6 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
   const [isOpen, setIsOpen] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   const [isLoginPolling, setIsLoginPolling] = useState(false);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
-  const [apiKeyValue, setApiKeyValue] = useState('');
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [isSubmittingKey, setIsSubmittingKey] = useState(false);
-
   const installed = status?.installed ?? false;
   const authenticated = status?.authenticated ?? false;
   const hasUpdate = installed && status?.latestVersion && status?.version !== status?.latestVersion;
@@ -147,33 +136,6 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
       onRefresh();
     } catch (err) {
       console.error(`Failed to import ${cli} credentials:`, err);
-    }
-  };
-
-  const handleRemove = async () => {
-    if (!window.API?.removeCLIAccount) return;
-    try {
-      await window.API.removeCLIAccount(cli);
-      onRefresh();
-    } catch (err) {
-      console.error(`Failed to remove ${cli} credentials:`, err);
-    }
-  };
-
-  const handleSubmitApiKey = async () => {
-    if (!apiKeyValue.trim() || apiKeyValue.trim().length < 5) return;
-    if (!window.API?.setCLIApiKey) return;
-    setIsSubmittingKey(true);
-    try {
-      await window.API.setCLIApiKey(cli, apiKeyValue.trim());
-      setApiKeyValue('');
-      setShowApiKeyInput(false);
-      setShowApiKey(false);
-      onRefresh();
-    } catch (err) {
-      console.error(`Failed to set ${cli} API key:`, err);
-    } finally {
-      setIsSubmittingKey(false);
     }
   };
 
@@ -374,92 +336,6 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
               </Button>
             )}
 
-            {/* API Key toggle */}
-            {installed && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full gap-1 text-xs text-muted-foreground"
-                onClick={() => {
-                  setShowApiKeyInput(!showApiKeyInput);
-                  setApiKeyValue('');
-                  setShowApiKey(false);
-                }}
-              >
-                {showApiKeyInput ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                {t('navigation:cliTools.setApiKey')}
-              </Button>
-            )}
-
-            {/* API Key input */}
-            {showApiKeyInput && (
-              <div className="bg-muted/30 rounded-lg p-2 space-y-2">
-                <div className="relative">
-                  <Input
-                    type={showApiKey ? 'text' : 'password'}
-                    placeholder={t('navigation:cliTools.apiKeyPlaceholder')}
-                    value={apiKeyValue}
-                    onChange={(e) => setApiKeyValue(e.target.value)}
-                    className="pr-8 font-mono text-xs h-7"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSubmitApiKey();
-                      if (e.key === 'Escape') {
-                        setShowApiKeyInput(false);
-                        setApiKeyValue('');
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showApiKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                  </button>
-                </div>
-                <div className="flex justify-end gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-xs"
-                    onClick={() => {
-                      setShowApiKeyInput(false);
-                      setApiKeyValue('');
-                      setShowApiKey(false);
-                    }}
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    {t('common:cancel', 'Cancel')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="h-6 text-xs gap-1"
-                    onClick={handleSubmitApiKey}
-                    disabled={!apiKeyValue.trim() || apiKeyValue.trim().length < 5 || isSubmittingKey}
-                  >
-                    {isSubmittingKey ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Check className="h-3 w-3" />
-                    )}
-                    {t('common:save', 'Save')}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Remove credentials */}
-            {installed && authenticated && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full gap-1 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={handleRemove}
-              >
-                <Trash2 className="h-3 w-3" />
-                {t('navigation:cliTools.removeCredentials')}
-              </Button>
-            )}
           </div>
         </div>
       </PopoverContent>

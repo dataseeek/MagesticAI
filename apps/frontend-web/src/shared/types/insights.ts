@@ -9,13 +9,27 @@ import type { TaskMetadata } from './task';
 // ============================================
 
 import type { ThinkingLevel } from './settings';
-import type { ModelType } from './task';
+
+// Supported LLM providers
+export type InsightsProvider = 'claude' | 'codex' | 'gemini' | 'ollama'
+  | 'lmstudio' | 'localai' | 'vllm' | 'jan';
 
 // Model configuration for insights sessions
 export interface InsightsModelConfig {
-  profileId: string;           // 'complex' | 'balanced' | 'quick' | 'custom'
-  model: ModelType;            // 'haiku' | 'sonnet' | 'opus'
-  thinkingLevel: ThinkingLevel;
+  provider: InsightsProvider;    // LLM provider (default: 'claude')
+  profileId: string;             // 'complex' | 'balanced' | 'quick' | 'custom'
+  model: string;                 // Model ID (e.g. 'opus', 'llama3:8b', 'gpt-4o')
+  thinkingLevel?: ThinkingLevel; // Only applicable for Claude
+}
+
+// Provider info returned from detection endpoint
+export interface InsightsProviderInfo {
+  provider: InsightsProvider;
+  available: boolean;
+  displayName: string;
+  icon: string;
+  authMethod: string | null;
+  models: { id: string; label: string }[];
 }
 
 export type InsightsChatRole = 'user' | 'assistant';
@@ -40,6 +54,9 @@ export interface InsightsChatMessage {
   };
   // Tools used during this response (assistant messages only)
   toolsUsed?: InsightsToolUsage[];
+  // Provider info (for showing badges on non-Claude messages)
+  provider?: InsightsProvider;
+  providerModel?: string;
 }
 
 export interface InsightsSession {
