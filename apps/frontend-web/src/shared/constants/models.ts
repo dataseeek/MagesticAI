@@ -140,3 +140,43 @@ export const MEMORY_BACKENDS = [
   { value: 'file', label: 'File-based (default)' },
   { value: 'graphiti', label: 'Graphiti (LadybugDB)' }
 ] as const;
+
+// ============================================
+// Provider Models (static fallbacks per provider)
+// ============================================
+
+import type { InsightsProvider } from '../types/insights';
+
+export const PROVIDER_MODELS: Record<string, { id: string; label: string }[]> = {
+  claude: [
+    { id: 'opus', label: 'Claude Opus 4.6' },
+    { id: 'sonnet', label: 'Claude Sonnet 4.6' },
+    { id: 'haiku', label: 'Claude Haiku 4.5' },
+  ],
+  codex: [
+    { id: 'o4-mini', label: 'o4-mini' },
+    { id: 'o3', label: 'o3' },
+    { id: 'gpt-4.1', label: 'GPT-4.1' },
+    { id: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
+  ],
+  gemini: [
+    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+    { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  ],
+  ollama: [],    // Dynamic — populated from detection
+  lmstudio: [],  // Dynamic
+  localai: [],   // Dynamic
+  vllm: [],      // Dynamic
+  jan: [],       // Dynamic
+};
+
+export const PROVIDER_INFO: Record<InsightsProvider, { displayName: string; icon: string }> = {
+  claude: { displayName: 'Claude', icon: 'sparkles' },
+  codex: { displayName: 'Codex (OpenAI)', icon: 'openai' },
+  gemini: { displayName: 'Gemini (Google)', icon: 'gemini' },
+  ollama: { displayName: 'Ollama', icon: 'ollama' },
+  lmstudio: { displayName: 'LM Studio', icon: 'lmstudio' },
+  localai: { displayName: 'LocalAI', icon: 'localai' },
+  vllm: { displayName: 'vLLM', icon: 'vllm' },
+  jan: { displayName: 'Jan', icon: 'jan' },
+};

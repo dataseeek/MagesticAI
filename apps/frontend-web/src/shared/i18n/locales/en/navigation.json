@@ -76,9 +76,6 @@
     "loginInTerminal": "Login",
     "waitingForAuth": "Waiting...",
     "importCredentials": "Import Credentials",
-    "removeCredentials": "Remove Credentials",
-    "setApiKey": "Set API Key",
-    "apiKeyPlaceholder": "Paste API key...",
     "loginHintCodex": "Complete login in your browser window. Codex CLI will authenticate via OpenAI.",
     "loginHintGemini": "Complete login in your browser window. Gemini CLI will authenticate via Google."
   }

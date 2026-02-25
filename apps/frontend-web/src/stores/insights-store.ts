@@ -7,6 +7,7 @@ import type {
   InsightsStreamChunk,
   InsightsToolUsage,
   InsightsModelConfig,
+  InsightsProviderInfo,
   TaskMetadata,
   Task
 } from '../shared/types';
@@ -26,6 +27,8 @@ interface InsightsState {
   currentTool: ToolUsage | null; // Currently executing tool
   toolsUsed: InsightsToolUsage[]; // Tools used during current response
   isLoadingSessions: boolean;
+  availableProviders: InsightsProviderInfo[];
+  isLoadingProviders: boolean;
 
   // Actions
   setSession: (session: InsightsSession | null) => void;
@@ -42,6 +45,8 @@ interface InsightsState {
   finalizeStreamingMessage: (suggestedTask?: InsightsChatMessage['suggestedTask']) => void;
   clearSession: () => void;
   setLoadingSessions: (loading: boolean) => void;
+  setAvailableProviders: (providers: InsightsProviderInfo[]) => void;
+  setLoadingProviders: (loading: boolean) => void;
 }
 
 const initialStatus: InsightsChatStatus = {
@@ -59,6 +64,8 @@ export const useInsightsStore = create<InsightsState>((set, _get) => ({
   currentTool: null,
   toolsUsed: [],
   isLoadingSessions: false,
+  availableProviders: [],
+  isLoadingProviders: false,
 
   // Actions
   setSession: (session) => set({ session }),
@@ -68,6 +75,10 @@ export const useInsightsStore = create<InsightsState>((set, _get) => ({
   setStatus: (status) => set({ status }),
 
   setLoadingSessions: (loading) => set({ isLoadingSessions: loading }),
+
+  setAvailableProviders: (providers) => set({ availableProviders: providers }),
+
+  setLoadingProviders: (loading) => set({ isLoadingProviders: loading }),
 
   setPendingMessage: (message) => set({ pendingMessage: message }),
 
@@ -211,6 +222,24 @@ export async function loadInsightsSessions(projectId: string): Promise<void> {
   }
 }
 
+export async function loadInsightsProviders(projectId: string): Promise<void> {
+  const store = useInsightsStore.getState();
+  store.setLoadingProviders(true);
+
+  try {
+    const result = await window.API.detectInsightsProviders(projectId);
+    if (result.success && result.data) {
+      store.setAvailableProviders(result.data);
+    } else {
+      store.setAvailableProviders([]);
+    }
+  } catch {
+    store.setAvailableProviders([]);
+  } finally {
+    store.setLoadingProviders(false);
+  }
+}
+
 export async function loadInsightsSession(projectId: string): Promise<void> {
   const result = await window.API.getInsightsSession(projectId);
   if (result.success && result.data) {
@@ -245,10 +274,14 @@ export function sendMessage(projectId: string, message: string, modelConfig?: In
   });
 
   // Use provided modelConfig, or fall back to session's config
+  // Ensure provider field is always set (defaults to 'claude')
   const configToUse = modelConfig || session?.modelConfig;
+  const configWithProvider = configToUse
+    ? { ...configToUse, provider: configToUse.provider || 'claude' as const }
+    : undefined;
 
   // Send to main process
-  window.API.sendInsightsMessage(projectId, message, configToUse);
+  window.API.sendInsightsMessage(projectId, message, configWithProvider as InsightsModelConfig | undefined);
 }
 
 export async function clearSession(projectId: string): Promise<void> {

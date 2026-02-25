@@ -82,8 +82,10 @@
   "customModel": {
     "title": "Configuration du modèle personnalisé",
     "description": "Configurez le modèle et le niveau de réflexion pour cette session de chat.",
+    "provider": "Fournisseur",
     "model": "Modèle",
     "thinkingLevel": "Niveau de réflexion",
+    "thinkingLevelHint": "Le niveau de réflexion est uniquement disponible pour Claude",
     "cancel": "Annuler",
     "apply": "Appliquer"
   },

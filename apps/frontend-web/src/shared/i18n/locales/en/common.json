@@ -232,6 +232,16 @@
     "followup": "Follow-up",
     "initial": "Initial"
   },
+  "insights": {
+    "modelSelector": {
+      "quickProfiles": "Quick Profiles",
+      "providers": "Providers",
+      "custom": "Custom...",
+      "detecting": "Detecting providers...",
+      "noProviders": "No providers available",
+      "via": "via {{provider}}"
+    }
+  },
   "downloads": {
     "toggleExpand": "Toggle download details",
     "downloading": "Downloading {{count}} model",
