@@ -3,6 +3,7 @@ import type { AppSettings } from '../shared/types';
 import type { APIProfile, ProfileFormData, TestConnectionResult, DiscoverModelsResult, ModelInfo } from '../shared/types/profile';
 import { DEFAULT_APP_SETTINGS } from '../shared/constants';
 import { toast } from '../hooks/use-toast';
+import i18n from '../shared/i18n';
 
 interface SettingsState {
   settings: AppSettings;
@@ -210,12 +211,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         set({ testConnectionResult: result.data, isTestingConnection: false });
 
         // Show toast on success
-        // TODO: Use i18n translation keys (settings:connection.successTitle, settings:connection.successDescription)
-        // Note: Zustand stores can't use useTranslation() hook - need to pass t() or use i18n.t()
         if (result.data.success) {
           toast({
-            title: 'Connection successful',
-            description: 'Your API credentials are valid.'
+            title: i18n.t('settings:connection.successTitle'),
+            description: i18n.t('settings:connection.successDescription'),
           });
         }
         return result.data;

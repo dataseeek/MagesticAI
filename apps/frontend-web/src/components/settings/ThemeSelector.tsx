@@ -10,8 +10,7 @@ interface ThemeSelectorProps {
 }
 
 /**
- * Theme selector component displaying a grid of theme cards with preview swatches
- * and a 3-option mode toggle (Light/Dark/System)
+ * Theme selector component with a 3-option mode toggle (Light/Dark/System).
  *
  * Theme changes are applied immediately for live preview, while other settings
  * require saving to take effect.

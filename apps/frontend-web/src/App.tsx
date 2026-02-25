@@ -29,8 +29,8 @@ import { useTaskStore, loadTasks } from './stores/task-store';
 import { useSettingsStore, loadSettings } from './stores/settings-store';
 import { useAuthStore } from './stores/auth-store';
 import { useIpcListeners } from './hooks/useIpc';
-import { COLOR_THEMES, UI_SCALE_MIN, UI_SCALE_MAX, UI_SCALE_DEFAULT } from './shared/constants';
-import type { Task, ColorTheme, Project } from './shared/types';
+import { UI_SCALE_MIN, UI_SCALE_MAX, UI_SCALE_DEFAULT } from './shared/constants';
+import type { Task, Project } from './shared/types';
 
 function AuthenticatedApp() {
   // Loading screen state - show for 5 seconds on every page load
@@ -171,9 +171,12 @@ function AuthenticatedApp() {
     return () => clearTimeout(timeout);
   }, [isSwitchingProject]);
 
-  // Apply theme
+  // Apply theme (light/dark mode + Ocean color theme)
   useEffect(() => {
     const root = document.documentElement;
+
+    // Always use Ocean color theme
+    root.setAttribute('data-theme', 'ocean');
 
     const applyTheme = () => {
       if (settings.theme === 'dark') {
@@ -189,19 +192,15 @@ function AuthenticatedApp() {
       }
     };
 
-    const validThemeIds = COLOR_THEMES.map((t) => t.id);
-    const rawColorTheme = settings.colorTheme ?? 'ocean';
-    const colorTheme: ColorTheme = validThemeIds.includes(rawColorTheme as ColorTheme)
-      ? (rawColorTheme as ColorTheme)
-      : 'default';
-
-    if (colorTheme === 'default') {
-      root.removeAttribute('data-theme');
-    } else {
-      root.setAttribute('data-theme', colorTheme);
-    }
-
     applyTheme();
+
+    // Persist to localStorage so the inline script in index.html can apply
+    // the theme synchronously on next load, preventing a flash of wrong colors
+    try {
+      localStorage.setItem('magestic-theme', settings.theme ?? 'system');
+    } catch {
+      // localStorage may be unavailable
+    }
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
@@ -214,7 +213,7 @@ function AuthenticatedApp() {
     return () => {
       mediaQuery.removeEventListener('change', handleChange);
     };
-  }, [settings.theme, settings.colorTheme]);
+  }, [settings.theme]);
 
   // Apply UI scale
   useEffect(() => {

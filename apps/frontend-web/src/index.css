@@ -119,10 +119,9 @@
 }
 
 /* ============================================
-   Color Theme Variants
+   Ocean Color Theme
    ============================================ */
 
-/* Ocean Theme */
 [data-theme="ocean"] {
   --primary: 199 89% 40%;
   --primary-foreground: 0 0% 100%;
@@ -137,89 +136,6 @@
   --border: 204 50% 25%;
   --primary: 199 89% 50%;
   --accent: 199 89% 50%;
-}
-
-/* Lime Theme */
-[data-theme="lime"] {
-  --primary: 263 70% 58%;
-  --primary-foreground: 0 0% 100%;
-  --accent: 263 70% 58%;
-  --accent-foreground: 0 0% 100%;
-  --ring: 263 70% 58%;
-  --background: 66 70% 80%;
-}
-[data-theme="lime"].dark, .dark[data-theme="lime"] {
-  --background: 240 33% 9%;
-  --card: 240 30% 7%;
-  --popover: 240 30% 10%;
-  --border: 240 20% 20%;
-  --primary: 263 70% 58%;
-  --accent: 263 70% 58%;
-}
-
-/* Retro Theme */
-[data-theme="retro"] {
-  --primary: 32 95% 44%;
-  --primary-foreground: 0 0% 100%;
-  --accent: 32 95% 44%;
-  --accent-foreground: 0 0% 100%;
-  --ring: 32 95% 44%;
-  --background: 48 96% 89%;
-}
-[data-theme="retro"].dark, .dark[data-theme="retro"] {
-  --background: 24 10% 10%;
-  --card: 24 10% 8%;
-  --popover: 24 10% 12%;
-  --border: 24 10% 20%;
-  --primary: 32 95% 54%;
-  --accent: 32 95% 54%;
-}
-
-/* Neo Theme */
-[data-theme="neo"] {
-  --primary: 292 91% 58%;
-  --primary-foreground: 0 0% 100%;
-  --accent: 292 91% 58%;
-  --accent-foreground: 0 0% 100%;
-  --ring: 292 91% 58%;
-  --background: 293 100% 98%;
-}
-[data-theme="neo"].dark, .dark[data-theme="neo"] {
-  --background: 271 79% 8%;
-  --card: 271 70% 6%;
-  --popover: 271 70% 10%;
-  --border: 271 50% 20%;
-  --primary: 292 91% 68%;
-  --accent: 292 91% 68%;
-}
-
-/* Forest Theme */
-[data-theme="forest"] {
-  --primary: 142 71% 45%;
-  --primary-foreground: 0 0% 100%;
-  --accent: 142 71% 45%;
-  --accent-foreground: 0 0% 100%;
-  --ring: 142 71% 45%;
-  --background: 138 76% 94%;
-}
-[data-theme="forest"].dark, .dark[data-theme="forest"] {
-  --background: 150 80% 8%;
-  --card: 150 70% 6%;
-  --popover: 150 70% 10%;
-  --border: 150 50% 18%;
-  --primary: 142 71% 55%;
-  --accent: 142 71% 55%;
-}
-
-/* Dusk Theme */
-[data-theme="dusk"] {
-  --background: 60 20% 95%;
-}
-[data-theme="dusk"].dark, .dark[data-theme="dusk"] {
-  --background: 240 15% 8%;
-  --card: 240 12% 6%;
-  --popover: 240 12% 10%;
-  --border: 240 10% 18%;
 }
 
 body {

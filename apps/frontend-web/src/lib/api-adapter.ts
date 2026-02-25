@@ -246,7 +246,7 @@ export const webAPI: API & { _isWebMode: boolean } = {
       if (!result.success) {
         log.error(`Failed to stop task ${taskId}`, result.error);
       }
-    });
+    }).catch((e) => log.error(`Failed to stop task ${taskId}`, e));
   },
   submitReview: (taskId: string, approved: boolean, feedback?: string) =>
     post(`/tasks/${taskId}/review`, { approved, feedback }),
@@ -383,10 +383,10 @@ export const webAPI: API & { _isWebMode: boolean } = {
     terminalWs.send(id, data);
   },
   resizeTerminal: (id: string, cols: number, rows: number) => {
-    post(`/terminals/${id}/resize`, { cols, rows });
+    post(`/terminals/${id}/resize`, { cols, rows }).catch((e) => log.error(`Failed to resize terminal ${id}`, e));
   },
   invokeClaudeInTerminal: (id: string, cwd?: string) => {
-    post(`/terminals/${id}/invoke-claude`, { cwd });
+    post(`/terminals/${id}/invoke-claude`, { cwd }).catch((e) => log.error(`Failed to invoke Claude in terminal ${id}`, e));
   },
   generateTerminalName: (command: string, cwd?: string) =>
     post('/terminals/generate-name', { command, cwd }),
@@ -489,8 +489,6 @@ export const webAPI: API & { _isWebMode: boolean } = {
   // ========== App Settings ==========
   getSettings: () => get<AppSettings>('/settings'),
   saveSettings: (settings: Partial<AppSettings>) => put('/settings', settings),
-  getCliToolsInfo: () => get('/settings/cli-tools'),
-
   // API Profiles
   getAPIProfiles: () => get('/settings/api-profiles'),
   saveAPIProfile: (profile) => post('/settings/api-profiles', profile),

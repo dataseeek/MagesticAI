@@ -52,8 +52,10 @@ def check_task_state(spec_dir: Path) -> tuple[bool, list[str]]:
     # Check status field
     status = plan.get("status", "")
     valid_statuses = [
-        "pending", "in_progress", "human_review", "ai_review",
-        "qa_failed", "completed", "cancelled"
+        # Current frontend statuses
+        "backlog", "in_progress", "ai_review", "human_review", "done",
+        # Legacy values (may exist in older spec files)
+        "pending", "qa_failed", "completed", "cancelled", "review",
     ]
 
     if status not in valid_statuses:
@@ -164,7 +166,8 @@ def fix_task(spec_dir: Path, dry_run: bool = False) -> bool:
 
             fixed = True
 
-    elif status not in ["pending", "in_progress", "human_review", "ai_review", "qa_failed", "completed", "cancelled"]:
+    elif status not in ["backlog", "in_progress", "ai_review", "human_review", "done",
+                         "pending", "qa_failed", "completed", "cancelled", "review"]:
         print(f"  → Correcting invalid status: '{status}' → 'in_progress'")
 
         if not dry_run:

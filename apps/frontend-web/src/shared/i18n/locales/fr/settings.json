@@ -26,14 +26,40 @@
       "description": "Modèle par défaut et framework"
     },
     "llmProvider": {
-      "title": "Fournisseur LLM",
-      "description": "Choisissez le modèle IA à utiliser pour générer les changelogs",
-      "futureNotice": "Cette fonctionnalité est prévue pour une implémentation future. Les paramètres sont enregistrés mais pas encore actifs.",
-      "providerLabel": "Fournisseur",
-      "providers": {
-        "ollama": "Ollama (Local)",
-        "anthropic": "Anthropic (Cloud)",
-        "openai": "OpenAI (Cloud)"
+      "title": "Fournisseurs LLM",
+      "description": "LLM locaux, comptes Claude et clés API",
+      "localLlms": {
+        "title": "LLM Locaux",
+        "description": "Connectez-vous aux modèles locaux via Ollama"
+      },
+      "accounts": {
+        "title": "Comptes LLM",
+        "description": "Gérer les profils Claude et le basculement automatique de compte"
+      },
+      "apiKeys": {
+        "title": "Clés API",
+        "description": "Clés API des fournisseurs utilisées par défaut dans tous les projets",
+        "info": "Les clés définies ici sont utilisées par défaut. Les projets individuels peuvent les remplacer dans leurs paramètres.",
+        "anthropic": {
+          "label": "Clé API Anthropic",
+          "description": "Utilisée pour l'accès à l'API Claude d'Anthropic"
+        },
+        "openai": {
+          "label": "Clé API OpenAI",
+          "description": "Utilisée pour les modèles OpenAI (ChatGPT)"
+        },
+        "google": {
+          "label": "Clé API Google AI",
+          "description": "Utilisée pour les modèles Google AI (Gemini)"
+        },
+        "groq": {
+          "label": "Clé API Groq",
+          "description": "Utilisée pour l'accélération d'inférence Groq"
+        },
+        "openrouter": {
+          "label": "Clé API OpenRouter",
+          "description": "Utilisée pour la passerelle multi-modèle OpenRouter"
+        }
       },
       "ollama": {
         "baseUrl": "URL de base Ollama",
@@ -41,23 +67,11 @@
         "refreshModels": "Actualiser les modèles",
         "downloadModel": "Télécharger le modèle"
       },
-      "anthropic": {
-        "model": "Modèle Claude",
-        "apiKeyNote": "La clé API est configurée dans la section Intégrations"
-      },
-      "openai": {
-        "model": "Modèle GPT",
-        "baseUrl": "URL de base personnalisée (facultatif)"
-      },
       "testConnection": "Tester la connexion"
-    },
-    "paths": {
-      "title": "Chemins",
-      "description": "Outils CLI et chemins framework"
     },
     "integrations": {
       "title": "Intégrations",
-      "description": "Clés API & comptes Claude"
+      "description": "Connexions aux services tiers (bientôt disponible)"
     },
     "api-profiles": {
       "title": "Profils API",
@@ -101,33 +115,6 @@
     "featureModelSettingsDescription": "Modèle et niveau de réflexion pour Chat et fonctionnalités GitHub",
     "model": "Modèle",
     "thinkingLevel": "Niveau de réflexion",
-    "paths": "Chemins",
-    "pathsDescription": "Configurer les chemins des exécutables et du framework",
-    "pythonPath": "Chemin Python",
-    "pythonPathDescription": "Chemin vers l'exécutable Python (laisser vide pour détection automatique)",
-    "pythonPathPlaceholder": "python3 (par défaut)",
-    "gitPath": "Chemin Git",
-    "gitPathDescription": "Chemin vers l'exécutable Git (laisser vide pour détection automatique)",
-    "gitPathPlaceholder": "git (par défaut)",
-    "githubCLIPath": "Chemin GitHub CLI",
-    "githubCLIPathDescription": "Chemin vers l'exécutable GitHub CLI (gh) (laisser vide pour détection automatique)",
-    "githubCLIPathPlaceholder": "gh (par défaut)",
-    "claudePath": "Chemin Claude CLI",
-    "claudePathDescription": "Chemin vers l'exécutable Claude CLI (laisser vide pour détection automatique)",
-    "claudePathPlaceholder": "claude (par défaut)",
-    "detectedPath": "Détecté automatiquement",
-    "detectedVersion": "Version",
-    "detectedSource": "Source",
-    "sourceUserConfig": "Configuration utilisateur",
-    "sourceVenv": "Environnement virtuel",
-    "sourceHomebrew": "Homebrew",
-    "sourceSystemPath": "PATH système",
-    "sourceBundled": "Intégré",
-    "sourceFallback": "Valeur par défaut",
-    "notDetected": "Non détecté",
-    "autoClaudePath": "Chemin MagesticAI",
-    "autoClaudePathDescription": "Chemin relatif vers le répertoire magestic-ai dans les projets",
-    "autoClaudePathPlaceholder": "magestic-ai (par défaut)",
     "autoNameTerminals": "Nommer automatiquement les terminaux",
     "autoNameTerminalsDescription": "Utiliser l'IA pour générer des noms descriptifs pour les onglets de terminal en fonction de leur activité",
     "bmadSessionSegmentation": "Segmentation de session BMad",
@@ -140,9 +127,7 @@
     "modeDescription": "Choisir entre les thèmes clair et sombre",
     "light": "Clair",
     "dark": "Sombre",
-    "system": "Système",
-    "colorTheme": "Thème de couleur",
-    "colorThemeDescription": "Choisissez votre palette de couleurs préférée"
+    "system": "Système"
   },
   "devtools": {
     "title": "Outils de développement",
@@ -328,7 +313,8 @@
     "apiKeys": "Clés API",
     "apiKeysInfo": "Les clés définies ici sont utilisées par défaut. Les projets individuels peuvent les remplacer dans leurs paramètres.",
     "openaiKey": "Clé API OpenAI",
-    "openaiKeyDescription": "Requise pour le backend mémoire Graphiti (embeddings)"
+    "openaiKeyDescription": "Utilisée pour les modèles OpenAI (ChatGPT)",
+    "comingSoon": "Les intégrations tierces (Linear, Jira, Slack, etc.) arrivent bientôt. Les comptes Claude et les clés API ont été déplacés vers la page Fournisseurs LLM."
   },
   "debug": {
     "title": "Debug & Logs",
@@ -349,6 +335,10 @@
       "title": "Aucun projet sélectionné",
       "description": "Sélectionnez un projet dans la barre latérale pour configurer ses paramètres."
     }
+  },
+  "connection": {
+    "successTitle": "Connexion réussie",
+    "successDescription": "Vos identifiants API sont valides."
   },
   "mcp": {
     "title": "Aperçu des serveurs MCP",

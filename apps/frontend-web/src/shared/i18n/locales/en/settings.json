@@ -26,14 +26,40 @@
       "description": "Default model and framework"
     },
     "llmProvider": {
-      "title": "LLM Provider",
-      "description": "Choose which AI model to use for changelog generation",
-      "futureNotice": "This feature is planned for future implementation. Settings are saved but not yet active.",
-      "providerLabel": "Provider",
-      "providers": {
-        "ollama": "Ollama (Local)",
-        "anthropic": "Anthropic (Cloud)",
-        "openai": "OpenAI (Cloud)"
+      "title": "LLM Providers",
+      "description": "Local LLMs, Claude accounts, and API keys",
+      "localLlms": {
+        "title": "Local LLMs",
+        "description": "Connect to locally running models via Ollama"
+      },
+      "accounts": {
+        "title": "LLM Accounts",
+        "description": "Manage Claude profiles and automatic account switching"
+      },
+      "apiKeys": {
+        "title": "API Keys",
+        "description": "Provider API keys used as defaults across all projects",
+        "info": "Keys set here are used as defaults. Individual projects can override these in their settings.",
+        "anthropic": {
+          "label": "Anthropic API Key",
+          "description": "Used for Anthropic Claude API access"
+        },
+        "openai": {
+          "label": "OpenAI API Key",
+          "description": "Used for OpenAI (ChatGPT) models"
+        },
+        "google": {
+          "label": "Google AI API Key",
+          "description": "Used for Google AI (Gemini) models"
+        },
+        "groq": {
+          "label": "Groq API Key",
+          "description": "Used for Groq inference acceleration"
+        },
+        "openrouter": {
+          "label": "OpenRouter API Key",
+          "description": "Used for OpenRouter multi-model gateway"
+        }
       },
       "ollama": {
         "baseUrl": "Ollama Base URL",
@@ -41,23 +67,11 @@
         "refreshModels": "Refresh Models",
         "downloadModel": "Download Model"
       },
-      "anthropic": {
-        "model": "Claude Model",
-        "apiKeyNote": "API key is configured in Integrations section"
-      },
-      "openai": {
-        "model": "GPT Model",
-        "baseUrl": "Custom Base URL (optional)"
-      },
       "testConnection": "Test Connection"
-    },
-    "paths": {
-      "title": "Paths",
-      "description": "CLI tools and framework paths"
     },
     "integrations": {
       "title": "Integrations",
-      "description": "API keys & Claude accounts"
+      "description": "Third-party service connections (coming soon)"
     },
     "api-profiles": {
       "title": "API Profiles",
@@ -101,33 +115,6 @@
     "featureModelSettingsDescription": "Model and thinking level for Chat and GitHub features",
     "model": "Model",
     "thinkingLevel": "Thinking Level",
-    "paths": "Paths",
-    "pathsDescription": "Configure executable and framework paths",
-    "pythonPath": "Python Path",
-    "pythonPathDescription": "Path to Python executable (leave empty for auto-detection)",
-    "pythonPathPlaceholder": "python3 (default)",
-    "gitPath": "Git Path",
-    "gitPathDescription": "Path to Git executable (leave empty for auto-detection)",
-    "gitPathPlaceholder": "git (default)",
-    "githubCLIPath": "GitHub CLI Path",
-    "githubCLIPathDescription": "Path to GitHub CLI (gh) executable (leave empty for auto-detection)",
-    "githubCLIPathPlaceholder": "gh (default)",
-    "claudePath": "Claude CLI Path",
-    "claudePathDescription": "Path to Claude CLI executable (leave empty for auto-detection)",
-    "claudePathPlaceholder": "claude (default)",
-    "detectedPath": "Auto-detected",
-    "detectedVersion": "Version",
-    "detectedSource": "Source",
-    "sourceUserConfig": "User Configuration",
-    "sourceVenv": "Virtual Environment",
-    "sourceHomebrew": "Homebrew",
-    "sourceSystemPath": "System PATH",
-    "sourceBundled": "Bundled",
-    "sourceFallback": "Fallback",
-    "notDetected": "Not detected",
-    "autoClaudePath": "MagesticAI Path",
-    "autoClaudePathDescription": "Relative path to magestic-ai directory in projects",
-    "autoClaudePathPlaceholder": "magestic-ai (default)",
     "autoNameTerminals": "Automatically name terminals",
     "autoNameTerminalsDescription": "Use AI to generate descriptive names for terminal tabs based on their activity",
     "bmadSessionSegmentation": "BMad Session Segmentation",
@@ -140,9 +127,7 @@
     "modeDescription": "Choose between light and dark themes",
     "light": "Light",
     "dark": "Dark",
-    "system": "System",
-    "colorTheme": "Color Theme",
-    "colorThemeDescription": "Choose your preferred color palette"
+    "system": "System"
   },
   "devtools": {
     "title": "Developer Tools",
@@ -328,7 +313,8 @@
     "apiKeys": "API Keys",
     "apiKeysInfo": "Keys set here are used as defaults. Individual projects can override these in their settings.",
     "openaiKey": "OpenAI API Key",
-    "openaiKeyDescription": "Required for Graphiti memory backend (embeddings)"
+    "openaiKeyDescription": "Used for OpenAI (ChatGPT) models",
+    "comingSoon": "Third-party integrations (Linear, Jira, Slack, etc.) are coming soon. Claude accounts and API keys have moved to the LLM Providers page."
   },
   "debug": {
     "title": "Debug & Logs",
@@ -349,6 +335,10 @@
       "title": "No Project Selected",
       "description": "Select a project from the sidebar to configure its settings."
     }
+  },
+  "connection": {
+    "successTitle": "Connection successful",
+    "successDescription": "Your API credentials are valid."
   },
   "mcp": {
     "title": "MCP Server Overview",

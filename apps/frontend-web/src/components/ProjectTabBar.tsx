@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
-import { Plus, Settings, HelpCircle } from 'lucide-react';
+import { Plus, Settings, HelpCircle, Sun, Moon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import { SortableProjectTab } from './SortableProjectTab';
 import { ProjectSelector } from './settings/ProjectSelector';
 import { useProjectStore } from '../stores/project-store';
+import { useSettingsStore, saveSettings } from '../stores/settings-store';
 import type { Project } from '../shared/types';
 
 interface ProjectTabBarProps {
@@ -32,6 +33,16 @@ export function ProjectTabBar({
   const allProjects = useProjectStore((state) => state.projects);
   const selectedProjectId = useProjectStore((state) => state.selectedProjectId);
   const selectProject = useProjectStore((state) => state.selectProject);
+  const theme = useSettingsStore((state) => state.settings.theme);
+  const updateStoreSettings = useSettingsStore((state) => state.updateSettings);
+  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  const toggleTheme = () => {
+    const newTheme = isDark ? 'light' : 'dark';
+    updateStoreSettings({ theme: newTheme });
+    saveSettings({ theme: newTheme });
+  };
+
   // Keyboard shortcuts for tab navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -138,6 +149,15 @@ export function ProjectTabBar({
           title="Add Project"
         >
           <Plus className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={toggleTheme}
+          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
         <Button
           variant="ghost"

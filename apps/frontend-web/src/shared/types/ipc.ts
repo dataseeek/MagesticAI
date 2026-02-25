@@ -263,13 +263,6 @@ export interface API {
   // App settings
   getSettings: () => Promise<IPCResult<AppSettings>>;
   saveSettings: (settings: Partial<AppSettings>) => Promise<IPCResult>;
-  getCliToolsInfo: () => Promise<IPCResult<{
-    python: import('./cli').ToolDetectionResult;
-    git: import('./cli').ToolDetectionResult;
-    gh: import('./cli').ToolDetectionResult;
-    claude: import('./cli').ToolDetectionResult;
-  }>>;
-
   // API Profile management (custom Anthropic-compatible endpoints)
   getAPIProfiles: () => Promise<IPCResult<ProfilesFile>>;
   saveAPIProfile: (profile: Omit<APIProfile, 'id' | 'createdAt' | 'updatedAt'>) => Promise<IPCResult<APIProfile>>;

@@ -35,15 +35,15 @@ TaskStatus = Literal[
     "done",
 ]
 
-# Backend statuses that get mapped to frontend statuses
-# backlog -> backlog
-# planning -> backlog
-# in_progress -> in_progress
-# review -> ai_review
-# qa_pending -> ai_review
-# qa_failed -> human_review
-# completed -> done
-# cancelled -> backlog
+# Backend statuses that get mapped to frontend statuses:
+# backlog -> backlog           (not started)
+# planning -> backlog          (still in queue)
+# in_progress -> in_progress   (actively building)
+# review -> human_review       (build finished, needs merge review)
+# qa_pending -> ai_review      (QA running)
+# qa_failed -> human_review    (QA failed, needs human attention)
+# completed -> human_review    (finished, needs final approval/merge)
+# cancelled -> backlog         (cancelled, shown in backlog)
 
 
 class SubtaskVerification(BaseModel):
@@ -393,7 +393,7 @@ def load_spec_metadata(spec_dir: Path) -> dict:
                 if coding_phase.get("status") == "completed" and coding_phase.get("entries"):
                     # Coding is done with log entries - task is ready for human review
                     metadata["phase"] = "coding"
-                    metadata["status"] = "review"
+                    metadata["status"] = "human_review"
                     metadata["reviewReason"] = "completed"  # Signal to frontend that build is complete
         except (json.JSONDecodeError, KeyError):
             pass
@@ -543,15 +543,18 @@ def load_spec_metadata(spec_dir: Path) -> dict:
     # This allows users to override status via drag-and-drop
     if explicit_status is None and metadata["status"] == "backlog":
         if (spec_dir / "QA_FIX_REQUEST.md").exists():
-            metadata["status"] = "qa_failed"
+            metadata["status"] = "human_review"
+            metadata["reviewReason"] = "qa_rejected"
         elif (spec_dir / "qa_report.md").exists():
             report = (spec_dir / "qa_report.md").read_text()
             if "PASSED" in report.upper():
-                metadata["status"] = "completed"
+                metadata["status"] = "human_review"
+                metadata["reviewReason"] = "completed"
             elif "FAILED" in report.upper():
-                metadata["status"] = "qa_failed"
+                metadata["status"] = "human_review"
+                metadata["reviewReason"] = "qa_rejected"
             else:
-                metadata["status"] = "review"
+                metadata["status"] = "ai_review"  # QA still in progress
         elif metadata["phase"]:
             metadata["status"] = "in_progress"
 
@@ -605,7 +608,7 @@ def map_backend_status_to_frontend(backend_status: str) -> str:
         "review": "human_review",  # Build ready for review/merge - needs human action
         "qa_pending": "ai_review",
         "qa_failed": "human_review",  # Failed QA needs human attention
-        "completed": "done",
+        "completed": "human_review",  # Completed tasks need merge approval
         "cancelled": "backlog",  # Cancelled tasks shown in backlog (could be hidden later)
         # Frontend statuses (pass through when already mapped or set via kanban)
         "ai_review": "ai_review",
@@ -2021,7 +2024,7 @@ async def resolve_uncommitted_conflicts(task_id: str):
                     )
                     if result.returncode == 0:
                         base_content = result.stdout
-                except:
+                except Exception:
                     pass
 
                 # Get local version (uncommitted changes)
@@ -2042,7 +2045,7 @@ async def resolve_uncommitted_conflicts(task_id: str):
                         working_file = project_path / file_path
                         if working_file.exists():
                             local_content = working_file.read_text()
-                except:
+                except Exception:
                     pass
 
                 # Get task branch version
@@ -2056,7 +2059,7 @@ async def resolve_uncommitted_conflicts(task_id: str):
                     )
                     if result.returncode == 0:
                         task_content = result.stdout
-                except:
+                except Exception:
                     pass
 
                 # Use AI to merge the three versions
@@ -2096,7 +2099,7 @@ async def resolve_uncommitted_conflicts(task_id: str):
                     text=True
                 )
                 logger.info("Dropped stash after merge")
-            except:
+            except Exception:
                 logger.warning("Failed to drop stash - may need manual cleanup")
 
     if failed_files:
