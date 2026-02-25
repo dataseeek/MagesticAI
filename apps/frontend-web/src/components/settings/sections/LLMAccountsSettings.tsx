@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Users,
   Eye,
   EyeOff,
   Plus,
@@ -16,7 +15,8 @@ import {
   ChevronRight,
   RefreshCw,
   Activity,
-  AlertCircle
+  AlertCircle,
+  Terminal
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
@@ -24,7 +24,8 @@ import { Label } from '../../ui/label';
 import { Switch } from '../../ui/switch';
 import { cn } from '../../../lib/utils';
 import { loadClaudeProfiles as loadGlobalClaudeProfiles } from '../../../stores/claude-profile-store';
-import type { ClaudeProfile, ClaudeAutoSwitchSettings } from '../../../shared/types';
+import { CLIAccountCard } from './CLIAccountCard';
+import type { ClaudeProfile, ClaudeAutoSwitchSettings, CLIAccountsDetectionResult } from '../../../shared/types';
 
 interface LLMAccountsSettingsProps {
   isOpen: boolean;
@@ -54,10 +55,15 @@ export function LLMAccountsSettings({ isOpen }: LLMAccountsSettingsProps) {
   const [autoSwitchSettings, setAutoSwitchSettings] = useState<ClaudeAutoSwitchSettings | null>(null);
   const [isLoadingAutoSwitch, setIsLoadingAutoSwitch] = useState(false);
 
+  // CLI accounts state (Codex & Gemini)
+  const [cliAccounts, setCLIAccounts] = useState<CLIAccountsDetectionResult | null>(null);
+  const [isDetectingCLI, setIsDetectingCLI] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       loadClaudeProfiles();
       loadAutoSwitchSettings();
+      detectCLIAccounts();
     }
   }, [isOpen]);
 
@@ -66,6 +72,15 @@ export function LLMAccountsSettings({ isOpen }: LLMAccountsSettingsProps) {
       if (info.success && info.profileId) {
         await loadClaudeProfiles();
         alert(`Profile authenticated successfully!\n\n${info.email ? `Account: ${info.email}` : 'Authentication complete.'}\n\nYou can now use this profile.`);
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.API.onCLIAccountAuth(async (info) => {
+      if (info.success) {
+        await detectCLIAccounts();
       }
     });
     return unsubscribe;
@@ -254,15 +269,76 @@ export function LLMAccountsSettings({ isOpen }: LLMAccountsSettingsProps) {
     }
   };
 
+  const detectCLIAccounts = async () => {
+    setIsDetectingCLI(true);
+    try {
+      const result = await window.API.detectCLIAccounts();
+      if (result.success && result.data) {
+        setCLIAccounts(result.data);
+      }
+    } catch (err) {
+      console.error('Failed to detect CLI accounts:', err);
+    } finally {
+      setIsDetectingCLI(false);
+    }
+  };
+
+  const handleCLIImport = async (cli: 'codex' | 'gemini') => {
+    try {
+      const result = await window.API.importCLICredentials(cli);
+      if (result.success) {
+        await detectCLIAccounts();
+      }
+    } catch (err) {
+      console.error(`Failed to import ${cli} credentials:`, err);
+    }
+  };
+
+  const handleCLIStartLogin = async (cli: 'codex' | 'gemini') => {
+    try {
+      await window.API.startCLILogin(cli);
+    } catch (err) {
+      console.error(`Failed to start ${cli} login:`, err);
+    }
+  };
+
+  const handleCLISetApiKey = async (cli: 'codex' | 'gemini', apiKey: string) => {
+    try {
+      const result = await window.API.setCLIApiKey(cli, apiKey);
+      if (result.success) {
+        await detectCLIAccounts();
+      }
+    } catch (err) {
+      console.error(`Failed to set ${cli} API key:`, err);
+    }
+  };
+
+  const handleCLIRemove = async (cli: 'codex' | 'gemini') => {
+    try {
+      const result = await window.API.removeCLIAccount(cli);
+      if (result.success) {
+        await detectCLIAccounts();
+      }
+    } catch (err) {
+      console.error(`Failed to remove ${cli} account:`, err);
+    }
+  };
+
+  const handleCLIInstall = async (cli: 'codex' | 'gemini') => {
+    try {
+      const result = await window.API.installCLI(cli);
+      if (result.success) {
+        await detectCLIAccounts();
+      }
+    } catch (err) {
+      console.error(`Failed to install/update ${cli}:`, err);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Claude Accounts Section */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <h4 className="text-sm font-semibold text-foreground">{t('integrations.claudeAccounts')}</h4>
-        </div>
-
         <div className="rounded-lg bg-muted/30 border border-border p-4">
           <p className="text-sm text-muted-foreground mb-4">
             {t('integrations.claudeAccountsDescription')}
@@ -682,6 +758,46 @@ export function LLMAccountsSettings({ isOpen }: LLMAccountsSettingsProps) {
           </div>
         </div>
       )}
+      {/* Other CLI Accounts */}
+      <div className="space-y-4 pt-6 border-t border-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Terminal className="h-4 w-4 text-muted-foreground" />
+            <h4 className="text-sm font-semibold text-foreground">{t('integrations.cliAccounts')}</h4>
+          </div>
+          <Button variant="outline" size="sm" onClick={detectCLIAccounts} disabled={isDetectingCLI}>
+            {isDetectingCLI ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3 w-3 mr-1" />
+            )}
+            {t('integrations.refreshStatus')}
+          </Button>
+        </div>
+        <p className="text-sm text-muted-foreground">{t('integrations.cliAccountsDescription')}</p>
+        <div className="space-y-2">
+          <CLIAccountCard
+            cli="codex"
+            status={cliAccounts?.codex ?? null}
+            isLoading={isDetectingCLI}
+            onImport={() => handleCLIImport('codex')}
+            onStartLogin={() => handleCLIStartLogin('codex')}
+            onSetApiKey={(key) => handleCLISetApiKey('codex', key)}
+            onRemove={() => handleCLIRemove('codex')}
+            onInstall={() => handleCLIInstall('codex')}
+          />
+          <CLIAccountCard
+            cli="gemini"
+            status={cliAccounts?.gemini ?? null}
+            isLoading={isDetectingCLI}
+            onImport={() => handleCLIImport('gemini')}
+            onStartLogin={() => handleCLIStartLogin('gemini')}
+            onSetApiKey={(key) => handleCLISetApiKey('gemini', key)}
+            onRemove={() => handleCLIRemove('gemini')}
+            onInstall={() => handleCLIInstall('gemini')}
+          />
+        </div>
+      </div>
     </div>
   );
 }

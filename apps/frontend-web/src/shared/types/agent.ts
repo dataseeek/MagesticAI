@@ -138,3 +138,23 @@ export interface ClaudeAuthResult {
   authenticated: boolean;
   error?: string;
 }
+
+// ============================================
+// CLI Account Types (Codex & Gemini Support)
+// ============================================
+
+export interface CLIAccountStatus {
+  cli: 'codex' | 'gemini';
+  installed: boolean;
+  version: string | null;
+  authenticated: boolean;
+  authMethod: 'oauth' | 'api_key' | 'google_login' | null;
+  credentialsPath: string | null;
+  tokenExpiresAt: string | null;
+  latestVersion: string | null;
+}
+
+export interface CLIAccountsDetectionResult {
+  codex: CLIAccountStatus;
+  gemini: CLIAccountStatus;
+}
