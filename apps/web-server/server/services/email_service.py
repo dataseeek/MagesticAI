@@ -1,7 +1,7 @@
 """
 Email sending service via OAuth-connected accounts.
 
-Sends notification emails through Microsoft Graph API (Outlook).
+Sends notification emails through Microsoft Graph API (Outlook) or Gmail API.
 Handles token refresh transparently when tokens are near expiry.
 
 Usage::
@@ -16,8 +16,11 @@ Usage::
     )
 """
 
+import base64
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 import httpx
 from sqlalchemy import select, update
@@ -66,6 +69,8 @@ class EmailService:
             try:
                 if account.provider == "outlook":
                     sent = await self._send_via_outlook(account, subject, body_html)
+                elif account.provider == "gmail":
+                    sent = await self._send_via_gmail(account, subject, body_html)
                 else:
                     logger.debug("Unsupported email provider: %s", account.provider)
                     continue
@@ -158,6 +163,8 @@ class EmailService:
 
         if account.provider == "outlook":
             return await self._refresh_outlook_token(account)
+        elif account.provider == "gmail":
+            return await self._refresh_gmail_token(account)
 
         return None
 
@@ -197,10 +204,7 @@ class EmailService:
         new_refresh_token = token_data.get("refresh_token", account.refresh_token)
         expires_in = token_data.get("expires_in", 3600)
 
-        new_expiry = datetime.now(timezone.utc).replace(microsecond=0)
-        from datetime import timedelta
-
-        new_expiry = new_expiry + timedelta(seconds=expires_in)
+        new_expiry = datetime.now(timezone.utc).replace(microsecond=0) + timedelta(seconds=expires_in)
 
         # Update DB
         try:
@@ -222,6 +226,104 @@ class EmailService:
             )
 
         logger.info("Refreshed Outlook token for %s", account.email_address)
+        return new_access_token
+
+    async def _send_via_gmail(
+        self, account: EmailAccount, subject: str, body_html: str
+    ) -> bool:
+        """Send email via Gmail API (POST /gmail/v1/users/me/messages/send)."""
+        access_token = await self._refresh_token_if_needed(account)
+        if not access_token:
+            return False
+
+        # Build RFC 2822 message
+        msg = MIMEMultipart("alternative")
+        msg["From"] = account.email_address
+        msg["To"] = account.email_address
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body_html, "html"))
+
+        # Base64url-encode the raw message
+        raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode("ascii")
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+                json={"raw": raw_message},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": "application/json",
+                },
+            )
+
+        if response.status_code == 200:
+            return True
+
+        logger.warning(
+            "Gmail sendMessage failed: status=%d body=%s",
+            response.status_code,
+            response.text[:500],
+        )
+        return False
+
+    async def _refresh_gmail_token(self, account: EmailAccount) -> str | None:
+        """Refresh a Gmail OAuth token via Google OAuth2."""
+        from .._get_email_oauth_credentials import get_google_oauth_credentials
+
+        creds = get_google_oauth_credentials()
+        if not creds:
+            logger.warning("No Google OAuth credentials configured for token refresh")
+            return None
+
+        client_id, client_secret = creds
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "refresh_token": account.refresh_token,
+                    "grant_type": "refresh_token",
+                },
+            )
+
+        if response.status_code != 200:
+            logger.warning(
+                "Gmail token refresh failed: status=%d body=%s",
+                response.status_code,
+                response.text[:500],
+            )
+            return None
+
+        token_data = response.json()
+        new_access_token = token_data["access_token"]
+        # Google may not return a new refresh token on refresh
+        new_refresh_token = token_data.get("refresh_token", account.refresh_token)
+        expires_in = token_data.get("expires_in", 3600)
+
+        new_expiry = datetime.now(timezone.utc).replace(microsecond=0) + timedelta(seconds=expires_in)
+
+        # Update DB
+        try:
+            async with async_session_factory() as session:
+                await session.execute(
+                    update(EmailAccount)
+                    .where(EmailAccount.id == account.id)
+                    .values(
+                        access_token=new_access_token,
+                        refresh_token=new_refresh_token,
+                        token_expiry=new_expiry,
+                    )
+                )
+                await session.commit()
+        except Exception:
+            logger.warning(
+                "Failed to persist refreshed token for %s", account.email_address,
+                exc_info=True,
+            )
+
+        logger.info("Refreshed Gmail token for %s", account.email_address)
         return new_access_token
 
 

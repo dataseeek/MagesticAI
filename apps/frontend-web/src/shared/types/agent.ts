@@ -149,6 +149,7 @@ export interface CLIAccountStatus {
   version: string | null;
   authenticated: boolean;
   authMethod: 'oauth' | 'api_key' | 'google_login' | null;
+  email: string | null;
   credentialsPath: string | null;
   tokenExpiresAt: string | null;
   latestVersion: string | null;

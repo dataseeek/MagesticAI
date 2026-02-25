@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       host: true, // Listen on all network interfaces for remote access
+      allowedHosts: ['dev.example.com'],
       proxy: {
         '/api': {
           target: env.VITE_API_URL || 'http://localhost:8000',

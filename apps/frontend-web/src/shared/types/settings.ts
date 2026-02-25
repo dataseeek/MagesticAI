@@ -278,6 +278,8 @@ export interface AppSettings {
   // Email Notification OAuth Credentials (app-level)
   emailMicrosoftClientId?: string;
   emailMicrosoftClientSecret?: string;
+  emailGoogleClientId?: string;
+  emailGoogleClientSecret?: string;
 }
 
 // Magestic AI Source Environment Configuration (for magestic-ai repo .env)

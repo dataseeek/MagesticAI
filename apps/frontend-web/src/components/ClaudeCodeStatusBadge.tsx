@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Terminal, Check, AlertTriangle, X, Loader2, Download, RefreshCw, ExternalLink, KeyRound } from 'lucide-react';
+import { Check, AlertTriangle, X, Loader2, Download, RefreshCw, ExternalLink, KeyRound } from 'lucide-react';
+import { AnthropicIcon } from './icons/AnthropicIcon';
 import { Button } from './ui/button';
 import {
   Popover,
@@ -237,7 +238,7 @@ export function ClaudeCodeStatusBadge({ className, onOpenOnboarding }: ClaudeCod
               )}
             >
               <div className="relative">
-                <Terminal className="h-4 w-4" />
+                <AnthropicIcon className="h-4 w-4" />
                 <span className={cn(
                   'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full',
                   getStatusColor()
@@ -272,7 +273,7 @@ export function ClaudeCodeStatusBadge({ className, onOpenOnboarding }: ClaudeCod
           {/* Header */}
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Terminal className="h-4 w-4 text-primary" />
+              <AnthropicIcon className="h-4 w-4 text-primary" />
             </div>
             <div>
               <h4 className="text-sm font-medium">Claude Code CLI</h4>
