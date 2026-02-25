@@ -377,6 +377,8 @@ class AgentService:
         self._task_sequence_numbers: dict[str, int] = {}
         # Track task start times for UI display
         self._task_start_times: dict[str, str] = {}
+        # Track user IDs per task for email notifications
+        self._task_user_ids: dict[str, str] = {}
         # Track current execution phase per task (for proper phase status on completion)
         self._task_current_phases: dict[str, TaskPhase] = {}
         # Track which Claude profile each task is using (for reactive failover)
@@ -1547,6 +1549,9 @@ class AgentService:
             self._task_subtask_states.pop(task_id, None)
             self._spec_dirs.pop(task_id, None)
 
+            # Send email/in-app notifications on task completion or failure
+            _notif_user_id = self._task_user_ids.pop(task_id, "")
+
             # Emit completion/failure progress with previous_phase to trigger status event (Bug 1 fix)
             if return_code == 0:
                 await self._emit_progress(
@@ -1557,6 +1562,20 @@ class AgentService:
                     ),
                     previous_phase=actual_phase,  # Enable status event emission
                 )
+                if _notif_user_id:
+                    try:
+                        from .notification_service import notification_service
+                        _proj_name = project_path.name if project_path else ""
+                        _proj_id = task_id.split(":")[0] if ":" in task_id else ""
+                        await notification_service.notify(
+                            user_id=_notif_user_id,
+                            type="task_complete",
+                            title=f"Task completed: {spec_id}",
+                            message=f"Task {spec_id} in project {_proj_name} completed successfully.",
+                            data={"task_id": task_id, "project_id": _proj_id},
+                        )
+                    except Exception:
+                        logger.debug("Failed to send task completion notification", exc_info=True)
             else:
                 logger.error(f"[AgentService] Task {task_id} failed with exit code {return_code}")
                 await self._emit_progress(
@@ -1567,6 +1586,20 @@ class AgentService:
                     ),
                     previous_phase=actual_phase,  # Enable status event emission
                 )
+                if _notif_user_id:
+                    try:
+                        from .notification_service import notification_service
+                        _proj_name = project_path.name if project_path else ""
+                        _proj_id = task_id.split(":")[0] if ":" in task_id else ""
+                        await notification_service.notify(
+                            user_id=_notif_user_id,
+                            type="task_failed",
+                            title=f"Task failed: {spec_id}",
+                            message=f"Task {spec_id} in project {_proj_name} failed with exit code {return_code}.",
+                            data={"task_id": task_id, "project_id": _proj_id},
+                        )
+                    except Exception:
+                        logger.debug("Failed to send task failure notification", exc_info=True)
         except asyncio.CancelledError:
             # Task was cancelled, cleanup already handled by stop_task
             pass
@@ -1576,6 +1609,7 @@ class AgentService:
                 del self.running_tasks[task_id]
             self._task_sequence_numbers.pop(task_id, None)
             self._task_start_times.pop(task_id, None)
+            self._task_user_ids.pop(task_id, None)
             self._task_profiles.pop(task_id, None)
             self._task_rate_limits.pop(task_id, None)
             self._task_subtask_states.pop(task_id, None)
@@ -1783,6 +1817,8 @@ class AgentService:
         # Initialize tracking for sequence numbers and start time
         self._task_sequence_numbers[task_id] = 0
         self._task_start_times[task_id] = datetime.now().isoformat()
+        if user_id:
+            self._task_user_ids[task_id] = user_id
         # Store spec directory for reading implementation plans during progress updates
         self._spec_dirs[task_id] = spec_dir
 
@@ -1812,6 +1848,7 @@ class AgentService:
         base_branch: str | None = None,
         mode: str | None = "full",
         force: bool = False,
+        user_id: str = "",
     ) -> asyncio.subprocess.Process:
         """Start task execution (run.py).
 

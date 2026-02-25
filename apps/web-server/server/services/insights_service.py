@@ -375,7 +375,7 @@ class InsightsService:
                     "low": "low",
                     "medium": "medium",
                     "high": "high",
-                    "ultrathink": "high",
+                    "max": "max",
                 }
                 effort = effort_map.get(thinking_level)
                 if effort:

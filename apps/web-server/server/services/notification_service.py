@@ -27,10 +27,12 @@ Usage::
     )
 """
 
+import json
 import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 
 from sqlalchemy import select
 
@@ -148,6 +150,17 @@ class NotificationService:
         except Exception:
             logger.warning(
                 "Failed to push notification via WebSocket: user_id=%s type=%s",
+                user_id,
+                type,
+                exc_info=True,
+            )
+
+        # Attempt to send email notification (best-effort, never raises)
+        try:
+            await self._maybe_send_email(user_id, type, title, message, data or {})
+        except Exception:
+            logger.warning(
+                "Failed to send email notification: user_id=%s type=%s",
                 user_id,
                 type,
                 exc_info=True,
@@ -287,6 +300,81 @@ class NotificationService:
         return count
 
     # ------------------------------------------------------------------
+    # Email notification support
+    # ------------------------------------------------------------------
+
+    # Map notification types to NotificationSettings field names
+    _TYPE_TO_SETTING = {
+        "task_complete": "onTaskComplete",
+        "task_completed": "onTaskComplete",
+        "task_failed": "onTaskFailed",
+        "build_failed": "onTaskFailed",
+        "review_needed": "onReviewNeeded",
+        "qa_complete": "onReviewNeeded",
+    }
+
+    async def _maybe_send_email(
+        self,
+        user_id: str,
+        notification_type: str,
+        title: str,
+        message: str,
+        data: dict,
+    ) -> None:
+        """Send an email notification if the user has email enabled and the event type is toggled on."""
+        # Load app settings to check notification preferences
+        try:
+            from ..config import get_settings
+
+            settings_cfg = get_settings()
+            settings_file = Path(settings_cfg.PROJECTS_DATA_DIR) / "settings.json"
+            if not settings_file.exists():
+                return
+
+            app_settings = json.loads(settings_file.read_text())
+            notifications = app_settings.get("notifications", {})
+
+            # Check master email toggle
+            if not notifications.get("emailEnabled", False):
+                return
+
+            # Check specific event type toggle
+            setting_key = self._TYPE_TO_SETTING.get(notification_type)
+            if setting_key and not notifications.get(setting_key, True):
+                return
+        except Exception:
+            logger.debug("Could not load notification settings for email check", exc_info=True)
+            return
+
+        # Send the email
+        from .email_service import email_service
+
+        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        task_id = data.get("task_id", "")
+        project_id = data.get("project_id", "")
+
+        body_html = f"""
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #2563eb;">{_html_escape(title)}</h2>
+            <p>{_html_escape(message)}</p>
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
+            <p style="color: #6b7280; font-size: 13px;">
+                Task: {_html_escape(task_id)}<br/>
+                Project: {_html_escape(project_id)}<br/>
+                Time: {now_str}
+            </p>
+            <p style="color: #9ca3af; font-size: 12px;">Sent by MagesticAI</p>
+        </div>
+        """
+
+        await email_service.send_notification_email(
+            user_id=user_id,
+            subject=f"MagesticAI - {title}",
+            body_html=body_html,
+            body_text=f"{title}\n\n{message}\n\nTask: {task_id}\nProject: {project_id}\nTime: {now_str}",
+        )
+
+    # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
@@ -303,6 +391,11 @@ class NotificationService:
             self._store[user_id] = self._store[user_id][
                 : self.MAX_NOTIFICATIONS_PER_USER
             ]
+
+
+def _html_escape(s: str) -> str:
+    """Minimal HTML escaping for notification email content."""
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 # ---------------------------------------------------------------------------

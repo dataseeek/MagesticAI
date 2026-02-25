@@ -310,6 +310,52 @@ class ApiKey(Base):
 
 
 # ---------------------------------------------------------------------------
+# Email Accounts (OAuth-connected email for notifications)
+# ---------------------------------------------------------------------------
+
+
+class EmailAccount(Base):
+    """OAuth-connected email account for sending notifications."""
+
+    __tablename__ = "email_accounts"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "provider", name="uq_email_accounts_user_provider"
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=_generate_uuid
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=False
+    )
+    provider: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # "outlook" | "gmail"
+    email_address: Mapped[str] = mapped_column(String(255), nullable=False)
+    access_token: Mapped[str] = mapped_column(Text, nullable=False)
+    refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    token_expiry: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    scopes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+
+    def __repr__(self) -> str:
+        return (
+            f"<EmailAccount id={self.id!r} provider={self.provider!r} "
+            f"email={self.email_address!r}>"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Audit Logs
 # ---------------------------------------------------------------------------
 

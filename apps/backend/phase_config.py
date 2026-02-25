@@ -19,7 +19,7 @@ MODEL_ID_MAP: dict[str, str] = {
     "opus": "claude-opus-4-6",
     "opus-1m": "claude-opus-4-6",
     "opus-4.5": "claude-opus-4-5-20251101",
-    "sonnet": "claude-sonnet-4-5-20250929",
+    "sonnet": "claude-sonnet-4-6",
     "haiku": "claude-haiku-4-5-20251001",
 }
 
@@ -36,7 +36,7 @@ THINKING_BUDGET_MAP: dict[str, int | None] = {
     "low": 1024,
     "medium": 4096,  # Moderate analysis
     "high": 16384,  # Deep thinking for QA review
-    "ultrathink": 65536,  # Maximum reasoning depth (web-exclusive)
+    "max": 65536,  # Maximum reasoning depth (Opus only)
 }
 
 # Effort level mapping for adaptive thinking models (e.g., Opus 4.6)
@@ -45,21 +45,21 @@ EFFORT_LEVEL_MAP: dict[str, str] = {
     "low": "low",
     "medium": "medium",
     "high": "high",
-    "ultrathink": "high",  # Map ultrathink to high effort
+    "max": "max",  # Maximum effort (Opus only)
 }
 
 # Models that support adaptive thinking via effort level (env var)
 # These models get both max_thinking_tokens AND effort_level
-ADAPTIVE_THINKING_MODELS: set[str] = {"claude-opus-4-6"}
+ADAPTIVE_THINKING_MODELS: set[str] = {"claude-opus-4-6", "claude-sonnet-4-6"}
 
 # Spec runner phase-specific thinking levels
-# Heavy phases use ultrathink for deep analysis
+# Heavy phases use max for deep analysis
 # Light phases use medium after compaction
 SPEC_PHASE_THINKING_LEVELS: dict[str, str] = {
-    # Heavy phases - ultrathink (discovery, spec creation, self-critique)
-    "discovery": "ultrathink",
-    "spec_writing": "ultrathink",
-    "self_critique": "ultrathink",
+    # Heavy phases - max (discovery, spec creation, self-critique)
+    "discovery": "max",
+    "spec_writing": "max",
+    "self_critique": "max",
     # Light phases - medium (after first invocation with compaction)
     "requirements": "medium",
     "research": "medium",
@@ -175,7 +175,7 @@ def get_thinking_budget(thinking_level: str) -> int | None:
     Get the thinking budget for a thinking level.
 
     Args:
-        thinking_level: Thinking level (none, low, medium, high, ultrathink)
+        thinking_level: Thinking level (none, low, medium, high, max)
 
     Returns:
         Token budget or None for no extended thinking
@@ -217,7 +217,7 @@ def get_thinking_kwargs_for_model(model_id: str, thinking_level: str) -> dict:
 
     Args:
         model_id: Full model ID (e.g., 'claude-opus-4-6')
-        thinking_level: Thinking level string (none, low, medium, high, ultrathink)
+        thinking_level: Thinking level string (none, low, medium, high, max)
 
     Returns:
         Dict with 'max_thinking_tokens' and optionally 'effort_level'

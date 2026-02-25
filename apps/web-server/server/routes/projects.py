@@ -60,6 +60,7 @@ class NotificationSettings(BaseModel):
     onTaskFailed: bool = Field(default=True)
     onReviewNeeded: bool = Field(default=True)
     sound: bool = Field(default=True)
+    emailEnabled: bool = Field(default=False)
 
 
 class ProjectSettings(BaseModel):
@@ -512,6 +513,7 @@ class NotificationSettingsUpdate(BaseModel):
     onTaskFailed: bool | None = None
     onReviewNeeded: bool | None = None
     sound: bool | None = None
+    emailEnabled: bool | None = None
 
 
 class ProjectSettingsUpdate(BaseModel):

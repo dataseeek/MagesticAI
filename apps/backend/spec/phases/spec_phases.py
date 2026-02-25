@@ -173,7 +173,7 @@ Create:
 **Research File**: {research_file}
 **Critique Output**: {critique_file}
 
-Use EXTENDED THINKING (ultrathink) to deeply analyze the spec.md:
+Use EXTENDED THINKING to deeply analyze the spec.md:
 
 1. **Technical Accuracy**: Do code examples match the research findings?
 2. **Completeness**: Are all requirements covered? Edge cases handled?

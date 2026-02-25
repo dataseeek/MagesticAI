@@ -83,6 +83,28 @@ async def init_db() -> None:
         mode = result.scalar()
         logger.info(f"SQLite journal mode: {mode}")
 
+    # Ensure a default user exists when auth is disabled
+    from ..config import get_settings
+    settings = get_settings()
+    if settings.DISABLE_AUTH:
+        from .models import User
+        async with async_session_factory() as session:
+            from sqlalchemy import select
+            existing = await session.execute(
+                select(User).where(User.id == "default")
+            )
+            if not existing.scalar_one_or_none():
+                session.add(User(
+                    id="default",
+                    email="default@localhost",
+                    name="Default User",
+                    password_hash="disabled",
+                    role="admin",
+                    is_active=True,
+                ))
+                await session.commit()
+                logger.info("Created default user for auth-disabled mode")
+
     logger.info("Database initialization complete")
 
 

@@ -10,6 +10,7 @@ from .models import (
     ApiKey,
     AuditLog,
     Base,
+    EmailAccount,
     Organization,
     OrgMember,
     Project,
@@ -30,4 +31,5 @@ __all__ = [
     "Task",
     "ApiKey",
     "AuditLog",
+    "EmailAccount",
 ]

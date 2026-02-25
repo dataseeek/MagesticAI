@@ -188,6 +188,35 @@
     "sound": "Som",
     "soundDescription": "Reproduzir som com notificações"
   },
+  "email": {
+    "title": "Contas de Email",
+    "description": "Conecte uma conta de email para receber notificações quando tarefas forem concluídas, falharem ou precisarem de revisão.",
+    "loading": "Carregando contas de email...",
+    "enableEmail": "Notificações por Email",
+    "enableEmailDescription": "Enviar notificações por email para eventos de tarefas via sua conta de email conectada",
+    "connectOutlook": "Conectar Outlook",
+    "connectedVia": "Conectado via",
+    "disconnect": "Desconectar",
+    "noCredentialsConfigured": "Credenciais OAuth da Microsoft não configuradas. Configure-as na aba Integrações.",
+    "connectionSuccess": "Conta de email conectada com sucesso",
+    "connectionFailed": "Falha ao conectar conta de email",
+    "sendTestEmail": "Email de Teste",
+    "testEmailSent": "Email de teste enviado com sucesso",
+    "oauthCredentials": "Credenciais OAuth Microsoft",
+    "oauthCredentialsDescription": "Registre um aplicativo no Azure AD para habilitar notificações por email do Outlook. Escopos necessários: Mail.Send, User.Read, offline_access.",
+    "microsoftClientId": "Client ID Microsoft",
+    "microsoftClientSecret": "Client Secret Microsoft",
+    "setup": {
+      "title": "Como registrar um aplicativo Microsoft Azure AD",
+      "step1": "Acesse o <azureLink>portal de registro de aplicativos do Azure</azureLink>",
+      "step2": "Clique em \"Novo registro\", nomeie-o (ex: \"MagesticAI Notifications\"), selecione \"Contas em qualquer diretório organizacional e contas pessoais da Microsoft\", depois clique em Registrar",
+      "step3": "Na página de visão geral do aplicativo, copie o \"ID do aplicativo (cliente)\" e cole no campo Client ID abaixo",
+      "step4": "Vá em \"Certificados e segredos\" → \"Novo segredo do cliente\" → copie o Valor (não o ID do segredo) e cole no campo Client Secret abaixo",
+      "step5": "Vá em \"Autenticação\" → \"Adicionar uma plataforma\" → \"Web\" → defina o URI de redirecionamento como:",
+      "step6": "Vá em \"Permissões de API\" → \"Adicionar uma permissão\" → \"Microsoft Graph\" → \"Permissões delegadas\" → adicione: Mail.Send, User.Read, offline_access",
+      "httpsWarning": "O Azure exige que URIs de redirecionamento usem HTTPS (exceto http://localhost). Certifique-se de que seu deploy usa HTTPS ou um reverse proxy que termina o TLS."
+    }
+  },
   "actions": {
     "save": "Salvar Configurações",
     "rerunWizard": "Executar Assistente Novamente",

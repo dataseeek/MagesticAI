@@ -508,7 +508,7 @@ def create_client(
         agent_type: Agent type identifier from AGENT_CONFIGS
                    (e.g., 'coder', 'planner', 'qa_reviewer', 'spec_gatherer')
         max_thinking_tokens: Token budget for extended thinking (None = disabled)
-                            - ultrathink: 65536 (maximum reasoning depth)
+                            - max: 65536 (maximum reasoning, Opus only)
                             - high: 16384 (deep thinking for QA review)
                             - medium: 4096 (moderate analysis)
                             - low: 1024 (light thinking)

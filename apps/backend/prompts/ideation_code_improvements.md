@@ -191,7 +191,7 @@ ls -la $(dirname [file_path])
 For each opportunity, deeply analyze:
 
 ```
-<ultrathink>
+<thinking>
 Analyzing code improvement opportunity: [title]
 
 PATTERN DISCOVERY
@@ -218,7 +218,7 @@ WHY THIS IS CODE-REVEALED
 
 EFFORT LEVEL: [trivial|small|medium|large|complex]
 Justification: [why this effort level]
-</ultrathink>
+</thinking>
 ```
 
 ---

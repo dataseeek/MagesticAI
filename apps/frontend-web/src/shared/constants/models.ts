@@ -28,7 +28,7 @@ export const THINKING_BUDGET_MAP: Record<string, number | null> = {
   low: 1024,
   medium: 4096,
   high: 16384,
-  ultrathink: 65536
+  max: 65536
 } as const;
 
 // ============================================
@@ -41,7 +41,7 @@ export const THINKING_LEVELS = [
   { value: 'low', label: 'Low', description: 'Brief consideration' },
   { value: 'medium', label: 'Medium', description: 'Moderate analysis' },
   { value: 'high', label: 'High', description: 'Deep thinking' },
-  { value: 'ultrathink', label: 'Ultra Think', description: 'Maximum reasoning depth' }
+  { value: 'max', label: 'Max', description: 'Maximum reasoning (Opus only)' }
 ] as const;
 
 // ============================================
@@ -59,7 +59,7 @@ export const DEFAULT_PHASE_MODELS: PhaseModelConfig = {
 
 // Default phase thinking configuration for Auto profile
 export const DEFAULT_PHASE_THINKING: import('../types/settings').PhaseThinkingConfig = {
-  spec: 'ultrathink',   // Deep thinking for comprehensive spec creation
+  spec: 'max',   // Deep thinking for comprehensive spec creation
   planning: 'high',     // High thinking for planning complex features
   coding: 'low',        // Faster coding iterations
   qa: 'low'             // Efficient QA review
@@ -111,7 +111,7 @@ export const DEFAULT_AGENT_PROFILES: AgentProfile[] = [
     name: 'Complex Tasks',
     description: 'For intricate, multi-step implementations requiring deep analysis',
     model: 'opus',
-    thinkingLevel: 'ultrathink',
+    thinkingLevel: 'max',
     icon: 'Brain'
   },
   {

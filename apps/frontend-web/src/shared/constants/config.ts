@@ -29,7 +29,8 @@ export const DEFAULT_APP_SETTINGS = {
     onTaskComplete: true,
     onTaskFailed: true,
     onReviewNeeded: true,
-    sound: false
+    sound: false,
+    emailEnabled: false
   },
   // Global API keys (used as defaults for all projects)
   globalClaudeOAuthToken: undefined as string | undefined,
@@ -61,7 +62,8 @@ export const DEFAULT_PROJECT_SETTINGS = {
     onTaskComplete: true,
     onTaskFailed: true,
     onReviewNeeded: true,
-    sound: false
+    sound: false,
+    emailEnabled: false
   },
   // Graphiti MCP server for agent-accessible knowledge graph (enabled by default)
   graphitiMcpEnabled: true,
