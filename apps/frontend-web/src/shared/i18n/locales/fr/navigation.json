@@ -59,5 +59,27 @@
     "tokenConfigured": "Jeton d'authentification configuré",
     "noTokenConfigured": "Aucun jeton d'authentification configuré",
     "setupAuth": "Configurer l'auth"
+  },
+  "cliTools": {
+    "authenticated": "Authentifié",
+    "needsAuth": "Authentification requise",
+    "notInstalled": "Non installé",
+    "updateAvailable": "Mise à jour disponible",
+    "installed": "Installé",
+    "current": "Actuelle",
+    "latest": "Dernière",
+    "lastChecked": "Dernière vérification",
+    "viaOAuth": "via OAuth",
+    "viaApiKey": "via clé API",
+    "viaGoogleLogin": "via Google Login",
+    "tokenExpires": "Expiration du jeton",
+    "loginInTerminal": "Connexion",
+    "waitingForAuth": "En attente...",
+    "importCredentials": "Importer les identifiants",
+    "removeCredentials": "Supprimer les identifiants",
+    "setApiKey": "Définir la clé API",
+    "apiKeyPlaceholder": "Coller la clé API...",
+    "loginHintCodex": "Terminez la connexion dans votre navigateur. Codex CLI s'authentifiera via OpenAI.",
+    "loginHintGemini": "Terminez la connexion dans votre navigateur. Gemini CLI s'authentifiera via Google."
   }
 }

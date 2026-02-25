@@ -1,0 +1,535 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  Check,
+  AlertTriangle,
+  X,
+  Loader2,
+  Download,
+  RefreshCw,
+  LogIn,
+  Trash2,
+  KeyRound,
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from './ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui/tooltip';
+import { cn } from '../lib/utils';
+import { OpenAIIcon } from './icons/OpenAIIcon';
+import { GeminiIcon } from './icons/GeminiIcon';
+import type { CLIAccountStatus, CLIAccountsDetectionResult } from '../shared/types';
+
+interface CLIToolStatusBadgeProps {
+  className?: string;
+}
+
+// Refresh every 5 minutes
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+
+interface CLIToolPopoverProps {
+  cli: 'codex' | 'gemini';
+  status: CLIAccountStatus | null;
+  Icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  lastChecked: Date | null;
+  onRefresh: () => void;
+}
+
+function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CLIToolPopoverProps) {
+  const { t } = useTranslation(['navigation', 'common']);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [isLoginPolling, setIsLoginPolling] = useState(false);
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [apiKeyValue, setApiKeyValue] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isSubmittingKey, setIsSubmittingKey] = useState(false);
+
+  const installed = status?.installed ?? false;
+  const authenticated = status?.authenticated ?? false;
+  const hasUpdate = installed && status?.latestVersion && status?.version !== status?.latestVersion;
+
+  // Determine status type
+  const statusType = !installed ? 'not-installed' : authenticated ? 'authenticated' : 'installed';
+
+  // Dot color for the trigger button
+  const dotColor =
+    statusType === 'authenticated' ? 'bg-green-500' :
+    statusType === 'installed' ? 'bg-yellow-500' :
+    'bg-muted-foreground/40';
+
+  // Auth method label
+  const getAuthMethodLabel = () => {
+    if (!status?.authMethod) return null;
+    if (cli === 'codex') {
+      return status.authMethod === 'oauth'
+        ? t('navigation:cliTools.viaOAuth')
+        : t('navigation:cliTools.viaApiKey');
+    }
+    return status.authMethod === 'google_login'
+      ? t('navigation:cliTools.viaGoogleLogin')
+      : t('navigation:cliTools.viaApiKey');
+  };
+
+  // Reset login polling when auth succeeds
+  useEffect(() => {
+    if (isLoginPolling && authenticated) {
+      setIsLoginPolling(false);
+    }
+  }, [isLoginPolling, authenticated]);
+
+  // Tooltip text
+  const tooltipText = (() => {
+    switch (statusType) {
+      case 'authenticated':
+        return `${label} — ${t('navigation:cliTools.authenticated')}`;
+      case 'installed':
+        return `${label} — ${t('navigation:cliTools.needsAuth')}`;
+      default:
+        return `${label} — ${t('navigation:cliTools.notInstalled')}`;
+    }
+  })();
+
+  // Status icon inside popover header
+  const statusIcon = (() => {
+    if (!installed) return <X className="h-3 w-3" />;
+    if (hasUpdate) return <AlertTriangle className="h-3 w-3" />;
+    return <Check className="h-3 w-3" />;
+  })();
+
+  // Status text inside popover header
+  const statusText = (() => {
+    if (!installed) return t('navigation:cliTools.notInstalled');
+    if (hasUpdate) return t('navigation:cliTools.updateAvailable');
+    return t('navigation:cliTools.installed');
+  })();
+
+  // --- Action handlers ---
+
+  const handleInstall = async () => {
+    if (!window.API?.installCLI) return;
+    setIsInstalling(true);
+    try {
+      await window.API.installCLI(cli);
+      setTimeout(onRefresh, 3000);
+    } catch (err) {
+      console.error(`Failed to install/update ${cli} CLI:`, err);
+    } finally {
+      setIsInstalling(false);
+    }
+  };
+
+  const handleLogin = () => {
+    if (!window.API?.startCLILogin) return;
+    setIsLoginPolling(true);
+    window.API.startCLILogin(cli);
+    // Auto-reset after 3 min timeout
+    setTimeout(() => setIsLoginPolling(false), 180000);
+  };
+
+  const handleImport = async () => {
+    if (!window.API?.importCLICredentials) return;
+    try {
+      await window.API.importCLICredentials(cli);
+      onRefresh();
+    } catch (err) {
+      console.error(`Failed to import ${cli} credentials:`, err);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!window.API?.removeCLIAccount) return;
+    try {
+      await window.API.removeCLIAccount(cli);
+      onRefresh();
+    } catch (err) {
+      console.error(`Failed to remove ${cli} credentials:`, err);
+    }
+  };
+
+  const handleSubmitApiKey = async () => {
+    if (!apiKeyValue.trim() || apiKeyValue.trim().length < 5) return;
+    if (!window.API?.setCLIApiKey) return;
+    setIsSubmittingKey(true);
+    try {
+      await window.API.setCLIApiKey(cli, apiKeyValue.trim());
+      setApiKeyValue('');
+      setShowApiKeyInput(false);
+      setShowApiKey(false);
+      onRefresh();
+    } catch (err) {
+      console.error(`Failed to set ${cli} API key:`, err);
+    } finally {
+      setIsSubmittingKey(false);
+    }
+  };
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                'w-full justify-start gap-2 text-xs',
+                statusType === 'not-installed' && 'opacity-50',
+                statusType === 'installed' && 'text-yellow-600 dark:text-yellow-500',
+              )}
+            >
+              <div className="relative">
+                <Icon className="h-4 w-4" />
+                <span className={cn(
+                  'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full',
+                  dotColor,
+                )} />
+              </div>
+              <span className="truncate">{label}</span>
+              {hasUpdate && (
+                <span className="ml-auto text-[10px] bg-blue-500/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded">
+                  {t('common:update', 'Update')}
+                </span>
+              )}
+              {statusType === 'not-installed' && (
+                <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                  {t('navigation:cliTools.notInstalled')}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          {tooltipText}
+        </TooltipContent>
+      </Tooltip>
+
+      <PopoverContent side="right" align="end" className="w-72">
+        <div className="space-y-3">
+          {/* Header */}
+          <div className="flex items-center gap-2">
+            <div className={cn(
+              'flex h-8 w-8 items-center justify-center rounded-lg',
+              cli === 'codex' ? 'bg-emerald-500/10' : 'bg-blue-500/10',
+            )}>
+              <Icon className={cn(
+                'h-4 w-4',
+                cli === 'codex' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400',
+              )} />
+            </div>
+            <div>
+              <h4 className="text-sm font-medium">{label}</h4>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                {statusIcon}
+                {statusText}
+              </p>
+            </div>
+          </div>
+
+          {/* Version info */}
+          {installed && (
+            <div className="text-xs space-y-1 p-2 bg-muted rounded-md">
+              {status?.version && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('navigation:cliTools.current')}:</span>
+                  <span className="font-mono">{status.version}</span>
+                </div>
+              )}
+              {status?.latestVersion && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('navigation:cliTools.latest')}:</span>
+                  <span className="font-mono">{status.latestVersion}</span>
+                </div>
+              )}
+              {lastChecked && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>{t('navigation:cliTools.lastChecked')}:</span>
+                  <span>{lastChecked.toLocaleTimeString()}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Auth status */}
+          {installed && (
+            <div className={cn(
+              'text-xs p-2 rounded-md flex items-start gap-2',
+              authenticated
+                ? 'bg-green-500/10 text-green-700 dark:text-green-400'
+                : 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+            )}>
+              <KeyRound className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              <div className="flex-1 space-y-0.5">
+                {authenticated ? (
+                  <>
+                    <span className="block">
+                      {t('navigation:cliTools.authenticated')}
+                      {getAuthMethodLabel() && ` ${getAuthMethodLabel()}`}
+                    </span>
+                    {status?.email && (
+                      <span className="block text-muted-foreground">{status.email}</span>
+                    )}
+                    {status?.tokenExpiresAt && (
+                      <span className="block text-muted-foreground">
+                        {t('navigation:cliTools.tokenExpires')}: {new Date(status.tokenExpiresAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span>{t('navigation:cliTools.needsAuth')}</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Login hint when polling */}
+          {isLoginPolling && (
+            <div className="bg-muted/30 rounded-lg p-2 text-xs text-muted-foreground">
+              {cli === 'codex'
+                ? t('navigation:cliTools.loginHintCodex')
+                : t('navigation:cliTools.loginHintGemini')
+              }
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="space-y-2">
+            <div className="flex gap-2 flex-wrap">
+              {/* Install / Update */}
+              {(!installed || hasUpdate) && (
+                <Button
+                  size="sm"
+                  className="flex-1 gap-1"
+                  onClick={handleInstall}
+                  disabled={isInstalling}
+                >
+                  {isInstalling ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Download className="h-3 w-3" />
+                  )}
+                  {!installed
+                    ? t('common:install', 'Install')
+                    : t('common:update', 'Update')
+                  }
+                </Button>
+              )}
+
+              {/* Login */}
+              {installed && !authenticated && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1"
+                  onClick={handleLogin}
+                  disabled={isLoginPolling}
+                >
+                  {isLoginPolling ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <LogIn className="h-3 w-3" />
+                  )}
+                  {isLoginPolling
+                    ? t('navigation:cliTools.waitingForAuth')
+                    : t('navigation:cliTools.loginInTerminal')
+                  }
+                </Button>
+              )}
+
+              {/* Refresh */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                onClick={onRefresh}
+              >
+                <RefreshCw className="h-3 w-3" />
+                {t('common:refresh', 'Refresh')}
+              </Button>
+            </div>
+
+            {/* Import Credentials */}
+            {installed && !authenticated && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full gap-1 text-xs"
+                onClick={handleImport}
+              >
+                <Download className="h-3 w-3" />
+                {t('navigation:cliTools.importCredentials')}
+              </Button>
+            )}
+
+            {/* API Key toggle */}
+            {installed && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full gap-1 text-xs text-muted-foreground"
+                onClick={() => {
+                  setShowApiKeyInput(!showApiKeyInput);
+                  setApiKeyValue('');
+                  setShowApiKey(false);
+                }}
+              >
+                {showApiKeyInput ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                {t('navigation:cliTools.setApiKey')}
+              </Button>
+            )}
+
+            {/* API Key input */}
+            {showApiKeyInput && (
+              <div className="bg-muted/30 rounded-lg p-2 space-y-2">
+                <div className="relative">
+                  <Input
+                    type={showApiKey ? 'text' : 'password'}
+                    placeholder={t('navigation:cliTools.apiKeyPlaceholder')}
+                    value={apiKeyValue}
+                    onChange={(e) => setApiKeyValue(e.target.value)}
+                    className="pr-8 font-mono text-xs h-7"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSubmitApiKey();
+                      if (e.key === 'Escape') {
+                        setShowApiKeyInput(false);
+                        setApiKeyValue('');
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showApiKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  </button>
+                </div>
+                <div className="flex justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() => {
+                      setShowApiKeyInput(false);
+                      setApiKeyValue('');
+                      setShowApiKey(false);
+                    }}
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    {t('common:cancel', 'Cancel')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-6 text-xs gap-1"
+                    onClick={handleSubmitApiKey}
+                    disabled={!apiKeyValue.trim() || apiKeyValue.trim().length < 5 || isSubmittingKey}
+                  >
+                    {isSubmittingKey ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Check className="h-3 w-3" />
+                    )}
+                    {t('common:save', 'Save')}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Remove credentials */}
+            {installed && authenticated && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full gap-1 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={handleRemove}
+              >
+                <Trash2 className="h-3 w-3" />
+                {t('navigation:cliTools.removeCredentials')}
+              </Button>
+            )}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/**
+ * CLI tool status badges for the sidebar.
+ * Shows Codex CLI and Gemini CLI status with brand icons, colored indicators,
+ * and rich popover modals with version info, auth status, and action buttons.
+ */
+export function CLIToolStatusBadge({ className }: CLIToolStatusBadgeProps) {
+  const [accounts, setAccounts] = useState<CLIAccountsDetectionResult | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+
+  const detect = useCallback(async () => {
+    try {
+      if (!window.API?.detectCLIAccounts) return;
+      const result = await window.API.detectCLIAccounts();
+      if (result.success && result.data) {
+        setAccounts(result.data);
+        setLastChecked(new Date());
+      }
+    } catch (err) {
+      console.error('Failed to detect CLI accounts:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Initial detection + periodic refresh
+  useEffect(() => {
+    detect();
+    const interval = setInterval(detect, REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [detect]);
+
+  // Listen for WebSocket auth events for immediate refresh
+  useEffect(() => {
+    if (!window.API?.onCLIAccountAuth) return;
+    const unsubscribe = window.API.onCLIAccountAuth((info) => {
+      if (info.success) {
+        detect();
+      }
+    });
+    return unsubscribe;
+  }, [detect]);
+
+  if (isLoading) return null;
+
+  const clis: Array<{ key: 'codex' | 'gemini'; Icon: typeof OpenAIIcon; label: string }> = [
+    { key: 'codex', Icon: OpenAIIcon, label: 'Codex CLI' },
+    { key: 'gemini', Icon: GeminiIcon, label: 'Gemini CLI' },
+  ];
+
+  return (
+    <div className={cn('space-y-0.5', className)}>
+      {clis.map(({ key, Icon, label }) => (
+        <CLIToolPopover
+          key={key}
+          cli={key}
+          status={accounts?.[key] ?? null}
+          Icon={Icon}
+          label={label}
+          lastChecked={lastChecked}
+          onRefresh={detect}
+        />
+      ))}
+    </div>
+  );
+}
