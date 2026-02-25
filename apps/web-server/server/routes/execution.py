@@ -6,7 +6,7 @@ Handles starting, stopping, and monitoring task execution.
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from ..services.agent_service import get_agent_service
@@ -96,7 +96,7 @@ async def is_task_running(task_id: str):
 
 
 @router.post("/{task_id}/start")
-async def start_task(task_id: str, request: StartTaskRequest):
+async def start_task(task_id: str, request: StartTaskRequest, raw_request: Request):
     """Start execution of a task.
 
     The task must already exist (have a spec directory).
@@ -342,6 +342,10 @@ async def start_task(task_id: str, request: StartTaskRequest):
         except (json.JSONDecodeError, OSError):
             pass
 
+    # Extract user_id from auth context for email notifications
+    _user = getattr(raw_request.state, "user", None)
+    _user_id = _user["id"] if isinstance(_user, dict) and _user.get("id") else ""
+
     try:
         await agent_service.start_task_execution(
             task_id=task_id,
@@ -351,6 +355,7 @@ async def start_task(task_id: str, request: StartTaskRequest):
             base_branch=request.baseBranch,
             mode=effective_mode,
             force=force_execution,
+            user_id=_user_id,
         )
 
         # Persist status to implementation_plan.json for page refresh survival

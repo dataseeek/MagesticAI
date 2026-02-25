@@ -71,7 +71,7 @@
     },
     "integrations": {
       "title": "Intégrations",
-      "description": "Connexions aux services tiers (bientôt disponible)"
+      "description": "Connexions aux services tiers et identifiants OAuth"
     },
     "api-profiles": {
       "title": "Profils API",
@@ -187,6 +187,35 @@
     "onReviewNeededDescription": "Notifier quand le QA nécessite votre révision",
     "sound": "Son",
     "soundDescription": "Jouer un son avec les notifications"
+  },
+  "email": {
+    "title": "Comptes email",
+    "description": "Connectez un compte email pour recevoir des notifications lorsque les tâches se terminent, échouent ou nécessitent une révision.",
+    "loading": "Chargement des comptes email...",
+    "enableEmail": "Notifications par email",
+    "enableEmailDescription": "Envoyer des notifications par email pour les événements de tâches via votre compte email connecté",
+    "connectOutlook": "Connecter Outlook",
+    "connectedVia": "Connecté via",
+    "disconnect": "Déconnecter",
+    "noCredentialsConfigured": "Les identifiants OAuth Microsoft ne sont pas configurés. Configurez-les dans l'onglet Intégrations.",
+    "connectionSuccess": "Compte email connecté avec succès",
+    "connectionFailed": "Échec de la connexion du compte email",
+    "sendTestEmail": "Email de test",
+    "testEmailSent": "Email de test envoyé avec succès",
+    "oauthCredentials": "Identifiants OAuth Microsoft",
+    "oauthCredentialsDescription": "Enregistrez une application dans Azure AD pour activer les notifications email Outlook. Scopes requis : Mail.Send, User.Read, offline_access.",
+    "microsoftClientId": "Client ID Microsoft",
+    "microsoftClientSecret": "Client Secret Microsoft",
+    "setup": {
+      "title": "Comment enregistrer une application Microsoft Azure AD",
+      "step1": "Accédez au <azureLink>portail d'enregistrement d'applications Azure</azureLink>",
+      "step2": "Cliquez sur « Nouvelle inscription », nommez-la (ex : « MagesticAI Notifications »), sélectionnez « Comptes dans n'importe quel annuaire organisationnel et comptes Microsoft personnels », puis cliquez sur Inscrire",
+      "step3": "Depuis la page de présentation de l'application, copiez l'« ID d'application (client) » et collez-le dans le champ Client ID ci-dessous",
+      "step4": "Allez dans « Certificats et secrets » → « Nouveau secret client » → copiez la Valeur (pas l'ID du secret) et collez-la dans le champ Client Secret ci-dessous",
+      "step5": "Allez dans « Authentification » → « Ajouter une plateforme » → « Web » → définissez l'URI de redirection sur :",
+      "step6": "Allez dans « Autorisations de l'API » → « Ajouter une autorisation » → « Microsoft Graph » → « Autorisations déléguées » → ajoutez : Mail.Send, User.Read, offline_access",
+      "httpsWarning": "Azure exige que les URI de redirection utilisent HTTPS (sauf http://localhost). Assurez-vous que votre déploiement utilise HTTPS ou un reverse proxy qui termine le TLS."
+    }
   },
   "actions": {
     "save": "Enregistrer les paramètres",

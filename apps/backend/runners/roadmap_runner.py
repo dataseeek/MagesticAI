@@ -62,7 +62,7 @@ def main():
         "--thinking-level",
         type=str,
         default="medium",
-        choices=["none", "low", "medium", "high", "ultrathink"],
+        choices=["none", "low", "medium", "high", "max"],
         help="Thinking level for extended reasoning (default: medium)",
     )
     parser.add_argument(

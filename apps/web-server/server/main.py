@@ -25,6 +25,7 @@ from .routes import (
     audit,
     auth_routes,
     context,
+    email,
     execution,
     files,
     git,
@@ -118,6 +119,9 @@ def create_app() -> FastAPI:
     app.include_router(settings_routes.router, prefix="/api/settings", tags=["Settings"])
     app.include_router(files.router, prefix="/api/files", tags=["Files"])
     app.include_router(terminal.router, prefix="/api/terminals", tags=["Terminals"])
+
+    # Email OAuth + account management routes (prefix defined in router: /api/email)
+    app.include_router(email.router)
 
     # GitHub routes
     app.include_router(github.router, prefix="/api/github", tags=["GitHub"])

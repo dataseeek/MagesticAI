@@ -215,7 +215,7 @@ export interface TaskMetadata {
 
   // Agent configuration (from agent profile or manual selection)
   model?: ModelType;  // Claude model to use (haiku, sonnet, opus) - used when not auto profile
-  thinkingLevel?: ThinkingLevel;  // Thinking budget level (none, low, medium, high, ultrathink)
+  thinkingLevel?: ThinkingLevel;  // Thinking budget level (none, low, medium, high, max)
   // Auto profile - per-phase model configuration
   isAutoProfile?: boolean;  // True when using Auto (Optimized) profile
   phaseModels?: PhaseModelConfig;  // Per-phase model configuration

@@ -162,7 +162,7 @@ export function AppSettingsDialog({ open, onOpenChange, initialSection, initialP
       case 'llmProvider':
         return <LLMProvidersPage settings={settings} onSettingsChange={setSettings} isOpen={open} />;
       case 'integrations':
-        return <IntegrationSettings />;
+        return <IntegrationSettings settings={settings} onSettingsChange={setSettings} />;
       case 'notifications':
         return <AdvancedSettings settings={settings} onSettingsChange={setSettings} section="notifications" version={version} />;
       case 'debug':
@@ -332,7 +332,7 @@ export function AppSettingsDialog({ open, onOpenChange, initialSection, initialP
             {/* Main content */}
             <div className="flex-1 overflow-hidden">
               <ScrollArea className="h-full">
-                <div className="p-8 max-w-2xl">
+                <div className="p-8 max-w-4xl">
                   {renderContent()}
                 </div>
               </ScrollArea>

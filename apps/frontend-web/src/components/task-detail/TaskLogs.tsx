@@ -76,7 +76,7 @@ const THINKING_SHORT_LABELS: Record<ThinkingLevel, string> = {
   low: 'Low',
   medium: 'Med',
   high: 'High',
-  ultrathink: 'Ultra'
+  max: 'Max'
 };
 
 // Helper to get model and thinking info for a log phase

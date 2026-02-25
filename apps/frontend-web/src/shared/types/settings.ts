@@ -158,7 +158,7 @@ export interface ColorThemeDefinition {
 }
 
 // Thinking level for Claude model (budget token allocation)
-export type ThinkingLevel = 'none' | 'low' | 'medium' | 'high' | 'ultrathink';
+export type ThinkingLevel = 'none' | 'low' | 'medium' | 'high' | 'max';
 
 // Model type shorthand
 export type ModelTypeShort = 'haiku' | 'sonnet' | 'opus';
@@ -275,6 +275,9 @@ export interface AppSettings {
   customTerminalPath?: string; // For 'custom' terminal
   // BMad Method session segmentation (per-story sessions with minimal context)
   bmadSessionSegmentation?: boolean;
+  // Email Notification OAuth Credentials (app-level)
+  emailMicrosoftClientId?: string;
+  emailMicrosoftClientSecret?: string;
 }
 
 // Magestic AI Source Environment Configuration (for magestic-ai repo .env)

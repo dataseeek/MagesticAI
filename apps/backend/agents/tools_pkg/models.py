@@ -122,7 +122,7 @@ AGENT_CONFIGS = {
         "tools": BASE_READ_TOOLS,
         "mcp_servers": [],  # Self-critique, no external tools
         "magestic_ai_tools": [],
-        "thinking_default": "ultrathink",
+        "thinking_default": "max",
     },
     "spec_discovery": {
         "tools": BASE_READ_TOOLS + WEB_TOOLS,
@@ -445,7 +445,7 @@ def get_default_thinking_level(agent_type: str) -> str:
         agent_type: The agent type identifier
 
     Returns:
-        Thinking level string (none, low, medium, high, ultrathink)
+        Thinking level string (none, low, medium, high, max)
     """
     config = get_agent_config(agent_type)
     return config.get("thinking_default", "medium")

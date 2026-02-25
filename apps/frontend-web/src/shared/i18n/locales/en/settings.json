@@ -71,7 +71,7 @@
     },
     "integrations": {
       "title": "Integrations",
-      "description": "Third-party service connections (coming soon)"
+      "description": "Third-party service connections and OAuth credentials"
     },
     "api-profiles": {
       "title": "API Profiles",
@@ -187,6 +187,35 @@
     "onReviewNeededDescription": "Notify when QA requires your review",
     "sound": "Sound",
     "soundDescription": "Play sound with notifications"
+  },
+  "email": {
+    "title": "Email Accounts",
+    "description": "Connect an email account to receive notifications when tasks complete, fail, or need review.",
+    "loading": "Loading email accounts...",
+    "enableEmail": "Email Notifications",
+    "enableEmailDescription": "Send email notifications for task events via your connected email account",
+    "connectOutlook": "Connect Outlook",
+    "connectedVia": "Connected via",
+    "disconnect": "Disconnect",
+    "noCredentialsConfigured": "Microsoft OAuth credentials not configured. Set them in the Integrations settings tab.",
+    "connectionSuccess": "Email account connected successfully",
+    "connectionFailed": "Failed to connect email account",
+    "sendTestEmail": "Test Email",
+    "testEmailSent": "Test email sent successfully",
+    "oauthCredentials": "Microsoft OAuth Credentials",
+    "oauthCredentialsDescription": "Register an app in Azure AD to enable Outlook email notifications. Required scopes: Mail.Send, User.Read, offline_access.",
+    "microsoftClientId": "Microsoft Client ID",
+    "microsoftClientSecret": "Microsoft Client Secret",
+    "setup": {
+      "title": "How to register a Microsoft Azure AD app",
+      "step1": "Go to the <azureLink>Azure App Registrations portal</azureLink>",
+      "step2": "Click \"New registration\", name it (e.g. \"MagesticAI Notifications\"), select \"Accounts in any organizational directory and personal Microsoft accounts\", then click Register",
+      "step3": "From the app overview page, copy the \"Application (client) ID\" and paste it in the Client ID field below",
+      "step4": "Go to \"Certificates & secrets\" → \"New client secret\" → copy the Value (not the Secret ID) and paste it in the Client Secret field below",
+      "step5": "Go to \"Authentication\" → \"Add a platform\" → \"Web\" → set the redirect URI to:",
+      "step6": "Go to \"API permissions\" → \"Add a permission\" → \"Microsoft Graph\" → \"Delegated permissions\" → add: Mail.Send, User.Read, offline_access",
+      "httpsWarning": "Azure requires redirect URIs to use HTTPS (except http://localhost). Make sure your deployment uses HTTPS or a reverse proxy that terminates TLS."
+    }
   },
   "actions": {
     "save": "Save Settings",

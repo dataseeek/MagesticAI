@@ -16,6 +16,7 @@ import { Switch } from '../ui/switch';
 import { Progress } from '../ui/progress';
 import { cn } from '../../lib/utils';
 import { SettingsSection } from './SettingsSection';
+import { EmailIntegration } from './integrations/EmailIntegration';
 import type {
   AppSettings,
   AutoBuildSourceUpdateCheck,
@@ -460,7 +461,8 @@ export function AdvancedSettings({ settings, onSettingsChange, section, version 
     onTaskComplete: true,
     onTaskFailed: true,
     onReviewNeeded: true,
-    sound: false
+    sound: false,
+    emailEnabled: false
   };
 
   return (
@@ -489,6 +491,31 @@ export function AdvancedSettings({ settings, onSettingsChange, section, version 
             />
           </div>
         ))}
+
+        {/* Email Notifications Toggle */}
+        <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+          <div className="space-y-1">
+            <Label className="font-medium text-foreground">{t('email.enableEmail')}</Label>
+            <p className="text-sm text-muted-foreground">{t('email.enableEmailDescription')}</p>
+          </div>
+          <Switch
+            checked={notificationsSettings.emailEnabled}
+            onCheckedChange={(checked) =>
+              onSettingsChange({
+                ...settings,
+                notifications: {
+                  ...notificationsSettings,
+                  emailEnabled: checked
+                }
+              })
+            }
+          />
+        </div>
+
+        {/* Email Account Connection */}
+        {notificationsSettings.emailEnabled && (
+          <EmailIntegration settings={settings} onSettingsChange={onSettingsChange} />
+        )}
       </div>
     </SettingsSection>
   );

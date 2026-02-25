@@ -33,6 +33,7 @@ export interface NotificationSettings {
   onTaskFailed: boolean;
   onReviewNeeded: boolean;
   sound: boolean;
+  emailEnabled: boolean;
 }
 
 // ============================================

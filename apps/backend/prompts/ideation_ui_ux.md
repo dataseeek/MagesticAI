@@ -296,10 +296,10 @@ For each category, think deeply:
 
 ## PHASE 6: PRIORITIZE AND DOCUMENT
 
-For each issue found, use ultrathink to analyze:
+For each issue found, use extended thinking to analyze:
 
 ```
-<ultrathink>
+<thinking>
 UI/UX Issue Analysis: [title]
 
 What I observed:
@@ -320,7 +320,7 @@ Priority:
 - Severity: [low/medium/high]
 - Effort: [low/medium/high]
 - User impact: [low/medium/high]
-</ultrathink>
+</thinking>
 ```
 
 ---

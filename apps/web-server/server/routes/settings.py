@@ -173,6 +173,10 @@ class AppSettings(BaseModel):
     # BMad Method
     bmadSessionSegmentation: bool | None = Field(False, description="Enable session segmentation")
 
+    # Email Notification OAuth Credentials (app-level, not per-user)
+    emailMicrosoftClientId: str | None = Field(None, description="Microsoft OAuth Client ID for email notifications")
+    emailMicrosoftClientSecret: str | None = Field(None, description="Microsoft OAuth Client Secret for email notifications")
+
     # LLM Provider Settings (for AI features: changelog, insights)
     llmProvider: Literal["ollama", "anthropic", "openai"] | None = Field(
         default="ollama",
@@ -260,6 +264,8 @@ class SettingsUpdate(BaseModel):
     onboardingCompleted: bool | None = None
     betaUpdates: bool | None = None
     bmadSessionSegmentation: bool | None = None
+    emailMicrosoftClientId: str | None = None
+    emailMicrosoftClientSecret: str | None = None
     llmProvider: str | None = None
     llmOllamaBaseUrl: str | None = None
     llmOllamaModel: str | None = None
