@@ -45,5 +45,27 @@
     "updateWarningTitle": "Atualizar Claude Code?",
     "updateWarningDescription": "A atualização fechará todas as sessões do Claude Code em execução. Qualquer trabalho não salvo nessas sessões pode ser perdido. Certifique-se de salvar seu trabalho antes de prosseguir.",
     "updateAnyway": "Atualizar Mesmo Assim"
+  },
+  "cliTools": {
+    "authenticated": "Autenticado",
+    "needsAuth": "Autenticação necessária",
+    "notInstalled": "Não instalado",
+    "updateAvailable": "Atualização disponível",
+    "installed": "Instalado",
+    "current": "Atual",
+    "latest": "Mais recente",
+    "lastChecked": "Última verificação",
+    "viaOAuth": "via OAuth",
+    "viaApiKey": "via chave de API",
+    "viaGoogleLogin": "via Google Login",
+    "tokenExpires": "Expiração do token",
+    "loginInTerminal": "Login",
+    "waitingForAuth": "Aguardando...",
+    "importCredentials": "Importar credenciais",
+    "removeCredentials": "Remover credenciais",
+    "setApiKey": "Definir chave de API",
+    "apiKeyPlaceholder": "Cole a chave de API...",
+    "loginHintCodex": "Complete o login na janela do navegador. O Codex CLI se autenticará via OpenAI.",
+    "loginHintGemini": "Complete o login na janela do navegador. O Gemini CLI se autenticará via Google."
   }
 }

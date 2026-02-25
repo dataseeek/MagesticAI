@@ -59,5 +59,27 @@
     "tokenConfigured": "Auth token configured",
     "noTokenConfigured": "No auth token configured",
     "setupAuth": "Set Up Auth"
+  },
+  "cliTools": {
+    "authenticated": "Authenticated",
+    "needsAuth": "Needs Authentication",
+    "notInstalled": "Not Installed",
+    "updateAvailable": "Update Available",
+    "installed": "Installed",
+    "current": "Current",
+    "latest": "Latest",
+    "lastChecked": "Last checked",
+    "viaOAuth": "via OAuth",
+    "viaApiKey": "via API Key",
+    "viaGoogleLogin": "via Google Login",
+    "tokenExpires": "Token expires",
+    "loginInTerminal": "Login",
+    "waitingForAuth": "Waiting...",
+    "importCredentials": "Import Credentials",
+    "removeCredentials": "Remove Credentials",
+    "setApiKey": "Set API Key",
+    "apiKeyPlaceholder": "Paste API key...",
+    "loginHintCodex": "Complete login in your browser window. Codex CLI will authenticate via OpenAI.",
+    "loginHintGemini": "Complete login in your browser window. Gemini CLI will authenticate via Google."
   }
 }
