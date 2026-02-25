@@ -57,12 +57,12 @@ interface NavItemConfig<T extends string> {
 }
 
 const appNavItemsConfig: NavItemConfig<AppSection>[] = [
-  { id: 'language', icon: Globe },
   { id: 'agent', icon: Bot },
   { id: 'llmProvider', icon: Cpu },
   { id: 'integrations', icon: Key },
   { id: 'notifications', icon: Bell },
-  { id: 'debug', icon: Bug }
+  { id: 'debug', icon: Bug },
+  { id: 'language', icon: Globe }
 ];
 
 const projectNavItemsConfig: NavItemConfig<ProjectSettingsSection>[] = [
@@ -82,7 +82,7 @@ export function AppSettingsDialog({ open, onOpenChange, initialSection, initialP
 
   // Track which top-level section is active
   const [activeTopLevel, setActiveTopLevel] = useState<'app' | 'project'>('app');
-  const [appSection, setAppSection] = useState<AppSection>(initialSection || 'language');
+  const [appSection, setAppSection] = useState<AppSection>(initialSection || 'agent');
   const [projectSection, setProjectSection] = useState<ProjectSettingsSection>('general');
 
   // Navigate to initial section when dialog opens with a specific section

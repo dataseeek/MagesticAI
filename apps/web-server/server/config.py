@@ -49,6 +49,8 @@ class Settings(BaseSettings):
         "https://localhost:5173",
         "https://localhost:3000",
         "https://localhost:8000",
+        "https://dev.magestic.ai:8001",
+        "http://dev.magestic.ai:5173",
     ]
 
     # Terminal

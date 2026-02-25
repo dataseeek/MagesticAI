@@ -6,6 +6,7 @@ login polling, and CLI install/update for third-party CLI tools.
 """
 
 import asyncio
+import base64
 import json
 import logging
 import os
@@ -58,6 +59,7 @@ class CLIAccountStatus(BaseModel):
     version: str | None = None
     authenticated: bool
     authMethod: str | None = None
+    email: str | None = None
     credentialsPath: str | None = None
     tokenExpiresAt: str | None = None
     latestVersion: str | None = None
@@ -101,6 +103,38 @@ def _read_json_file(path: Path) -> dict | None:
             return json.loads(path.read_text())
     except (json.JSONDecodeError, OSError) as e:
         logger.warning(f"Failed to read {path}: {e}")
+    return None
+
+
+def _extract_email_from_jwt(token: str) -> str | None:
+    """Extract email from a JWT id_token payload without verification."""
+    try:
+        payload_b64 = token.split(".")[1]
+        # Add padding for base64
+        payload_b64 += "=" * (4 - len(payload_b64) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+        return payload.get("email")
+    except Exception:
+        return None
+
+
+def _get_codex_email() -> str | None:
+    """Extract email from Codex auth.json id_token."""
+    auth_data = _read_json_file(CLI_CONFIG["codex"]["credentials_file"])
+    if auth_data:
+        id_token = auth_data.get("tokens", {}).get("id_token", "")
+        if id_token:
+            return _extract_email_from_jwt(id_token)
+    return None
+
+
+def _get_gemini_email() -> str | None:
+    """Extract email from Gemini oauth_creds.json id_token."""
+    oauth_data = _read_json_file(CLI_CONFIG["gemini"]["oauth_credentials_file"])
+    if oauth_data:
+        id_token = oauth_data.get("id_token", "")
+        if id_token:
+            return _extract_email_from_jwt(id_token)
     return None
 
 
@@ -229,12 +263,15 @@ def _get_cli_status(cli: str) -> CLIAccountStatus:
     token_expires_at = None
     credentials_path = None
     latest_version = None
+    email = None
 
     if installed:
         if cli == "codex":
             authenticated, auth_method, token_expires_at = _detect_codex_credentials()
+            email = _get_codex_email()
         else:
             authenticated, auth_method, token_expires_at = _detect_gemini_credentials()
+            email = _get_gemini_email()
 
         stored_path = CLI_CONFIG[cli]["stored_credentials"]
         if stored_path.exists():
@@ -249,6 +286,7 @@ def _get_cli_status(cli: str) -> CLIAccountStatus:
         version=version,
         authenticated=authenticated,
         authMethod=auth_method,
+        email=email,
         credentialsPath=credentials_path,
         tokenExpiresAt=token_expires_at,
         latestVersion=latest_version,

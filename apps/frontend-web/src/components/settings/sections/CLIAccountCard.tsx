@@ -10,8 +10,6 @@ import {
   EyeOff,
   Loader2,
   LogIn,
-  Sparkles,
-  Terminal,
   Trash2,
   X,
 } from 'lucide-react';
@@ -19,6 +17,8 @@ import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { cn } from '../../../lib/utils';
+import { OpenAIIcon } from '../../icons/OpenAIIcon';
+import { GeminiIcon } from '../../icons/GeminiIcon';
 import type { CLIAccountStatus } from '../../../shared/types';
 
 interface CLIAccountCardProps {
@@ -52,7 +52,7 @@ export function CLIAccountCard({
   const [isLoginPolling, setIsLoginPolling] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
 
-  const Icon = cli === 'codex' ? Terminal : Sparkles;
+  const Icon = cli === 'codex' ? OpenAIIcon : GeminiIcon;
   const cliName = t(`integrations.${cli}.name`);
   const cliDescription = t(`integrations.${cli}.description`);
   const installHint = t(`integrations.${cli}.installHint`);
@@ -194,7 +194,12 @@ export function CLIAccountCard({
               )}
             </div>
             {status.authenticated && (
-              <span className="text-xs text-muted-foreground">{getAuthMethodLabel()}</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground">{getAuthMethodLabel()}</span>
+                {status.email && (
+                  <span className="text-xs text-muted-foreground">{status.email}</span>
+                )}
+              </div>
             )}
             {status.tokenExpiresAt && (
               <span className="text-xs text-muted-foreground ml-2">
