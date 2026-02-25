@@ -63,7 +63,9 @@ import type {
   ClaudeProfile,
   ClaudeAutoSwitchSettings,
   ClaudeAuthResult,
-  ClaudeUsageSnapshot
+  ClaudeUsageSnapshot,
+  CLIAccountStatus,
+  CLIAccountsDetectionResult
 } from './agent';
 import type { AppSettings, SourceEnvConfig, SourceEnvCheckResult, AutoBuildSourceUpdateCheck, AutoBuildSourceUpdateProgress } from './settings';
 import type { AppUpdateInfo, AppUpdateProgress, AppUpdateAvailableEvent, AppUpdateDownloadedEvent } from './app-update';
@@ -246,6 +248,16 @@ export interface API {
   onSDKRateLimit: (callback: (info: SDKRateLimitInfo) => void) => () => void;
   /** Retry a rate-limited operation with a different profile */
   retryWithProfile: (request: RetryWithProfileRequest) => Promise<IPCResult>;
+
+  // CLI Account management (Codex & Gemini)
+  detectCLIAccounts: () => Promise<IPCResult<CLIAccountsDetectionResult>>;
+  getCLIAccountStatus: (cli: 'codex' | 'gemini') => Promise<IPCResult<CLIAccountStatus>>;
+  importCLICredentials: (cli: 'codex' | 'gemini') => Promise<IPCResult>;
+  setCLIApiKey: (cli: 'codex' | 'gemini', apiKey: string) => Promise<IPCResult>;
+  startCLILogin: (cli: 'codex' | 'gemini') => Promise<IPCResult>;
+  removeCLIAccount: (cli: 'codex' | 'gemini') => Promise<IPCResult>;
+  installCLI: (cli: 'codex' | 'gemini') => Promise<IPCResult<{ version: string; wasUpdate: boolean; message: string }>>;
+  onCLIAccountAuth: (callback: (info: { cli: string; success: boolean }) => void) => () => void;
 
   // Usage Monitoring (Proactive Account Switching)
   /** Request current usage snapshot */

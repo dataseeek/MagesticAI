@@ -481,6 +481,18 @@ export const webAPI: API & { _isWebMode: boolean } = {
   onSDKRateLimit: (callback) => registerCallback('sdk:rate-limit', callback),
   retryWithProfile: (request: RetryWithProfileRequest) => post('/settings/retry-with-profile', request),
 
+  // ========== CLI Account Management (Codex & Gemini) ==========
+  detectCLIAccounts: () => get('/settings/cli-accounts/detect'),
+  getCLIAccountStatus: (cli: 'codex' | 'gemini') => get(`/settings/cli-accounts/${cli}/status`),
+  importCLICredentials: (cli: 'codex' | 'gemini') => post(`/settings/cli-accounts/${cli}/import`),
+  setCLIApiKey: (cli: 'codex' | 'gemini', apiKey: string) => post(`/settings/cli-accounts/${cli}/api-key`, { api_key: apiKey }),
+  startCLILogin: (cli: 'codex' | 'gemini') => post(`/settings/cli-accounts/${cli}/start-login`),
+  removeCLIAccount: (cli: 'codex' | 'gemini') => del(`/settings/cli-accounts/${cli}`),
+  installCLI: (cli: 'codex' | 'gemini') => post(`/settings/cli-accounts/${cli}/install`),
+  onCLIAccountAuth: (callback: (info: { cli: string; success: boolean }) => void) => {
+    return registerCallback('cli-account-auth', callback);
+  },
+
   // Usage monitoring
   requestUsageUpdate: () => post('/settings/usage-update'),
   onUsageUpdated: (callback) => registerCallback('usage:updated', callback),

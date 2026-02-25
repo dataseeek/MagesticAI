@@ -30,7 +30,16 @@
       "description": "Local LLMs, Claude accounts, and API keys",
       "localLlms": {
         "title": "Local LLMs",
-        "description": "Connect to locally running models via Ollama"
+        "description": "Connect to locally running models via Ollama",
+        "detect": "Detect Providers",
+        "detecting": "Detecting...",
+        "detectAgain": "Detect Again",
+        "detected": "Detected",
+        "notDetected": "Not detected",
+        "models": "{{count}} models",
+        "customUrl": "Custom URL",
+        "provider": "Provider",
+        "noProvidersDetected": "No local LLM providers detected. Start a provider like Ollama and try again."
       },
       "accounts": {
         "title": "LLM Accounts",
@@ -197,7 +206,7 @@
     "connectOutlook": "Connect Outlook",
     "connectedVia": "Connected via",
     "disconnect": "Disconnect",
-    "noCredentialsConfigured": "Microsoft OAuth credentials not configured. Set them in the Integrations settings tab.",
+    "noCredentialsConfigured": "No OAuth credentials configured. Set Microsoft or Google credentials in the Integrations settings tab.",
     "connectionSuccess": "Email account connected successfully",
     "connectionFailed": "Failed to connect email account",
     "sendTestEmail": "Test Email",
@@ -215,6 +224,20 @@
       "step5": "Go to \"Authentication\" → \"Add a platform\" → \"Web\" → set the redirect URI to:",
       "step6": "Go to \"API permissions\" → \"Add a permission\" → \"Microsoft Graph\" → \"Delegated permissions\" → add: Mail.Send, User.Read, offline_access",
       "httpsWarning": "Azure requires redirect URIs to use HTTPS (except http://localhost). Make sure your deployment uses HTTPS or a reverse proxy that terminates TLS."
+    },
+    "connectGmail": "Connect Gmail",
+    "googleClientId": "Google Client ID",
+    "googleClientSecret": "Google Client Secret",
+    "googleOauthCredentials": "Google OAuth Credentials",
+    "googleOauthCredentialsDescription": "Register an OAuth app in Google Cloud Console to enable Gmail email notifications. Required scopes: gmail.send, userinfo.email.",
+    "setupGoogle": {
+      "title": "How to set up Google OAuth",
+      "step1": "Go to the <googleLink>Google Cloud Console Credentials page</googleLink>",
+      "step2": "Click \"Create Credentials\" → \"OAuth client ID\" → select \"Web application\" as the application type",
+      "step3": "Copy the \"Client ID\" and paste it in the Google Client ID field below",
+      "step4": "Copy the \"Client secret\" and paste it in the Google Client Secret field below",
+      "step5": "Under \"Authorized redirect URIs\", add:",
+      "step6": "Go to \"Enabled APIs & services\" → enable the \"Gmail API\" for your project"
     }
   },
   "actions": {
@@ -343,7 +366,45 @@
     "apiKeysInfo": "Keys set here are used as defaults. Individual projects can override these in their settings.",
     "openaiKey": "OpenAI API Key",
     "openaiKeyDescription": "Used for OpenAI (ChatGPT) models",
-    "comingSoon": "Third-party integrations (Linear, Jira, Slack, etc.) are coming soon. Claude accounts and API keys have moved to the LLM Providers page."
+    "comingSoon": "Third-party integrations (Linear, Jira, Slack, etc.) are coming soon. Claude accounts and API keys have moved to the LLM Providers page.",
+    "cliAccounts": "Other CLI Accounts",
+    "cliAccountsDescription": "Connect Codex CLI (OpenAI) and Gemini CLI (Google) for additional AI coding capabilities.",
+    "refreshStatus": "Refresh Status",
+    "notInstalled": "Not Installed",
+    "installed": "Installed",
+    "importCredentials": "Import Credentials",
+    "apiKeyEntry": "API Key",
+    "apiKeyPlaceholder": "Enter API key...",
+    "disconnect": "Disconnect",
+    "loginInTerminal": "Login in Terminal",
+    "waitingForAuth": "Waiting for authentication...",
+    "authSuccess": "Authentication successful!",
+    "authFailed": "Authentication timed out. Please try again.",
+    "install": "Install",
+    "installing": "Installing...",
+    "update": "Update",
+    "updating": "Updating...",
+    "updateAvailable": "Update available",
+    "credentialsDetected": "Credentials detected",
+    "codex": {
+      "name": "Codex CLI",
+      "description": "OpenAI's coding assistant",
+      "installHint": "npm install -g @openai/codex",
+      "loginHint": "Run 'codex login' in your terminal to authenticate",
+      "importHint": "Import from ~/.codex/auth.json",
+      "viaOAuth": "via ChatGPT OAuth",
+      "viaApiKey": "via API Key",
+      "tokenExpires": "Token expires"
+    },
+    "gemini": {
+      "name": "Gemini CLI",
+      "description": "Google's AI coding assistant",
+      "installHint": "npm install -g @google/gemini-cli",
+      "loginHint": "Run 'gemini' and select Login with Google",
+      "importHint": "Import from ~/.gemini/settings.json",
+      "viaGoogleLogin": "via Google Login",
+      "viaApiKey": "via API Key"
+    }
   },
   "debug": {
     "title": "Debug & Logs",
