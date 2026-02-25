@@ -90,7 +90,14 @@ def _detect_cli_version(cli: str) -> str | None:
             timeout=10,
         )
         if result.returncode == 0:
-            return result.stdout.strip()
+            raw = result.stdout.strip()
+            # Some CLIs prefix with a name (e.g. "codex-cli 0.105.0")
+            # Extract just the semver-like version number
+            parts = raw.split()
+            for part in reversed(parts):
+                if part and part[0].isdigit():
+                    return part
+            return raw
     except Exception:
         pass
     return None
@@ -526,7 +533,7 @@ async def start_cli_login(cli: str):
 
 
 @router.post("/cli-accounts/{cli}/install")
-async def install_or_update_cli(cli: str):
+def install_or_update_cli(cli: str):
     """Install or update a CLI tool via npm.
 
     Pattern based on git.py install_claude_code():

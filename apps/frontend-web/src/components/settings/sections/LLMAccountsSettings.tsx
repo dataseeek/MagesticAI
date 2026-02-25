@@ -302,17 +302,6 @@ export function LLMAccountsSettings({ isOpen }: LLMAccountsSettingsProps) {
     }
   };
 
-  const handleCLISetApiKey = async (cli: 'codex' | 'gemini', apiKey: string) => {
-    try {
-      const result = await window.API.setCLIApiKey(cli, apiKey);
-      if (result.success) {
-        await detectCLIAccounts();
-      }
-    } catch (err) {
-      console.error(`Failed to set ${cli} API key:`, err);
-    }
-  };
-
   const handleCLIRemove = async (cli: 'codex' | 'gemini') => {
     try {
       const result = await window.API.removeCLIAccount(cli);
@@ -782,7 +771,6 @@ export function LLMAccountsSettings({ isOpen }: LLMAccountsSettingsProps) {
             isLoading={isDetectingCLI}
             onImport={() => handleCLIImport('codex')}
             onStartLogin={() => handleCLIStartLogin('codex')}
-            onSetApiKey={(key) => handleCLISetApiKey('codex', key)}
             onRemove={() => handleCLIRemove('codex')}
             onInstall={() => handleCLIInstall('codex')}
           />
@@ -792,7 +780,6 @@ export function LLMAccountsSettings({ isOpen }: LLMAccountsSettingsProps) {
             isLoading={isDetectingCLI}
             onImport={() => handleCLIImport('gemini')}
             onStartLogin={() => handleCLIStartLogin('gemini')}
-            onSetApiKey={(key) => handleCLISetApiKey('gemini', key)}
             onRemove={() => handleCLIRemove('gemini')}
             onInstall={() => handleCLIInstall('gemini')}
           />
