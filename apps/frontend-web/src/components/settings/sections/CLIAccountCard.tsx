@@ -3,19 +3,12 @@ import { useTranslation } from 'react-i18next';
 import {
   ArrowUpCircle,
   Check,
-  ChevronDown,
-  ChevronRight,
   Download,
-  Eye,
-  EyeOff,
   Loader2,
   LogIn,
   Trash2,
-  X,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
-import { Input } from '../../ui/input';
-import { Label } from '../../ui/label';
 import { cn } from '../../../lib/utils';
 import { OpenAIIcon } from '../../icons/OpenAIIcon';
 import { GeminiIcon } from '../../icons/GeminiIcon';
@@ -27,7 +20,6 @@ interface CLIAccountCardProps {
   isLoading: boolean;
   onImport: () => void;
   onStartLogin: () => void;
-  onSetApiKey: (key: string) => void;
   onRemove: () => void;
   onInstall: () => Promise<void>;
 }
@@ -38,17 +30,11 @@ export function CLIAccountCard({
   isLoading,
   onImport,
   onStartLogin,
-  onSetApiKey,
   onRemove,
   onInstall,
 }: CLIAccountCardProps) {
   const { t } = useTranslation('settings');
-  const { t: tCommon } = useTranslation('common');
 
-  const [expandedApiKey, setExpandedApiKey] = useState(false);
-  const [apiKeyValue, setApiKeyValue] = useState('');
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoginPolling, setIsLoginPolling] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
 
@@ -69,19 +55,6 @@ export function CLIAccountCard({
     return status.authMethod === 'google_login'
       ? t('integrations.gemini.viaGoogleLogin')
       : t('integrations.gemini.viaApiKey');
-  };
-
-  const handleSubmitApiKey = async () => {
-    if (!apiKeyValue.trim() || apiKeyValue.trim().length < 5) return;
-    setIsSubmitting(true);
-    try {
-      onSetApiKey(apiKeyValue.trim());
-      setApiKeyValue('');
-      setExpandedApiKey(false);
-      setShowApiKey(false);
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const handleStartLogin = () => {
@@ -260,23 +233,6 @@ export function CLIAccountCard({
                   </Button>
                 </>
               )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setExpandedApiKey(!expandedApiKey);
-                  setApiKeyValue('');
-                  setShowApiKey(false);
-                }}
-                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                title={t('integrations.apiKeyEntry')}
-              >
-                {expandedApiKey ? (
-                  <ChevronDown className="h-3 w-3" />
-                ) : (
-                  <ChevronRight className="h-3 w-3" />
-                )}
-              </Button>
               {status.authenticated && (
                 <Button
                   variant="ghost"
@@ -311,67 +267,6 @@ export function CLIAccountCard({
         </div>
       )}
 
-      {/* Expandable API key entry */}
-      {expandedApiKey && (
-        <div className="px-3 pb-3 pt-0 border-t border-border/50 mt-0">
-          <div className="bg-muted/30 rounded-lg p-3 mt-3 space-y-3">
-            <Label className="text-xs font-medium text-muted-foreground">
-              {t('integrations.apiKeyEntry')}
-            </Label>
-            <div className="relative">
-              <Input
-                type={showApiKey ? 'text' : 'password'}
-                placeholder={t('integrations.apiKeyPlaceholder')}
-                value={apiKeyValue}
-                onChange={(e) => setApiKeyValue(e.target.value)}
-                className="pr-10 font-mono text-xs h-8"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSubmitApiKey();
-                  if (e.key === 'Escape') {
-                    setExpandedApiKey(false);
-                    setApiKeyValue('');
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowApiKey(!showApiKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showApiKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-              </button>
-            </div>
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setExpandedApiKey(false);
-                  setApiKeyValue('');
-                  setShowApiKey(false);
-                }}
-                className="h-7 text-xs"
-              >
-                <X className="h-3 w-3 mr-1" />
-                {tCommon('buttons.cancel')}
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSubmitApiKey}
-                disabled={!apiKeyValue.trim() || apiKeyValue.trim().length < 5 || isSubmitting}
-                className="h-7 text-xs gap-1"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Check className="h-3 w-3" />
-                )}
-                {t('integrations.saveToken')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

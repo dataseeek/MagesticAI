@@ -18,6 +18,23 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
 
+# Keywords that indicate an embedding or non-chat model
+EMBEDDING_NAME_KEYWORDS = {"embed", "minilm", "bge", "gte", "e5", "rerank"}
+EMBEDDING_FAMILIES = {"bert", "nomic-bert"}
+
+
+def _is_embedding_model(name: str, details: dict | None = None) -> bool:
+    """Check if an Ollama model is an embedding/reranker model (not a chat LLM)."""
+    name_lower = name.lower()
+    if any(kw in name_lower for kw in EMBEDDING_NAME_KEYWORDS):
+        return True
+    if details:
+        family = details.get("family", "").lower()
+        families = {f.lower() for f in details.get("families", [])}
+        if family in EMBEDDING_FAMILIES or families & EMBEDDING_FAMILIES:
+            return True
+    return False
+
 
 class OllamaProvider(ProviderStrategy):
     """Provider that streams via Ollama HTTP API."""
@@ -46,18 +63,11 @@ class OllamaProvider(ProviderStrategy):
                 resp.raise_for_status()
                 data = resp.json()
 
-                embedding_keywords = {"embed", "minilm", "bge", "gte", "e5"}
-                embedding_families = {"bert", "nomic-bert"}
-
                 for m in data.get("models", []):
                     name = m["name"]
-                    name_lower = name.lower()
                     details = m.get("details", {})
-                    families = {f.lower() for f in details.get("families", [])}
 
-                    if families & embedding_families:
-                        continue
-                    if any(kw in name_lower for kw in embedding_keywords):
+                    if _is_embedding_model(name, details):
                         continue
 
                     info.models.append(ProviderModel(id=name, label=name))
@@ -77,6 +87,8 @@ class OllamaProvider(ProviderStrategy):
                         parts = line.split()
                         if parts:
                             name = parts[0]
+                            if _is_embedding_model(name):
+                                continue
                             info.models.append(ProviderModel(id=name, label=name))
                     if info.models:
                         info.available = True

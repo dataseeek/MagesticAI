@@ -551,7 +551,13 @@ async def detect_local_llm_providers():
             lines = out.strip().splitlines()
             # First line is a header row
             model_lines = [l for l in lines[1:] if l.strip()]
-            model_names = [l.split()[0] for l in model_lines if l.split()]
+            all_names = [l.split()[0] for l in model_lines if l.split()]
+            # Filter out embedding/reranker models — only show chat LLMs
+            _embed_kw = {"embed", "minilm", "bge", "gte", "e5", "rerank"}
+            model_names = [
+                n for n in all_names
+                if not any(kw in n.lower() for kw in _embed_kw)
+            ]
             result["models"] = model_names
             result["modelCount"] = len(model_names)
             if model_names:
