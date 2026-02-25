@@ -401,23 +401,129 @@ async def add_git_remote(request: AddRemoteRequest):
 project_router = APIRouter()
 
 
+def _resolve_project_path(projectId: str) -> FilePath | None:
+    """Resolve a project ID to its filesystem path."""
+    from .projects import load_projects
+    projects = load_projects()
+    if projectId not in projects:
+        return None
+    return FilePath(projects[projectId]["path"])
+
+
+def _map_gh_issue(issue: dict, repo_full_name: str = "") -> dict:
+    """Map gh CLI issue JSON to the frontend GitHubIssue shape."""
+    comments = issue.get("comments", [])
+    author = issue.get("author", {}) or {}
+    assignees = issue.get("assignees", []) or []
+    labels = issue.get("labels", []) or []
+    milestone = issue.get("milestone", None)
+
+    return {
+        "id": issue.get("number", 0),
+        "number": issue.get("number", 0),
+        "title": issue.get("title", ""),
+        "body": issue.get("body", ""),
+        "state": (issue.get("state", "OPEN") or "OPEN").lower(),
+        "labels": [
+            {"id": i, "name": lbl.get("name", "") if isinstance(lbl, dict) else str(lbl), "color": lbl.get("color", "") if isinstance(lbl, dict) else ""}
+            for i, lbl in enumerate(labels)
+        ],
+        "assignees": [
+            {"login": a.get("login", "") if isinstance(a, dict) else str(a), "avatar_url": a.get("avatarUrl", "") if isinstance(a, dict) else ""}
+            for a in assignees
+        ],
+        "author": {
+            "login": author.get("login", "") if isinstance(author, dict) else str(author),
+            "avatar_url": author.get("avatarUrl", "") if isinstance(author, dict) else "",
+        },
+        "milestone": {"title": milestone.get("title", ""), "number": milestone.get("number", 0)} if milestone else None,
+        "commentsCount": len(comments) if isinstance(comments, list) else 0,
+        "htmlUrl": issue.get("url", ""),
+        "repoFullName": repo_full_name,
+        "createdAt": issue.get("createdAt", ""),
+        "updatedAt": issue.get("updatedAt", ""),
+        "closedAt": issue.get("closedAt", None),
+    }
+
+
+def _get_repo_full_name(project_path: str) -> str:
+    """Get the repo full name (owner/repo) from the project path."""
+    result = run_gh_command(
+        ["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+        cwd=project_path,
+    )
+    return result.get("output", "") if result["success"] else ""
+
+
 @project_router.get("/repositories")
 async def get_project_github_repositories(projectId: str):
     """Get GitHub repositories for a project."""
-    # TODO: Implement based on project's GitHub config
-    return {"success": True, "data": []}
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return {"success": False, "error": f"Project {projectId} not found"}
+
+    result = run_gh_command(
+        ["repo", "view", "--json", "nameWithOwner,description,url,isPrivate"],
+        cwd=str(project_path),
+    )
+    if not result["success"]:
+        return {"success": True, "data": []}
+
+    try:
+        repo = json.loads(result["output"])
+        return {"success": True, "data": [repo]}
+    except json.JSONDecodeError:
+        return {"success": True, "data": []}
 
 
 @project_router.get("/status")
 async def check_project_github_connection(projectId: str):
     """Check GitHub connection status for a project."""
-    # TODO: Check project's .env for GitHub config
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return {"success": True, "data": {"connected": False, "repoFullName": None, "error": f"Project {projectId} not found"}}
+
+    # Check gh auth
+    auth_result = run_gh_command(["auth", "status"])
+    if not auth_result["success"]:
+        return {"success": True, "data": {"connected": False, "repoFullName": None, "error": "GitHub CLI not authenticated. Run 'gh auth login' in terminal."}}
+
+    # Check repo detection
+    repo_result = run_gh_command(
+        ["repo", "view", "--json", "nameWithOwner,description"],
+        cwd=str(project_path),
+    )
+    if not repo_result["success"]:
+        return {"success": True, "data": {"connected": False, "repoFullName": None, "error": "No GitHub remote detected for this project."}}
+
+    try:
+        repo_data = json.loads(repo_result["output"])
+    except json.JSONDecodeError:
+        return {"success": True, "data": {"connected": False, "repoFullName": None, "error": "Failed to parse repo info."}}
+
+    repo_full_name = repo_data.get("nameWithOwner", "")
+    repo_description = repo_data.get("description", "")
+
+    # Get issue count
+    issue_count = 0
+    count_result = run_gh_command(
+        ["issue", "list", "--state", "all", "--json", "number", "--jq", "length"],
+        cwd=str(project_path),
+    )
+    if count_result["success"]:
+        try:
+            issue_count = int(count_result["output"])
+        except (ValueError, TypeError):
+            pass
+
     return {
         "success": True,
         "data": {
-            "connected": False,
-            "repoFullName": None,
-            "error": None
+            "connected": True,
+            "repoFullName": repo_full_name,
+            "repoDescription": repo_description,
+            "issueCount": issue_count,
+            "error": None,
         }
     }
 
@@ -428,20 +534,90 @@ async def get_project_github_issues(
     state: str | None = Query(None)
 ):
     """Get GitHub issues for a project."""
-    # TODO: Implement using project's GitHub config
-    return {"success": True, "data": []}
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return {"success": False, "error": f"Project {projectId} not found"}
+
+    args = [
+        "issue", "list",
+        "--json", "number,title,body,state,labels,assignees,author,milestone,createdAt,updatedAt,closedAt,comments,url",
+        "--limit", "100",
+    ]
+    if state and state in ("open", "closed", "all"):
+        args.extend(["--state", state])
+
+    result = run_gh_command(args, cwd=str(project_path))
+    if not result["success"]:
+        return {"success": False, "error": result.get("error", "Failed to fetch issues")}
+
+    try:
+        issues_raw = json.loads(result["output"])
+    except json.JSONDecodeError:
+        return {"success": True, "data": []}
+
+    repo_full_name = _get_repo_full_name(str(project_path))
+    issues = [_map_gh_issue(issue, repo_full_name) for issue in issues_raw]
+    return {"success": True, "data": issues}
 
 
 @project_router.get("/issues/{issueNumber}")
 async def get_project_github_issue(projectId: str, issueNumber: int):
     """Get a specific GitHub issue."""
-    return {"success": True, "data": None}
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return {"success": False, "error": f"Project {projectId} not found"}
+
+    result = run_gh_command(
+        ["issue", "view", str(issueNumber), "--json", "number,title,body,state,labels,assignees,author,milestone,createdAt,updatedAt,closedAt,comments,url"],
+        cwd=str(project_path),
+    )
+    if not result["success"]:
+        return {"success": False, "error": result.get("error", f"Failed to fetch issue #{issueNumber}")}
+
+    try:
+        issue_raw = json.loads(result["output"])
+    except json.JSONDecodeError:
+        return {"success": False, "error": "Failed to parse issue data"}
+
+    repo_full_name = _get_repo_full_name(str(project_path))
+    return {"success": True, "data": _map_gh_issue(issue_raw, repo_full_name)}
 
 
 @project_router.get("/issues/{issueNumber}/comments")
 async def get_project_github_issue_comments(projectId: str, issueNumber: int):
     """Get comments for a GitHub issue."""
-    return {"success": True, "data": []}
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return {"success": False, "error": f"Project {projectId} not found"}
+
+    result = run_gh_command(
+        ["issue", "view", str(issueNumber), "--json", "comments"],
+        cwd=str(project_path),
+    )
+    if not result["success"]:
+        return {"success": False, "error": result.get("error", f"Failed to fetch comments for issue #{issueNumber}")}
+
+    try:
+        data = json.loads(result["output"])
+    except json.JSONDecodeError:
+        return {"success": True, "data": []}
+
+    raw_comments = data.get("comments", [])
+    comments = []
+    for c in raw_comments:
+        author = c.get("author", {}) or {}
+        comments.append({
+            "id": c.get("id", 0),
+            "body": c.get("body", ""),
+            "user": {
+                "login": author.get("login", "") if isinstance(author, dict) else str(author),
+                "avatar_url": author.get("avatarUrl", "") if isinstance(author, dict) else "",
+            },
+            "created_at": c.get("createdAt", ""),
+            "updated_at": c.get("updatedAt", ""),
+        })
+
+    return {"success": True, "data": comments}
 
 
 @project_router.post("/issues/{issueNumber}/investigate")
@@ -564,13 +740,90 @@ async def investigate_github_issue(
 @project_router.post("/import")
 async def import_github_issues(projectId: str, request: ImportIssuesRequest):
     """Import GitHub issues as tasks."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return {"success": False, "error": f"Project {projectId} not found"}
+
+    imported = 0
+    failed = 0
+    issues = []
+
+    for issue_number in request.issueNumbers:
+        result = run_gh_command(
+            ["issue", "view", str(issue_number), "--json", "number,title,body,state,labels,author,createdAt,url"],
+            cwd=str(project_path),
+        )
+        if not result["success"]:
+            failed += 1
+            continue
+
+        try:
+            issue_data = json.loads(result["output"])
+        except json.JSONDecodeError:
+            failed += 1
+            continue
+
+        # Create a spec directory for the imported issue
+        specs_dir = project_path / ".magestic-ai" / "specs"
+        specs_dir.mkdir(parents=True, exist_ok=True)
+
+        # Determine next spec number
+        existing = sorted(specs_dir.iterdir()) if specs_dir.exists() else []
+        next_num = 1
+        for d in existing:
+            if d.is_dir() and d.name[:3].isdigit():
+                try:
+                    next_num = max(next_num, int(d.name[:3]) + 1)
+                except ValueError:
+                    pass
+
+        title_slug = (issue_data.get("title", "untitled") or "untitled").lower()
+        title_slug = title_slug.replace(" ", "-")[:40]
+        # Remove non-alphanumeric chars except hyphens
+        title_slug = "".join(c for c in title_slug if c.isalnum() or c == "-")
+        spec_name = f"{next_num:03d}-gh{issue_number}-{title_slug}"
+        spec_dir = specs_dir / spec_name
+        spec_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write requirements.json
+        labels = issue_data.get("labels", []) or []
+        label_names = [lbl.get("name", "") if isinstance(lbl, dict) else str(lbl) for lbl in labels]
+        requirements = {
+            "title": issue_data.get("title", f"GitHub Issue #{issue_number}"),
+            "description": issue_data.get("body", ""),
+            "source": "github",
+            "githubIssue": {
+                "number": issue_number,
+                "url": issue_data.get("url", ""),
+                "state": (issue_data.get("state", "") or "").lower(),
+                "labels": label_names,
+            },
+        }
+        (spec_dir / "requirements.json").write_text(json.dumps(requirements, indent=2))
+
+        # Write spec.md
+        body = issue_data.get("body", "") or ""
+        spec_md = f"# {issue_data.get('title', f'Issue #{issue_number}')}\n\n"
+        spec_md += f"**Source:** GitHub Issue [#{issue_number}]({issue_data.get('url', '')})\n"
+        if label_names:
+            spec_md += f"**Labels:** {', '.join(label_names)}\n"
+        spec_md += f"\n## Description\n\n{body}\n"
+        (spec_dir / "spec.md").write_text(spec_md)
+
+        imported += 1
+        issues.append({
+            "number": issue_number,
+            "title": issue_data.get("title", ""),
+            "specId": spec_name,
+        })
+
     return {
         "success": True,
         "data": {
             "success": True,
-            "imported": 0,
-            "failed": 0,
-            "issues": []
+            "imported": imported,
+            "failed": failed,
+            "issues": issues,
         }
     }
 
@@ -578,5 +831,20 @@ async def import_github_issues(projectId: str, request: ImportIssuesRequest):
 @project_router.post("/releases")
 async def create_github_release(projectId: str, request: CreateReleaseRequest):
     """Create a GitHub release."""
-    # TODO: Implement release creation
-    return {"success": True, "data": {"url": ""}}
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return {"success": False, "error": f"Project {projectId} not found"}
+
+    args = ["release", "create", request.version, "--title", request.version, "--notes", request.releaseNotes]
+    if request.draft:
+        args.append("--draft")
+    if request.prerelease:
+        args.append("--prerelease")
+
+    result = run_gh_command(args, cwd=str(project_path))
+    if not result["success"]:
+        return {"success": False, "error": result.get("error", "Failed to create release")}
+
+    # gh release create outputs the release URL
+    release_url = result.get("output", "")
+    return {"success": True, "data": {"url": release_url}}

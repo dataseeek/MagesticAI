@@ -30,6 +30,7 @@ class ValidateApiKeyRequest(BaseModel):
 class ProjectEnvUpdate(BaseModel):
     """Model for updating project environment configuration."""
     githubToken: str | None = None
+    githubRepo: str | None = None
     graphitiEnabled: bool | None = None
     enableFancyUi: bool | None = None
     claudeToken: str | None = None
@@ -362,6 +363,7 @@ async def get_project_env(projectId: str = Path(...)):
     config = {
         "claudeAuthStatus": "not_configured",
         "githubEnabled": False,
+        "githubRepo": "",
         "graphitiEnabled": False,
         "enableFancyUi": True
     }
@@ -383,6 +385,8 @@ async def get_project_env(projectId: str = Path(...)):
 
                     if key == "GITHUB_TOKEN" and value:
                         config["githubEnabled"] = True
+                    elif key == "GITHUB_REPO" and value:
+                        config["githubRepo"] = value
                     elif key == "GRAPHITI_ENABLED":
                         config["graphitiEnabled"] = value.lower() == "true"
                     elif key == "ENABLE_FANCY_UI":
@@ -507,6 +511,21 @@ async def update_project_env(projectId: str = Path(...), config: ProjectEnvUpdat
                     existing[env_key] = value
                 else:
                     # Allow removing tokens by setting to empty string
+                    if env_key in existing:
+                        del existing[env_key]
+
+        # Map plain string settings (no token validation needed)
+        string_mapping = {
+            "githubRepo": "GITHUB_REPO",
+        }
+
+        for config_key, env_key in string_mapping.items():
+            if config_key in config_dict:
+                value = config_dict[config_key]
+                if value:
+                    existing[env_key] = value.strip()
+                else:
+                    # Allow removing by setting to empty
                     if env_key in existing:
                         del existing[env_key]
 
