@@ -320,6 +320,7 @@ export interface GitHubAPI {
   onAnalyzePreviewProgress: (callback: (projectId: string, progress: AnalyzePreviewProgress) => void) => IpcListenerCleanup;
   onAnalyzePreviewComplete: (callback: (projectId: string, result: AnalyzePreviewResult) => void) => IpcListenerCleanup;
   onAnalyzePreviewError: (callback: (projectId: string, error: { error: string }) => void) => IpcListenerCleanup;
+  closeGitHubIssue: (projectId: string, issueNumber: number) => Promise<IPCResult>;
   listPRs: (projectId: string) => Promise<PRData[]>;
   runPRReview: (projectId: string, prNumber: number) => void;
   cancelPRReview: (projectId: string, prNumber: number) => Promise<boolean>;

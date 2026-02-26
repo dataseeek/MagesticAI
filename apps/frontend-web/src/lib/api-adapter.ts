@@ -141,6 +141,7 @@ const githubAPI: API['github'] = {
   checkGitHubConnection: async () => ({ success: true, data: { connected: false, repoFullName: undefined, error: undefined } }),
   investigateGitHubIssue: () => { console.warn('[WebAPI] investigateGitHubIssue not implemented'); },
   importGitHubIssues: async () => ({ success: true, data: { success: true, imported: 0, failed: 0, issues: [] } }),
+  closeGitHubIssue: async () => ({ success: false, error: 'Not implemented' }),
   createGitHubRelease: async () => ({ success: true, data: { url: '' } }),
   suggestReleaseVersion: async () => ({ success: true, data: { suggestedVersion: '1.0.0', currentVersion: '0.0.0', bumpType: 'minor' as const, commitCount: 0, reason: 'Initial' } }),
   checkGitHubCli: async () => ({ success: true, data: { installed: false } }),
@@ -571,6 +572,8 @@ export const webAPI: API & { _isWebMode: boolean } = {
     get(`/projects/${projectId}/github/issues/${issueNumber}/comments`),
   importGitHubIssues: (projectId: string, issueNumbers: number[]) =>
     post(`/projects/${projectId}/github/import`, { issueNumbers }),
+  closeGitHubIssue: (projectId: string, issueNumber: number) =>
+    post(`/projects/${projectId}/github/issues/${issueNumber}/close`),
   createGitHubRelease: (projectId: string, version: string, releaseNotes: string, options) =>
     post(`/projects/${projectId}/github/releases`, { version, releaseNotes, ...options }),
 

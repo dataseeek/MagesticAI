@@ -941,6 +941,40 @@ Created via Magestic AI Web UI
     return spec_to_task(task.project_id, spec_dir)
 
 
+def _try_close_github_issue(project_path: Path, spec_dir: Path) -> None:
+    """Try to close a linked GitHub issue. Logs but doesn't raise on failure."""
+    try:
+        req_file = spec_dir / "requirements.json"
+        if not req_file.exists():
+            return
+        reqs = json.loads(req_file.read_text())
+        # Check metadata.githubIssueNumber (set by task creation from issue)
+        issue_number = None
+        if isinstance(reqs.get("metadata"), dict):
+            issue_number = reqs["metadata"].get("githubIssueNumber")
+        # Also check githubIssue.number (set by import endpoint)
+        if not issue_number and isinstance(reqs.get("githubIssue"), dict):
+            issue_number = reqs["githubIssue"].get("number")
+        if not issue_number:
+            return
+        from .github import run_gh_command
+        result = run_gh_command(
+            ["issue", "close", str(issue_number)],
+            cwd=str(project_path),
+        )
+        if result["success"]:
+            import logging
+            logging.getLogger(__name__).info(f"Auto-closed GitHub issue #{issue_number}")
+        else:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"Failed to auto-close GitHub issue #{issue_number}: {result.get('error', 'unknown')}"
+            )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Error auto-closing GitHub issue: {e}")
+
+
 class TaskStatusUpdate(BaseModel):
     """Model for updating only task status (for kanban)."""
 
@@ -988,6 +1022,10 @@ async def update_task_status(task_id: str, update: TaskStatusUpdate):
 
     plan["status"] = update.status
     plan_file.write_text(json.dumps(plan, indent=2))
+
+    # Auto-close linked GitHub issue when task is marked done
+    if update.status == "done":
+        _try_close_github_issue(project_path, spec_dir)
 
     return spec_to_task(project_id, spec_dir)
 
