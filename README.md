@@ -71,6 +71,25 @@ npm run dev
 # UI available at http://localhost:5173
 ```
 
+### Docker Deployment
+
+MagesticAI includes a `Dockerfile` and `docker-compose.yml` for containerized deployment:
+
+```bash
+# Build and start (clean)
+docker compose down -v && docker compose build && docker compose up -d
+
+# Start without rebuilding
+docker compose up -d
+
+# Retrieve the auto-generated API token
+docker exec magesticai cat /home/magesticai/.magestic-ai/.token
+```
+
+Access the web UI at `http://YOUR_HOST:8000` after the container starts.
+
+See [ContainerAPP.md](ContainerAPP.md) for detailed Docker deployment instructions.
+
 ---
 
 ## Architecture
@@ -157,8 +176,8 @@ MagesticAI/
 ├── apps/
 │   ├── frontend-web/        # React web frontend (Vite)
 │   │   ├── src/
-│   │   │   ├── components/  # 70+ React components
-│   │   │   ├── stores/      # 16 Zustand stores
+│   │   │   ├── components/  # 57+ React components
+│   │   │   ├── stores/      # 14 Zustand stores
 │   │   │   ├── hooks/       # Custom React hooks
 │   │   │   ├── lib/         # API client, WebSocket
 │   │   │   └── shared/      # Types, i18n, constants
@@ -179,11 +198,16 @@ MagesticAI/
 │   │   ├── integrations/    # Graphiti, Linear, GitHub
 │   │   └── prompts/         # Agent system prompts
 │   │
-├── guides/                  # Documentation
+├── guides/                  # Extended documentation
 ├── tests/                   # Test suite
 ├── scripts/                 # Build scripts
-├── DOCS.md                  # Technical documentation
-├── CONTRIBUTING.md          # Contribution guide
+├── Dockerfile               # Container image definition
+├── docker-compose.yml       # Container orchestration
+├── CHANGELOG.md             # Version history
+├── RELEASE.md               # Release process guide
+├── AGENTS.md                # AI agent instructions
+├── GEMINI.md                # Gemini AI instructions
+├── ContainerAPP.md          # Docker deployment guide
 └── package.json             # Root package
 ```
 
@@ -277,9 +301,13 @@ VITE_WS_BASE_URL=ws://localhost:8000
 
 ## Documentation
 
-- **[DOCS.md](DOCS.md)** - Comprehensive technical documentation
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - How to contribute
-- **[CLAUDE.md](CLAUDE.md)** - AI assistant instructions
+- **[CLAUDE.md](CLAUDE.md)** - AI assistant instructions and architecture reference
+- **[AGENTS.md](AGENTS.md)** - Agent configuration for AI coding tools
+- **[GEMINI.md](GEMINI.md)** - Gemini AI assistant instructions
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
+- **[RELEASE.md](RELEASE.md)** - Release process documentation
+- **[ContainerAPP.md](ContainerAPP.md)** - Docker deployment guide
+- **[guides/](guides/)** - Extended technical documentation
 
 ---
 
@@ -318,12 +346,15 @@ npm run build            # Build frontend for production
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! To get started:
 
 1. Fork the repository
-2. Create a feature branch from `develop`
-3. Make your changes
-4. Submit a pull request
+2. Create a feature branch from `develop`: `git checkout -b fix/my-fix develop`
+3. Make your changes and commit with sign-off: `git commit -s -m "fix: description"`
+4. Push to your branch: `git push origin fix/my-fix`
+5. Create a PR targeting `develop`: `gh pr create --base develop`
+
+See [RELEASE.md](RELEASE.md) for the full release and versioning process.
 
 ---
 
@@ -337,7 +368,7 @@ See [LICENSE](LICENSE) for details.
 
 ## Credits
 
-MagesticAI is a fork of [Magestic AI](https://github.com/AndyMik90/Magestic AI) by AndyMik90. We thank the original authors for their foundational work.
+MagesticAI is a fork of [Claude-Code-Manager-Web](https://github.com/dataseeek/Claude-Code-Manager-Web) by DataSeek. We thank the original authors for their foundational work.
 
 ---
 
