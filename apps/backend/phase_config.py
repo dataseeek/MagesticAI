@@ -36,7 +36,6 @@ THINKING_BUDGET_MAP: dict[str, int | None] = {
     "low": 1024,
     "medium": 4096,  # Moderate analysis
     "high": 16384,  # Deep thinking for QA review
-    "max": 65536,  # Maximum reasoning depth (Opus only)
 }
 
 # Effort level mapping for adaptive thinking models (e.g., Opus 4.6)
@@ -45,7 +44,6 @@ EFFORT_LEVEL_MAP: dict[str, str] = {
     "low": "low",
     "medium": "medium",
     "high": "high",
-    "max": "max",  # Maximum effort (Opus only)
 }
 
 # Models that support adaptive thinking via effort level (env var)
@@ -56,10 +54,10 @@ ADAPTIVE_THINKING_MODELS: set[str] = {"claude-opus-4-6", "claude-sonnet-4-6"}
 # Heavy phases use max for deep analysis
 # Light phases use medium after compaction
 SPEC_PHASE_THINKING_LEVELS: dict[str, str] = {
-    # Heavy phases - max (discovery, spec creation, self-critique)
-    "discovery": "max",
-    "spec_writing": "max",
-    "self_critique": "max",
+    # Heavy phases - high (discovery, spec creation, self-critique)
+    "discovery": "high",
+    "spec_writing": "high",
+    "self_critique": "high",
     # Light phases - medium (after first invocation with compaction)
     "requirements": "medium",
     "research": "medium",

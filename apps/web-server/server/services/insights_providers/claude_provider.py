@@ -154,7 +154,7 @@ class ClaudeProvider(ProviderStrategy):
 
             thinking_level = model_config.get("thinkingLevel")
             if thinking_level and thinking_level != "none":
-                effort_map = {"low": "low", "medium": "medium", "high": "high", "max": "max"}
+                effort_map = {"low": "low", "medium": "medium", "high": "high"}
                 effort = effort_map.get(thinking_level)
                 if effort:
                     cmd.extend(["--effort", effort])

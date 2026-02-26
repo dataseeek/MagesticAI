@@ -791,7 +791,10 @@ class RenameSessionRequest(BaseModel):
 
 
 class UpdateModelConfigRequest(BaseModel):
+    provider: str | None = None
+    profileId: str | None = None
     model: str | None = None
+    thinkingLevel: str | None = None
     temperature: float | None = None
 
 
@@ -1011,6 +1014,6 @@ async def update_insights_model_config(
     """Update model config for a session."""
     project_path = _get_project_path(projectId)
     service = get_insights_service()
-    config = {"model": request.model, "temperature": request.temperature}
+    config = {k: v for k, v in request.model_dump().items() if v is not None}
     success = service.update_model_config(project_path, sessionId, config)
     return {"success": success}
