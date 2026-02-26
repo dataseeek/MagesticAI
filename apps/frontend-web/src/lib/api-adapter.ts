@@ -145,6 +145,7 @@ const githubAPI: API['github'] = {
   suggestReleaseVersion: async () => ({ success: true, data: { suggestedVersion: '1.0.0', currentVersion: '0.0.0', bumpType: 'minor' as const, commitCount: 0, reason: 'Initial' } }),
   checkGitHubCli: async () => ({ success: true, data: { installed: false } }),
   checkGitHubAuth: async () => ({ success: true, data: { authenticated: false } }),
+  autoDetectGitHub: async () => ({ success: true, data: { authenticated: false } }),
   startGitHubAuth: async () => ({ success: true, data: { success: false } }),
   getGitHubToken: async () => ({ success: true, data: { token: '' } }),
   getGitHubUser: async () => ({ success: true, data: { username: '' } }),
@@ -576,6 +577,7 @@ export const webAPI: API & { _isWebMode: boolean } = {
   // GitHub OAuth
   checkGitHubCli: () => get('/github/cli/check'),
   checkGitHubAuth: () => get('/github/auth/check'),
+  autoDetectGitHub: () => get('/github/auto-detect'),
   startGitHubAuth: () => post('/github/auth/start'),
   getGitHubToken: () => get('/github/token'),
   getGitHubUser: () => get('/github/user'),

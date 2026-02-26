@@ -287,6 +287,7 @@ export interface GitHubAPI {
   suggestReleaseVersion: (projectId: string) => Promise<IPCResult<{ suggestedVersion: string; currentVersion: string; bumpType: 'major' | 'minor' | 'patch'; commitCount: number; reason: string }>>;
   checkGitHubCli: () => Promise<IPCResult<{ installed: boolean; version?: string }>>;
   checkGitHubAuth: () => Promise<IPCResult<{ authenticated: boolean; username?: string }>>;
+  autoDetectGitHub: () => Promise<IPCResult<{ authenticated: boolean; username?: string; token?: string; reason?: string }>>;
   startGitHubAuth: () => Promise<IPCResult<{ success: boolean; message?: string }>>;
   getGitHubToken: () => Promise<IPCResult<{ token: string }>>;
   getGitHubUser: () => Promise<IPCResult<{ username: string; name?: string }>>;

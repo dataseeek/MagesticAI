@@ -60,6 +60,7 @@ export function GitHubIntegration({
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [isLoadingRepos, setIsLoadingRepos] = useState(false);
   const [reposError, setReposError] = useState<string | null>(null);
+  const [isAutoDetecting, setIsAutoDetecting] = useState(false);
 
   // Branch selection state
   const [branches, setBranches] = useState<string[]>([]);
@@ -69,6 +70,47 @@ export function GitHubIntegration({
   debugLog('Render - authMode:', authMode);
   debugLog('Render - projectPath:', projectPath);
   debugLog('Render - envConfig:', envConfig ? { githubEnabled: envConfig.githubEnabled, hasToken: !!envConfig.githubToken, defaultBranch: envConfig.defaultBranch } : null);
+
+  // Auto-detect GitHub CLI auth when toggled on without a token
+  useEffect(() => {
+    if (!envConfig?.githubEnabled || envConfig?.githubToken) return;
+
+    let cancelled = false;
+    const autoDetect = async () => {
+      debugLog('Auto-detecting GitHub CLI auth...');
+      setIsAutoDetecting(true);
+      try {
+        const result = await window.API.autoDetectGitHub();
+        if (cancelled) return;
+        debugLog('autoDetectGitHub result:', result);
+
+        if (result.success && result.data?.authenticated && result.data.token) {
+          // gh CLI is authenticated — auto-populate token and username
+          updateEnvConfig({ githubToken: result.data.token, githubAuthMethod: 'oauth' });
+          setOauthUsername(result.data.username || null);
+          setAuthMode('oauth-success');
+
+          // Also try to auto-detect repo from git remote
+          if (projectPath && !envConfig?.githubRepo) {
+            const repoResult = await window.API.detectGitHubRepo(projectPath);
+            if (!cancelled && repoResult.success && repoResult.data) {
+              debugLog('Auto-detected repo:', repoResult.data);
+              updateEnvConfig({ githubRepo: repoResult.data });
+            }
+          }
+        }
+        // If not authenticated, stay in 'manual' mode — user can choose OAuth or PAT
+      } catch (err) {
+        debugLog('Auto-detect failed:', err);
+      } finally {
+        if (!cancelled) setIsAutoDetecting(false);
+      }
+    };
+
+    autoDetect();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [envConfig?.githubEnabled]);
 
   // Fetch repos when entering oauth-success mode
   useEffect(() => {
@@ -221,8 +263,21 @@ export function GitHubIntegration({
 
       {envConfig.githubEnabled && (
         <>
+          {/* Auto-detecting state */}
+          {isAutoDetecting && (
+            <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Detecting GitHub CLI...</p>
+                  <p className="text-xs text-muted-foreground">Checking if gh is already authenticated</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* OAuth Success State */}
-          {authMode === 'oauth-success' && (
+          {!isAutoDetecting && authMode === 'oauth-success' && (
             <div className="space-y-4">
               <div className="rounded-lg border border-success/30 bg-success/10 p-4">
                 <div className="flex items-center justify-between">
@@ -263,7 +318,7 @@ export function GitHubIntegration({
           )}
 
           {/* OAuth Flow */}
-          {authMode === 'oauth' && (
+          {!isAutoDetecting && authMode === 'oauth' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium text-foreground">GitHub Authentication</Label>
@@ -283,7 +338,7 @@ export function GitHubIntegration({
           )}
 
           {/* Manual Token Entry */}
-          {authMode === 'manual' && (
+          {!isAutoDetecting && authMode === 'manual' && (
             <>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

@@ -339,6 +339,7 @@ export interface API {
   // GitHub OAuth operations (gh CLI)
   checkGitHubCli: () => Promise<IPCResult<{ installed: boolean; version?: string }>>;
   checkGitHubAuth: () => Promise<IPCResult<{ authenticated: boolean; username?: string }>>;
+  autoDetectGitHub: () => Promise<IPCResult<{ authenticated: boolean; username?: string; token?: string; reason?: string }>>;
   startGitHubAuth: () => Promise<IPCResult<{
     success: boolean;
     message?: string;
@@ -590,7 +591,7 @@ export interface API {
   installClaudeCode: () => Promise<IPCResult<{ command: string }>>;
 
   // Auth status operations
-  getAuthStatus: () => Promise<IPCResult<{ hasToken: boolean; profileCount: number; source: string | null }>>;
+  getAuthStatus: () => Promise<IPCResult<{ hasToken: boolean; profileCount: number; source: string | null; email: string | null }>>;
   checkClaudeCredentialsExist: () => Promise<IPCResult<{ exists: boolean }>>;
   importClaudeCredentials: () => Promise<IPCResult<{ success: boolean; profileId: string; profileName: string }>>;
 
