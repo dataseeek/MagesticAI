@@ -980,6 +980,23 @@ async def import_github_issues(projectId: str, request: ImportIssuesRequest):
     }
 
 
+@project_router.post("/issues/{issueNumber}/close")
+async def close_github_issue(projectId: str, issueNumber: int):
+    """Close a GitHub issue."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return {"success": False, "error": f"Project {projectId} not found"}
+
+    result = run_gh_command(
+        ["issue", "close", str(issueNumber)],
+        cwd=str(project_path),
+    )
+    if not result["success"]:
+        return {"success": False, "error": result.get("error", f"Failed to close issue #{issueNumber}")}
+
+    return {"success": True}
+
+
 @project_router.post("/releases")
 async def create_github_release(projectId: str, request: CreateReleaseRequest):
     """Create a GitHub release."""

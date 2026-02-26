@@ -329,6 +329,7 @@ export interface API {
   investigateGitHubIssue: (projectId: string, issueNumber: number, selectedCommentIds?: number[]) => Promise<IPCResult> | void;
   getIssueComments: (projectId: string, issueNumber: number) => Promise<IPCResult<Array<{ id: number; body: string; user: { login: string; avatar_url?: string }; created_at: string; updated_at: string }>>>;
   importGitHubIssues: (projectId: string, issueNumbers: number[]) => Promise<IPCResult<GitHubImportResult>>;
+  closeGitHubIssue: (projectId: string, issueNumber: number) => Promise<IPCResult>;
   createGitHubRelease: (
     projectId: string,
     version: string,

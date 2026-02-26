@@ -29,7 +29,9 @@
     "add": "Ajouter",
     "gotIt": "Compris",
     "continue": "Continuer",
-    "saving": "Enregistrement..."
+    "saving": "Enregistrement...",
+    "closeIssue": "Fermer le ticket",
+    "closing": "Fermeture..."
   },
   "labels": {
     "loading": "Chargement...",

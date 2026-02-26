@@ -30,6 +30,8 @@ export interface IssueDetailProps {
   autoFixConfig?: AutoFixConfig | null;
   /** Auto-fix queue item for this issue */
   autoFixQueueItem?: AutoFixQueueItem | null;
+  /** Handler to close the GitHub issue */
+  onCloseIssue?: (issueNumber: number) => Promise<void>;
 }
 
 export interface InvestigationDialogProps {

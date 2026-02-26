@@ -29,7 +29,9 @@
     "add": "Add",
     "gotIt": "Got it",
     "continue": "Continue",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "closeIssue": "Close Issue",
+    "closing": "Closing..."
   },
   "labels": {
     "loading": "Loading...",

@@ -29,7 +29,9 @@
     "add": "Adicionar",
     "gotIt": "Entendi",
     "continue": "Continuar",
-    "saving": "Salvando..."
+    "saving": "Salvando...",
+    "closeIssue": "Fechar Issue",
+    "closing": "Fechando..."
   },
   "labels": {
     "loading": "Carregando...",
