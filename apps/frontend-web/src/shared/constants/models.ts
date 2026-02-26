@@ -154,10 +154,11 @@ export const PROVIDER_MODELS: Record<string, { id: string; label: string }[]> = 
     { id: 'haiku', label: 'Claude Haiku 4.5' },
   ],
   codex: [
-    { id: 'o4-mini', label: 'o4-mini' },
-    { id: 'o3', label: 'o3' },
-    { id: 'gpt-4.1', label: 'GPT-4.1' },
-    { id: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
+    { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
+    { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
+    { id: 'gpt-5.1-codex-max', label: 'GPT-5.1 Codex Max' },
+    { id: 'gpt-5-codex', label: 'GPT-5 Codex' },
+    { id: 'gpt-5-codex-mini', label: 'GPT-5 Codex Mini' },
   ],
   gemini: [
     { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },

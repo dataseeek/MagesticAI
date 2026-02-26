@@ -1,7 +1,7 @@
 """
 Codex CLI (OpenAI) provider for insights chat.
 
-Runs `codex --quiet --model <model> "<message>"` as a subprocess.
+Runs `codex exec --model <model> "<message>"` as a subprocess.
 """
 
 import asyncio
@@ -17,10 +17,11 @@ logger = logging.getLogger(__name__)
 
 # Codex models (static fallback list)
 CODEX_MODELS = [
-    ProviderModel(id="o4-mini", label="o4-mini"),
-    ProviderModel(id="o3", label="o3"),
-    ProviderModel(id="gpt-4.1", label="GPT-4.1"),
-    ProviderModel(id="gpt-4.1-mini", label="GPT-4.1 Mini"),
+    ProviderModel(id="gpt-5.3-codex", label="GPT-5.3 Codex"),
+    ProviderModel(id="gpt-5.2-codex", label="GPT-5.2 Codex"),
+    ProviderModel(id="gpt-5.1-codex-max", label="GPT-5.1 Codex Max"),
+    ProviderModel(id="gpt-5-codex", label="GPT-5 Codex"),
+    ProviderModel(id="gpt-5-codex-mini", label="GPT-5 Codex Mini"),
 ]
 
 
@@ -58,9 +59,8 @@ class CodexProvider(ProviderStrategy):
     ) -> str:
         cmd = ["bash", "-l", "-c"]
 
-        codex_cmd = "codex --quiet"
-        effective_model = model or (model_config or {}).get("model", "o4-mini")
-        codex_cmd += f" --model {effective_model}"
+        effective_model = model or (model_config or {}).get("model", "gpt-5.3-codex")
+        codex_cmd = f"codex exec --model {effective_model}"
 
         # Build prompt with conversation context for stateless CLI
         full_prompt = message
@@ -82,7 +82,7 @@ class CodexProvider(ProviderStrategy):
         env = os.environ.copy()
         env["PYTHONUNBUFFERED"] = "1"
 
-        logger.info(f"[CodexProvider] Starting: codex --quiet --model {effective_model}")
+        logger.info(f"[CodexProvider] Starting: codex exec --model {effective_model}")
 
         try:
             await broadcast_event("insights:chunk", {
