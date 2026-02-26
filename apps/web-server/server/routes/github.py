@@ -4,7 +4,10 @@ GitHub integration routes.
 Handles GitHub OAuth, repository management, issues, PRs, and releases.
 """
 
+import asyncio
 import json
+import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path as FilePath
@@ -266,22 +269,158 @@ async def check_github_cli():
 async def check_github_auth():
     """Check if user is authenticated with GitHub CLI."""
     result = run_gh_command(["auth", "status"])
-    authenticated = result["success"] and "Logged in" in result.get("output", "")
-    return {"success": True, "data": {"authenticated": authenticated}}
+    output = result.get("output", "")
+    authenticated = result["success"] and "Logged in" in output
+    username = ""
+    if authenticated:
+        user_result = run_gh_command(["api", "user", "-q", ".login"])
+        if user_result["success"]:
+            username = user_result["output"]
+    return {"success": True, "data": {"authenticated": authenticated, "username": username}}
+
+
+@router.get("/auto-detect")
+async def auto_detect_github():
+    """Auto-detect GitHub CLI authentication, token, and username in one call."""
+    # Check gh CLI is installed
+    if not shutil.which("gh"):
+        return {"success": True, "data": {"authenticated": False, "reason": "gh_not_installed"}}
+
+    # Check auth status
+    auth_result = run_gh_command(["auth", "status"])
+    output = auth_result.get("output", "")
+    if not (auth_result["success"] and "Logged in" in output):
+        return {"success": True, "data": {"authenticated": False, "reason": "not_logged_in"}}
+
+    # Get username
+    username = ""
+    user_result = run_gh_command(["api", "user", "-q", ".login"])
+    if user_result["success"]:
+        username = user_result["output"]
+
+    # Get token
+    token = ""
+    token_result = run_gh_command(["auth", "token"])
+    if token_result["success"]:
+        token = token_result["output"]
+
+    return {
+        "success": True,
+        "data": {
+            "authenticated": True,
+            "username": username,
+            "token": token,
+        }
+    }
 
 
 @router.post("/auth/start")
 async def start_github_auth():
-    """Start GitHub CLI authentication flow."""
-    # Note: In web mode, we can't do interactive auth
-    # Return instructions for manual auth
-    return {
-        "success": True,
-        "data": {
-            "success": False,
-            "message": "Run 'gh auth login' in terminal to authenticate"
+    """Start GitHub CLI authentication flow using device code."""
+    gh_path = shutil.which("gh")
+    if not gh_path:
+        return {
+            "success": True,
+            "data": {
+                "success": False,
+                "message": "GitHub CLI (gh) is not installed. Install it from https://cli.github.com/"
+            }
         }
-    }
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            gh_path, "auth", "login",
+            "--hostname", "github.com",
+            "--git-protocol", "https",
+            "--web",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            stdin=asyncio.subprocess.PIPE,
+        )
+
+        device_code = None
+        auth_url = None
+
+        # Read stderr where gh outputs the device code prompt
+        async def read_output(stream):
+            nonlocal device_code, auth_url
+            while True:
+                line = await stream.readline()
+                if not line:
+                    break
+                text = line.decode("utf-8", errors="replace").strip()
+                # gh outputs: "First, copy your one-time code: XXXX-XXXX"
+                code_match = re.search(r"one-time code:\s*([A-Z0-9]+-[A-Z0-9]+)", text)
+                if code_match:
+                    device_code = code_match.group(1)
+                # gh outputs the URL on a line like "https://github.com/login/device"
+                url_match = re.search(r"(https://github\.com/login/device\S*)", text)
+                if url_match:
+                    auth_url = url_match.group(1)
+                # Also broadcast via WebSocket when we have both
+                if device_code and auth_url:
+                    try:
+                        from ..websockets.events import broadcast_event
+                        await broadcast_event("github:device-code", {
+                            "deviceCode": device_code,
+                            "authUrl": auth_url,
+                            "browserOpened": False,
+                        })
+                    except Exception:
+                        pass
+
+        # Read both stdout and stderr (gh uses stderr for prompts)
+        await asyncio.gather(
+            read_output(proc.stdout),
+            read_output(proc.stderr),
+        )
+
+        # Send enter to confirm if process is waiting
+        try:
+            proc.stdin.write(b"\n")
+            await proc.stdin.drain()
+        except Exception:
+            pass
+
+        await asyncio.wait_for(proc.wait(), timeout=120)
+
+        if proc.returncode == 0:
+            return {
+                "success": True,
+                "data": {
+                    "success": True,
+                    "deviceCode": device_code,
+                    "authUrl": auth_url or "https://github.com/login/device",
+                    "browserOpened": False,
+                }
+            }
+        else:
+            return {
+                "success": True,
+                "data": {
+                    "success": False,
+                    "message": "Authentication flow did not complete. Please try again.",
+                    "deviceCode": device_code,
+                    "authUrl": auth_url or "https://github.com/login/device",
+                    "browserOpened": False,
+                }
+            }
+    except asyncio.TimeoutError:
+        return {
+            "success": True,
+            "data": {
+                "success": False,
+                "message": "Authentication timed out after 120 seconds."
+            }
+        }
+    except Exception as e:
+        return {
+            "success": True,
+            "data": {
+                "success": False,
+                "message": f"Authentication failed: {str(e)}"
+            }
+        }
 
 
 @router.get("/token")
