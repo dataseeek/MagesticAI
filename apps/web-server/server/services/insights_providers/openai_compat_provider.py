@@ -62,7 +62,7 @@ class OpenAICompatProvider(ProviderStrategy):
 
         try:
             import httpx
-            async with httpx.AsyncClient(timeout=3.0) as client:
+            async with httpx.AsyncClient(timeout=1.5) as client:
                 resp = await client.get(f"{self.base_url}/v1/models")
                 resp.raise_for_status()
                 data = resp.json()

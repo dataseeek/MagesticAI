@@ -314,52 +314,48 @@ async def check_claude_code_version():
     Returns data directly (not wrapped in {success, data}) because
     the frontend api-client.ts adds that wrapper automatically.
 
-    Uses `bash -l -c` so that login-profile PATH additions (fnm, npm-global)
-    are visible even when Node/Claude were installed at runtime via fnm.
+    Uses shutil.which for fast PATH lookup, falling back to login shell
+    only when the binary isn't on the non-login PATH.
     """
-    # Use login shell for all checks so fnm/npm-global PATH is available
-    try:
-        result = subprocess.run(
-            ["bash", "-l", "-c", "claude --version"],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        if result.returncode == 0:
-            version_str = result.stdout.strip()
-            path_result = subprocess.run(
-                ["bash", "-l", "-c", "which claude"],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            claude_path = path_result.stdout.strip() if path_result.returncode == 0 else None
-            return {
-                "installed": version_str,
-                "latest": "unknown",
-                "isOutdated": False,
-                "path": claude_path
-            }
-    except Exception:
-        pass
+    claude_path = shutil.which("claude")
 
-    # Check if Node.js is available (needed for install)
-    node_available = False
-    try:
-        node_result = subprocess.run(
-            ["bash", "-l", "-c", "node --version"],
-            capture_output=True, text=True, timeout=5
-        )
-        node_available = node_result.returncode == 0
-    except Exception:
-        pass
+    # Fallback: try login shell in case PATH is set in .bashrc/.profile
+    if not claude_path:
+        try:
+            result = subprocess.run(
+                ["bash", "-l", "-c", "which claude"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode == 0:
+                claude_path = result.stdout.strip()
+        except Exception:
+            pass
+
+    if claude_path:
+        try:
+            result = subprocess.run(
+                [claude_path, "--version"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode == 0:
+                return {
+                    "installed": result.stdout.strip(),
+                    "latest": "unknown",
+                    "isOutdated": False,
+                    "path": claude_path,
+                }
+        except Exception:
+            pass
+
+    # Claude not found — check if Node.js is available (needed for install)
+    node_available = shutil.which("node") is not None
 
     return {
         "installed": None,
         "latest": "unknown",
         "isOutdated": False,
         "path": None,
-        "nodeAvailable": node_available
+        "nodeAvailable": node_available,
     }
 
 

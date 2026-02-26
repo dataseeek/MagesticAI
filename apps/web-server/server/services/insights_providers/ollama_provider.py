@@ -58,7 +58,7 @@ class OllamaProvider(ProviderStrategy):
         # Check if server is running by fetching model list
         try:
             import httpx
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=1.5) as client:
                 resp = await client.get(f"{self.base_url}/api/tags")
                 resp.raise_for_status()
                 data = resp.json()
@@ -79,7 +79,7 @@ class OllamaProvider(ProviderStrategy):
             # Fallback: check if ollama is installed but server may be down
             try:
                 result = subprocess.run(
-                    ["ollama", "list"], capture_output=True, text=True, timeout=5,
+                    ["ollama", "list"], capture_output=True, text=True, timeout=2,
                 )
                 if result.returncode == 0 and result.stdout.strip():
                     lines = result.stdout.strip().splitlines()

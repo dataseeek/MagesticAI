@@ -7,6 +7,7 @@ Runs `gemini --prompt "<message>"` as a subprocess.
 import asyncio
 import logging
 import os
+import shutil
 from pathlib import Path
 
 from ...websockets.events import broadcast_event
@@ -25,12 +26,13 @@ class GeminiProvider(ProviderStrategy):
     """Provider that shells out to the Gemini CLI."""
 
     async def detect(self) -> ProviderInfo:
-        from ...routes.cli_accounts import _detect_cli_version, _detect_gemini_credentials
+        from ...routes.cli_accounts import _detect_gemini_credentials
 
-        version = _detect_cli_version("gemini")
-        installed = version is not None
+        # Fast path: just check if gemini binary exists on PATH
+        # (running `gemini --version` takes ~3s due to Node.js startup)
+        installed = shutil.which("gemini") is not None
+
         authenticated, auth_method, _ = (False, None, None)
-
         if installed:
             authenticated, auth_method, _ = _detect_gemini_credentials()
 

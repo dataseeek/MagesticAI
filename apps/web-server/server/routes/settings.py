@@ -2135,13 +2135,20 @@ async def get_auth_status():
     profiles_file = get_data_file("claude-profiles.json")
     has_token = False
     profile_count = 0
+    email = None
 
     if profiles_file.exists():
         try:
             data = json.loads(profiles_file.read_text())
             profiles = data.get("profiles", [])
             profile_count = len(profiles)
-            has_token = any(p.get("oauthToken") for p in profiles)
+            active_id = data.get("activeProfileId")
+            for p in profiles:
+                if p.get("oauthToken"):
+                    has_token = True
+                    # Get email from active profile, or first profile with a token
+                    if email is None or p.get("id") == active_id:
+                        email = p.get("email")
         except (json.JSONDecodeError, KeyError):
             pass
 
@@ -2152,6 +2159,7 @@ async def get_auth_status():
         "hasToken": has_token or bool(env_token),
         "profileCount": profile_count,
         "source": "profile" if has_token else ("env" if env_token else None),
+        "email": email,
     }
 
 
