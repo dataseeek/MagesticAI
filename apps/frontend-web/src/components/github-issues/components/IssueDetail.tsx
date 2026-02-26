@@ -98,7 +98,7 @@ export function IssueDetail({
         {/* Actions */}
         <div className="flex items-center gap-2">
           {hasLinkedTask ? (
-            <Button onClick={handleViewTask} className="flex-1" variant="secondary">
+            <Button onClick={handleViewTask} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">
               <Eye className="h-4 w-4 mr-2" />
               View Task
             </Button>

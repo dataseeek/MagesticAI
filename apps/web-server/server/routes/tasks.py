@@ -87,6 +87,10 @@ class TaskMetadata(BaseModel):
     priority: str | None = None
     complexity: str | None = None
     impact: str | None = None
+    # GitHub integration
+    githubIssueNumber: int | None = None
+    affectedFiles: list[str] | None = None
+    acceptanceCriteria: list[str] | None = None
     model: str | None = None
     thinkingLevel: str | None = None
     requireReviewBeforeCoding: bool | None = None

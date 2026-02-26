@@ -316,7 +316,10 @@ function AuthenticatedApp() {
                   {activeView === 'github-issues' && (
                     <GitHubIssues
                       onOpenSettings={() => setIsSettingsDialogOpen(true)}
-                      onNavigateToTask={(taskId) => setSelectedTaskId(taskId)}
+                      onNavigateToTask={(taskId) => {
+                        setSelectedTaskId(taskId);
+                        setActiveView('kanban');
+                      }}
                     />
                   )}
                   {activeView === 'github-prs' && (
