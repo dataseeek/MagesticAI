@@ -109,24 +109,29 @@ async def analyze_issue_with_ai(issue_data: dict, comments: list, project_path: 
     # Build analysis prompt
     prompt = _build_issue_analysis_prompt(issue_data, comments)
 
-    # Create AI client for batch analysis
+    # Run AI analysis using Claude Agent SDK async context manager
     try:
         client = create_simple_client(
-            agent_type="batch_analysis",  # Read-only analysis agent
-            model="claude-sonnet-4-20250514",  # Use Sonnet for better analysis
+            agent_type="batch_analysis",
+            model="claude-sonnet-4-20250514",
             cwd=FilePath(project_path),
-            max_turns=1  # Single-turn analysis
+            max_turns=1,
         )
-    except Exception as e:
-        raise RuntimeError(f"Failed to create AI client: {e}")
 
-    # Run AI analysis
-    try:
-        response = await client.send_message(prompt)
+        response_text = ""
+        async with client:
+            await client.query(prompt)
+            async for msg in client.receive_response():
+                msg_type = type(msg).__name__
+                if msg_type == "AssistantMessage" and hasattr(msg, "content"):
+                    for block in msg.content:
+                        if hasattr(block, "text"):
+                            response_text += block.text
 
-        # Extract analysis from response
-        analysis = _parse_ai_analysis_response(response.content)
-        return analysis
+        if not response_text:
+            raise RuntimeError("Empty response from AI")
+
+        return _parse_ai_analysis_response(response_text)
 
     except Exception as e:
         raise RuntimeError(f"AI analysis failed: {e}")
@@ -787,7 +792,7 @@ async def investigate_github_issue(
         # Fetch issue details using gh CLI
         # Use 'gh issue view' with JSON output
         issue_result = run_gh_command(
-            ["issue", "view", str(issueNumber), "--json", "number,title,body,state,labels,user,createdAt,updatedAt,url"],
+            ["issue", "view", str(issueNumber), "--json", "number,title,body,state,labels,author,createdAt,updatedAt,url"],
             cwd=str(project_path)
         )
 
@@ -834,7 +839,7 @@ async def investigate_github_issue(
             "body": issue_data.get("body"),
             "state": issue_data.get("state"),
             "labels": issue_data.get("labels", []),
-            "user": issue_data.get("user", {}),
+            "user": issue_data.get("author", {}),
             "created_at": issue_data.get("createdAt"),
             "updated_at": issue_data.get("updatedAt"),
             "url": issue_data.get("url"),

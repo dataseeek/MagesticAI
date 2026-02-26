@@ -276,7 +276,7 @@ export interface GitHubAPI {
   getGitHubIssue: (projectId: string, issueNumber: number) => Promise<IPCResult<GitHubIssue>>;
   getIssueComments: (projectId: string, issueNumber: number) => Promise<IPCResult<unknown[]>>;
   checkGitHubConnection: (projectId: string) => Promise<IPCResult<GitHubSyncStatus>>;
-  investigateGitHubIssue: (projectId: string, issueNumber: number, selectedCommentIds?: number[]) => void;
+  investigateGitHubIssue: (projectId: string, issueNumber: number, selectedCommentIds?: number[]) => Promise<IPCResult> | void;
   importGitHubIssues: (projectId: string, issueNumbers: number[]) => Promise<IPCResult<GitHubImportResult>>;
   createGitHubRelease: (
     projectId: string,
