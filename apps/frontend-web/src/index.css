@@ -171,9 +171,22 @@ body {
 /* Terminal grid drag-and-drop styles */
 .terminal-grid-item {
   transition: transform 200ms ease-out, box-shadow 200ms ease-out, opacity 200ms ease-out;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .terminal-grid-item.dragging {
   z-index: 50;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Prevent xterm.js from overflowing its container */
+.xterm {
+  width: 100% !important;
+  max-width: 100%;
+}
+
+.xterm-viewport,
+.xterm-screen {
+  width: 100% !important;
 }

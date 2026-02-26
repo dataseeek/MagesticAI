@@ -479,6 +479,7 @@ export interface API {
   getInsightsSession: (projectId: string) => Promise<IPCResult<InsightsSession | null>>;
   detectInsightsProviders: (projectId: string) => Promise<IPCResult<InsightsProviderInfo[]>>;
   sendInsightsMessage: (projectId: string, message: string, modelConfig?: InsightsModelConfig) => void;
+  stopInsightsMessage: (projectId: string) => Promise<IPCResult>;
   clearInsightsSession: (projectId: string) => Promise<IPCResult>;
   createTaskFromInsights: (
     projectId: string,

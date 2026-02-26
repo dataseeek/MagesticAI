@@ -8,6 +8,7 @@ import asyncio
 import logging
 import os
 import subprocess
+import time
 from pathlib import Path
 
 from ...websockets.events import broadcast_event
@@ -18,9 +19,7 @@ logger = logging.getLogger(__name__)
 # Codex models (static fallback list)
 CODEX_MODELS = [
     ProviderModel(id="gpt-5.3-codex", label="GPT-5.3 Codex"),
-    ProviderModel(id="gpt-5.2-codex", label="GPT-5.2 Codex"),
     ProviderModel(id="gpt-5.1-codex-max", label="GPT-5.1 Codex Max"),
-    ProviderModel(id="gpt-5-codex", label="GPT-5 Codex"),
     ProviderModel(id="gpt-5-codex-mini", label="GPT-5 Codex Mini"),
 ]
 
@@ -100,6 +99,7 @@ class CodexProvider(ProviderStrategy):
             )
 
             accumulated = ""
+            stream_start = time.monotonic()
             async for line_bytes in proc.stdout:
                 line = line_bytes.decode("utf-8", errors="replace").rstrip()
                 if not line:
@@ -124,9 +124,19 @@ class CodexProvider(ProviderStrategy):
                 })
                 return ""
 
+            elapsed = time.monotonic() - stream_start
+            estimated_tokens = max(1, len(accumulated) // 4)
+            tokens_per_sec = round(estimated_tokens / elapsed, 1) if elapsed > 0 else 0
+
             await broadcast_event("insights:chunk", {
                 "projectId": project_id,
                 "type": "done",
+                "metrics": {
+                    "outputTokens": estimated_tokens,
+                    "tokensPerSecond": tokens_per_sec,
+                    "elapsedSeconds": round(elapsed, 1),
+                    "estimated": True,
+                },
             })
 
             return accumulated

@@ -7,6 +7,7 @@ import { Separator } from '../../ui/separator';
 import { Button } from '../../ui/button';
 import { GitHubOAuthFlow } from '../../project-settings/GitHubOAuthFlow';
 import { PasswordInput } from '../../project-settings/PasswordInput';
+import { updateProjectSettings } from '../../../stores/project-store';
 import type { ProjectEnvConfig, GitHubSyncStatus, ProjectSettings } from '../../../shared/types';
 
 // Debug logging
@@ -35,6 +36,7 @@ interface GitHubIntegrationProps {
   gitHubConnectionStatus: GitHubSyncStatus | null;
   isCheckingGitHub: boolean;
   projectPath?: string; // Project path for fetching git branches
+  projectId?: string;   // Project ID for persisting settings
   // Project settings for mainBranch (used by kanban tasks and terminal worktrees)
   settings?: ProjectSettings;
   setSettings?: React.Dispatch<React.SetStateAction<ProjectSettings>>;
@@ -52,6 +54,7 @@ export function GitHubIntegration({
   gitHubConnectionStatus,
   isCheckingGitHub,
   projectPath,
+  projectId,
   settings,
   setSettings
 }: GitHubIntegrationProps) {
@@ -131,10 +134,16 @@ export function GitHubIntegration({
   const handleBranchChange = (branch: string) => {
     debugLog('handleBranchChange: Updating branch to:', branch);
 
-    // Update project settings (primary source for Electron app)
+    // Update local state
     if (setSettings) {
       setSettings(prev => ({ ...prev, mainBranch: branch }));
       debugLog('handleBranchChange: Updated settings.mainBranch');
+    }
+
+    // Persist to backend immediately so it survives page reload
+    if (projectId) {
+      updateProjectSettings(projectId, { mainBranch: branch });
+      debugLog('handleBranchChange: Persisted mainBranch to backend');
     }
 
     // Also update envConfig for CLI backward compatibility

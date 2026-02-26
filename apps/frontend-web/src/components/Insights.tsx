@@ -13,7 +13,8 @@ import {
   FileText,
   FolderSearch,
   PanelLeftClose,
-  PanelLeft
+  PanelLeft,
+  Square
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -28,6 +29,7 @@ import {
   useInsightsStore,
   loadInsightsSession,
   sendMessage,
+  stopMessage,
   newSession,
   switchSession,
   deleteSession,
@@ -39,14 +41,30 @@ import {
 import { loadTasks } from '../stores/task-store';
 import { ChatHistorySidebar } from './ChatHistorySidebar';
 import { InsightsModelSelector } from './InsightsModelSelector';
-import type { InsightsChatMessage, InsightsModelConfig } from '../shared/types';
+import type { InsightsChatMessage, InsightsModelConfig, InsightsProvider } from '../shared/types';
 import {
   TASK_CATEGORY_LABELS,
   TASK_CATEGORY_COLORS,
   TASK_COMPLEXITY_LABELS,
   TASK_COMPLEXITY_COLORS,
-  PROVIDER_INFO
+  PROVIDER_INFO,
+  PROVIDER_MODELS
 } from '../shared/constants';
+
+/** Build a model suffix like "(Claude Sonnet 4.6)" or "(Ollama: qwen3-30b)" */
+function getModelLabel(provider?: InsightsProvider, model?: string): string | null {
+  if (!provider && !model) return null;
+  const providerName = provider ? (PROVIDER_INFO[provider]?.displayName || provider) : '';
+  if (!model) return providerName || null;
+
+  // Try to find a friendly label from PROVIDER_MODELS
+  const models = provider ? PROVIDER_MODELS[provider] : [];
+  const match = models?.find((m) => m.id === model);
+  if (match) return match.label;
+
+  // Fallback: "Provider: model-id"
+  return providerName ? `${providerName}: ${model}` : model;
+}
 
 // Safe link renderer for ReactMarkdown to prevent phishing and ensure external links open safely
 const SafeLink = ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
@@ -97,6 +115,7 @@ export function Insights({ projectId }: InsightsProps) {
   const streamingContent = useInsightsStore((state) => state.streamingContent);
   const currentTool = useInsightsStore((state) => state.currentTool);
   const isLoadingSessions = useInsightsStore((state) => state.isLoadingSessions);
+  const lastMetrics = useInsightsStore((state) => state.lastMetrics);
 
   const [inputValue, setInputValue] = useState('');
   const [creatingTask, setCreatingTask] = useState<string | null>(null);
@@ -312,7 +331,7 @@ export function Insights({ projectId }: InsightsProps) {
                 </div>
                 <div className="flex-1">
                   <div className="mb-1 text-sm font-medium text-foreground">
-                    Assistant
+                    Assistant{(() => { const m = getModelLabel(session?.modelConfig?.provider, session?.modelConfig?.model); return m ? <span className="font-normal text-muted-foreground"> ({m})</span> : null; })()}
                   </div>
                   {streamingContent && (
                     <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -330,6 +349,21 @@ export function Insights({ projectId }: InsightsProps) {
                     <ToolIndicator name={currentTool.name} input={currentTool.input} />
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Metrics badge — shown after response completes */}
+            {lastMetrics && status.phase === 'complete' && (
+              <div className="flex justify-end">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/50 px-2.5 py-1 text-[11px] text-muted-foreground">
+                  {lastMetrics.tokensPerSecond > 0 && (
+                    <span className="font-medium">{lastMetrics.tokensPerSecond} tok/s</span>
+                  )}
+                  {lastMetrics.outputTokens > 0 && (
+                    <span>{lastMetrics.estimated ? '~' : ''}{lastMetrics.outputTokens} tokens</span>
+                  )}
+                  <span>{lastMetrics.elapsedSeconds}s</span>
+                </span>
               </div>
             )}
 
@@ -371,17 +405,24 @@ export function Insights({ projectId }: InsightsProps) {
             className="min-h-[80px] resize-none"
             disabled={isLoading}
           />
-          <Button
-            onClick={handleSend}
-            disabled={!inputValue.trim() || isLoading}
-            className="self-end"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
+          {isLoading ? (
+            <Button
+              variant="destructive"
+              onClick={() => stopMessage(projectId)}
+              className="self-end"
+              title="Stop response"
+            >
+              <Square className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSend}
+              disabled={!inputValue.trim()}
+              className="self-end"
+            >
               <Send className="h-4 w-4" />
-            )}
-          </Button>
+            </Button>
+          )}
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
           Press Enter to send, Shift+Enter for new line
@@ -422,13 +463,8 @@ function MessageBubble({
         )}
       </div>
       <div className="flex-1 space-y-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <span>{isUser ? 'You' : 'Assistant'}</span>
-          {!isUser && message.provider && message.provider !== 'claude' && (
-            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
-              via {PROVIDER_INFO[message.provider]?.displayName || message.provider}
-            </span>
-          )}
+        <div className="text-sm font-medium text-foreground">
+          {isUser ? 'You' : <>Assistant{(() => { const m = getModelLabel(message.provider, message.providerModel); return m ? <span className="font-normal text-muted-foreground"> ({m})</span> : null; })()}</>}
         </div>
         <div className="prose prose-sm dark:prose-invert max-w-none">
           <ReactMarkdown

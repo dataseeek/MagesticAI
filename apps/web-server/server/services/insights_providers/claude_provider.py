@@ -10,6 +10,7 @@ import logging
 import os
 import shutil
 import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -193,6 +194,7 @@ class ClaudeProvider(ProviderStrategy):
 
             accumulated_content = ""
             tools_used = []
+            stream_start = time.monotonic()
 
             async for line_bytes in proc.stdout:
                 line = line_bytes.decode("utf-8", errors="replace").rstrip()
@@ -296,9 +298,20 @@ class ClaudeProvider(ProviderStrategy):
                 })
                 return ""
 
+            elapsed = time.monotonic() - stream_start
+            # Estimate tokens: ~4 chars per token for English text
+            estimated_tokens = max(1, len(accumulated_content) // 4)
+            tokens_per_sec = round(estimated_tokens / elapsed, 1) if elapsed > 0 else 0
+
             await broadcast_event("insights:chunk", {
                 "projectId": project_id,
                 "type": "done",
+                "metrics": {
+                    "outputTokens": estimated_tokens,
+                    "tokensPerSecond": tokens_per_sec,
+                    "elapsedSeconds": round(elapsed, 1),
+                    "estimated": True,
+                },
             })
 
             return accumulated_content

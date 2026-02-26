@@ -682,6 +682,8 @@ export const webAPI: API & { _isWebMode: boolean } = {
   sendInsightsMessage: (projectId: string, message: string, modelConfig?: InsightsModelConfig) => {
     post(`/projects/${projectId}/insights/message`, { message, modelConfig });
   },
+  stopInsightsMessage: (projectId: string) =>
+    post(`/projects/${projectId}/insights/stop`),
   clearInsightsSession: (projectId: string) => del(`/projects/${projectId}/insights`),
   createTaskFromInsights: (projectId: string, title: string, description: string, metadata?: TaskMetadata) =>
     post(`/projects/${projectId}/insights/create-task`, { title, description, metadata }),
