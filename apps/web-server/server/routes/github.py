@@ -450,7 +450,15 @@ async def list_github_user_repos():
     ])
     if result["success"]:
         try:
-            repos = json.loads(result["output"])
+            raw_repos = json.loads(result["output"])
+            repos = [
+                {
+                    "fullName": r.get("nameWithOwner", r.get("name", "")),
+                    "description": r.get("description"),
+                    "isPrivate": r.get("isPrivate", False),
+                }
+                for r in raw_repos
+            ]
             return {"success": True, "data": {"repos": repos}}
         except json.JSONDecodeError:
             return {"success": True, "data": {"repos": []}}

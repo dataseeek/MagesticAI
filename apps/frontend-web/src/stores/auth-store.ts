@@ -59,21 +59,19 @@ export const useAuthStore = create<AuthState>()(
 
       checkAuth: async () => {
         const token = getAuthToken();
-        if (!token) {
-          set({ isAuthenticated: false });
-          return false;
-        }
 
         set({ isLoading: true });
 
         try {
-          const response = await fetch('/api/health', {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
+          const headers: Record<string, string> = {};
+          if (token) {
+            headers.Authorization = `Bearer ${token}`;
+          }
+
+          const response = await fetch('/api/health', { headers });
 
           if (response.ok) {
+            // Backend responded OK — either token is valid or auth is disabled
             set({ isAuthenticated: true, isLoading: false });
             return true;
           }
@@ -81,8 +79,13 @@ export const useAuthStore = create<AuthState>()(
           // Only clear token on explicit auth failures (401/403)
           // Keep token on other errors (server issues, etc.)
           if (response.status === 401 || response.status === 403) {
-            clearAuthToken();
-            set({ isAuthenticated: false, isLoading: false });
+            if (!token) {
+              // No token and auth is required — stay unauthenticated
+              set({ isAuthenticated: false, isLoading: false });
+            } else {
+              clearAuthToken();
+              set({ isAuthenticated: false, isLoading: false });
+            }
           } else {
             // Server error but token might still be valid - keep it
             // User can try again when server is back
