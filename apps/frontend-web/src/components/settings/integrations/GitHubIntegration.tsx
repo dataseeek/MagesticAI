@@ -90,8 +90,8 @@ export function GitHubIntegration({
           setOauthUsername(result.data.username || null);
           setAuthMode('oauth-success');
 
-          // Also try to auto-detect repo from git remote
-          if (projectPath && !envConfig?.githubRepo) {
+          // Always detect repo from project git remote
+          if (projectPath) {
             const repoResult = await window.API.detectGitHubRepo(projectPath);
             if (!cancelled && repoResult.success && repoResult.data) {
               debugLog('Auto-detected repo:', repoResult.data);
@@ -111,13 +111,6 @@ export function GitHubIntegration({
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [envConfig?.githubEnabled]);
-
-  // Fetch repos when entering oauth-success mode
-  useEffect(() => {
-    if (authMode === 'oauth-success') {
-      fetchUserRepos();
-    }
-  }, [authMode]);
 
   // Fetch branches when GitHub is enabled and project path is available
   useEffect(() => {
@@ -304,16 +297,19 @@ export function GitHubIntegration({
                 </div>
               </div>
 
-              {/* Repository Dropdown */}
-              <RepositoryDropdown
-                repos={repos}
-                selectedRepo={envConfig.githubRepo || ''}
-                isLoading={isLoadingRepos}
-                error={reposError}
-                onSelect={handleSelectRepo}
-                onRefresh={fetchUserRepos}
-                onManualEntry={() => setAuthMode('manual')}
-              />
+              {/* Detected Repository (read-only from git remote) */}
+              {envConfig.githubRepo && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground">Repository</Label>
+                  <div className="flex items-center gap-2 px-3 py-2 text-sm border border-input rounded-md bg-muted/50">
+                    <Github className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <code className="text-sm">{envConfig.githubRepo}</code>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Detected from project git remote
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -435,10 +431,11 @@ function RepositoryDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState('');
 
-  const filteredRepos = repos.filter(repo =>
-    repo.fullName.toLowerCase().includes(filter.toLowerCase()) ||
-    (repo.description?.toLowerCase().includes(filter.toLowerCase()))
-  );
+  const filteredRepos = repos.filter(repo => {
+    const name = repo.fullName || '';
+    return name.toLowerCase().includes(filter.toLowerCase()) ||
+      (repo.description?.toLowerCase().includes(filter.toLowerCase()));
+  });
 
   const selectedRepoData = repos.find(r => r.fullName === selectedRepo);
 
