@@ -154,12 +154,12 @@ export const PROVIDER_MODELS: Record<string, { id: string; label: string }[]> = 
   ],
   codex: [
     { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
-    { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
     { id: 'gpt-5.1-codex-max', label: 'GPT-5.1 Codex Max' },
-    { id: 'gpt-5-codex', label: 'GPT-5 Codex' },
     { id: 'gpt-5-codex-mini', label: 'GPT-5 Codex Mini' },
   ],
   gemini: [
+    { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
+    { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
     { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
     { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
   ],

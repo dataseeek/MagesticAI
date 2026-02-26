@@ -37,7 +37,7 @@ def run_git_command(args: list[str], cwd: str) -> dict:
 @router.get("/branches")
 async def get_git_branches(path: str = Query(...)):
     """Get all branches for a repository."""
-    result = run_git_command(["branch", "-a", "--format=%(refname:short)"], path)
+    result = run_git_command(["branch", "--format=%(refname:short)"], path)
     if result["success"]:
         branches = [b.strip() for b in result["output"].split("\n") if b.strip()]
         return {"success": True, "data": branches}

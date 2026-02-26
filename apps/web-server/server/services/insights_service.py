@@ -48,7 +48,7 @@ class InsightsService:
     """Service for AI-powered insights chat."""
 
     def __init__(self):
-        self._running_chats: dict[str, object] = {}
+        self._running_tasks: dict[str, asyncio.Task] = {}  # projectId -> running asyncio task
         self._sessions: dict[str, InsightsSession] = {}  # Cache
 
     def _get_sessions_dir(self, project_path: Path) -> Path:
@@ -150,12 +150,20 @@ class InsightsService:
 
         return self.create_session(project_path, project_id)
 
+    # Default model config for new sessions
+    DEFAULT_MODEL_CONFIG = {
+        "provider": "claude",
+        "model": "sonnet",
+        "thinkingLevel": "medium",
+    }
+
     def create_session(self, project_path: Path, project_id: str) -> InsightsSession:
         """Create a new session."""
         session = InsightsSession(
             id=str(uuid.uuid4()),
             project_id=project_id,
             title="New Session",
+            model_config=dict(self.DEFAULT_MODEL_CONFIG),
         )
 
         self._save_session(project_path, session)
@@ -242,9 +250,17 @@ class InsightsService:
         # Get current session
         session = self.get_current_session(project_path, project_id)
 
+        # Merge session config with message-level config (message takes precedence)
+        effective_config = dict(self.DEFAULT_MODEL_CONFIG)
+        if session.model_config:
+            effective_config.update({k: v for k, v in session.model_config.items() if v is not None})
+        if model_config:
+            effective_config.update({k: v for k, v in model_config.items() if v is not None})
+        model_config = effective_config
+
         # Determine provider from model_config (default: claude)
-        provider_id = (model_config or {}).get("provider", "claude")
-        provider_model = (model_config or {}).get("model")
+        provider_id = model_config.get("provider", "claude")
+        provider_model = model_config.get("model", "sonnet")
 
         # Add user message
         user_msg = InsightsMessage(
@@ -294,6 +310,13 @@ class InsightsService:
                 session.messages.append(assistant_msg)
                 self._save_session(project_path, session)
 
+        except asyncio.CancelledError:
+            logger.info(f"[InsightsService] Chat cancelled for project {project_id}")
+            # Finalize partial content if any
+            await broadcast_event("insights:chunk", {
+                "projectId": project_id,
+                "type": "done",
+            })
         except Exception as e:
             logger.error(f"[InsightsService] Provider error: {e}", exc_info=True)
             await broadcast_event("insights:chunk", {
@@ -302,8 +325,32 @@ class InsightsService:
                 "error": str(e),
             })
         finally:
-            if project_id in self._running_chats:
-                del self._running_chats[project_id]
+            self._running_tasks.pop(project_id, None)
+
+    def start_message(
+        self,
+        project_path: Path,
+        project_id: str,
+        message: str,
+        model_config: dict | None = None,
+    ) -> None:
+        """Start send_message as a tracked background task."""
+        # Cancel any existing running task for this project
+        self.stop_message(project_id)
+
+        task = asyncio.create_task(
+            self.send_message(project_path, project_id, message, model_config)
+        )
+        self._running_tasks[project_id] = task
+
+    def stop_message(self, project_id: str) -> bool:
+        """Cancel the running chat task for a project. Returns True if a task was cancelled."""
+        task = self._running_tasks.pop(project_id, None)
+        if task and not task.done():
+            task.cancel()
+            logger.info(f"[InsightsService] Cancelled running task for project {project_id}")
+            return True
+        return False
 
     def clear_session(self, project_path: Path, project_id: str) -> InsightsSession:
         """Clear the current session and create a new one."""

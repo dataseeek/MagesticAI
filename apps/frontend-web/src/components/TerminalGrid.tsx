@@ -332,7 +332,7 @@ export function TerminalGrid({ projectPath, onNewTaskClick, isActive = false }: 
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex h-full flex-col">
+      <div className="flex h-full flex-col min-w-0 overflow-hidden">
         {/* Toolbar */}
         <div className="flex h-10 items-center justify-between border-b border-border bg-card/30 px-3">
           <div className="flex items-center gap-2">
@@ -428,7 +428,7 @@ export function TerminalGrid({ projectPath, onNewTaskClick, isActive = false }: 
           )}>
             <SortableContext items={terminalIds} strategy={rectSortingStrategy}>
               <div
-                className="grid gap-2 h-full"
+                className="grid gap-2 h-full min-w-0"
                 style={{
                   gridTemplateColumns: `repeat(${gridLayout.cols}, 1fr)`,
                   gridTemplateRows: `repeat(${gridLayout.rows}, 1fr)`,

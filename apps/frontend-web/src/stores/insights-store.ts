@@ -5,6 +5,7 @@ import type {
   InsightsChatMessage,
   InsightsChatStatus,
   InsightsStreamChunk,
+  InsightsStreamMetrics,
   InsightsToolUsage,
   InsightsModelConfig,
   InsightsProviderInfo,
@@ -29,6 +30,7 @@ interface InsightsState {
   isLoadingSessions: boolean;
   availableProviders: InsightsProviderInfo[];
   isLoadingProviders: boolean;
+  lastMetrics: InsightsStreamMetrics | null; // Metrics from the last completed response
 
   // Actions
   setSession: (session: InsightsSession | null) => void;
@@ -42,6 +44,7 @@ interface InsightsState {
   setCurrentTool: (tool: ToolUsage | null) => void;
   addToolUsage: (tool: ToolUsage) => void;
   clearToolsUsed: () => void;
+  setLastMetrics: (metrics: InsightsStreamMetrics | null) => void;
   finalizeStreamingMessage: (suggestedTask?: InsightsChatMessage['suggestedTask']) => void;
   clearSession: () => void;
   setLoadingSessions: (loading: boolean) => void;
@@ -66,6 +69,7 @@ export const useInsightsStore = create<InsightsState>((set, _get) => ({
   isLoadingSessions: false,
   availableProviders: [],
   isLoadingProviders: false,
+  lastMetrics: null,
 
   // Actions
   setSession: (session) => set({ session }),
@@ -150,6 +154,8 @@ export const useInsightsStore = create<InsightsState>((set, _get) => ({
 
   clearToolsUsed: () => set({ toolsUsed: [] }),
 
+  setLastMetrics: (metrics) => set({ lastMetrics: metrics }),
+
   finalizeStreamingMessage: (suggestedTask) =>
     set((state) => {
       const content = state.streamingContent;
@@ -159,13 +165,17 @@ export const useInsightsStore = create<InsightsState>((set, _get) => ({
         return { streamingContent: '', toolsUsed: [] };
       }
 
+      // Attach provider info from current session config
+      const config = state.session?.modelConfig;
       const newMessage: InsightsChatMessage = {
         id: `msg-${Date.now()}`,
         role: 'assistant',
         content,
         timestamp: new Date(),
         suggestedTask,
-        toolsUsed
+        toolsUsed,
+        provider: config?.provider,
+        providerModel: config?.model,
       };
 
       if (!state.session) {
@@ -268,20 +278,37 @@ export function sendMessage(projectId: string, message: string, modelConfig?: In
   store.setPendingMessage('');
   store.clearStreamingContent();
   store.clearToolsUsed(); // Clear tools from previous response
+  store.setLastMetrics(null); // Clear metrics from previous response
   store.setStatus({
     phase: 'thinking',
     message: 'Processing your message...'
   });
 
-  // Use provided modelConfig, or fall back to session's config
-  // Ensure provider field is always set (defaults to 'claude')
+  // Use provided modelConfig, or fall back to session's config, or use defaults
+  // Ensure provider and model are always set so the backend never gets undefined
   const configToUse = modelConfig || session?.modelConfig;
-  const configWithProvider = configToUse
-    ? { ...configToUse, provider: configToUse.provider || 'claude' as const }
-    : undefined;
+  const configWithProvider = {
+    provider: 'claude' as const,
+    model: 'sonnet',
+    thinkingLevel: 'medium' as const,
+    ...configToUse,
+  };
 
   // Send to main process
-  window.API.sendInsightsMessage(projectId, message, configWithProvider as InsightsModelConfig | undefined);
+  window.API.sendInsightsMessage(projectId, message, configWithProvider as InsightsModelConfig);
+}
+
+export async function stopMessage(projectId: string): Promise<void> {
+  const store = useInsightsStore.getState();
+  try {
+    await window.API.stopInsightsMessage(projectId);
+  } catch {
+    // Ignore errors — the task may have already finished
+  }
+  // Finalize any partial streaming content
+  store.setCurrentTool(null);
+  store.finalizeStreamingMessage();
+  store.setStatus({ phase: 'idle', message: '' });
 }
 
 export async function clearSession(projectId: string): Promise<void> {
@@ -416,6 +443,10 @@ export function setupInsightsListeners(): () => void {
           store().finalizeStreamingMessage(chunk.suggestedTask);
           break;
         case 'done':
+          // Capture metrics from the done event (if available)
+          if (chunk.metrics) {
+            store().setLastMetrics(chunk.metrics);
+          }
           // Finalize any remaining content
           store().setCurrentTool(null);
           store().finalizeStreamingMessage();

@@ -835,17 +835,23 @@ async def send_insights_message(projectId: str = Path(...), request: InsightsMes
     project_path = _get_project_path(projectId)
     service = get_insights_service()
 
-    # Start message processing in background (non-blocking)
-    asyncio.create_task(
-        service.send_message(
-            project_path=project_path,
-            project_id=projectId,
-            message=request.message,
-            model_config=request.modelConfig,
-        )
+    # Start message processing in background (non-blocking, tracked for cancellation)
+    service.start_message(
+        project_path=project_path,
+        project_id=projectId,
+        message=request.message,
+        model_config=request.modelConfig,
     )
 
     return {"success": True}
+
+
+@insights_router.post("/stop")
+async def stop_insights_message(projectId: str = Path(...)):
+    """Stop the currently running insights chat for a project."""
+    service = get_insights_service()
+    cancelled = service.stop_message(projectId)
+    return {"success": True, "cancelled": cancelled}
 
 
 @insights_router.delete("")

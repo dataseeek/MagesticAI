@@ -63,8 +63,8 @@ export function TerminalHeader({
   const backlogTasks = tasks.filter((t) => t.status === 'backlog');
 
   return (
-    <div className="electron-no-drag flex h-9 items-center justify-between border-b border-border/50 bg-card/30 px-2">
-      <div className="flex items-center gap-2">
+    <div className="electron-no-drag flex h-9 items-center justify-between border-b border-border/50 bg-card/30 px-2 min-w-0">
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
         {/* Drag handle for terminal reordering */}
         {dragHandleProps && (
           <div
@@ -109,7 +109,7 @@ export function TerminalHeader({
           </span>
         )}
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 shrink-0">
         {/* Worktree selector when no worktree and project path available */}
         {!worktreeConfig && projectPath && onCreateWorktree && onSelectWorktree && (
           <WorktreeSelector

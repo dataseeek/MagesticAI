@@ -9,6 +9,7 @@ import json
 import logging
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 from ...websockets.events import broadcast_event
@@ -136,6 +137,8 @@ class OllamaProvider(ProviderStrategy):
             })
 
             accumulated = ""
+            stream_start = time.monotonic()
+            ollama_metrics: dict = {}
 
             async with httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=10.0)) as client:
                 async with client.stream(
@@ -160,13 +163,38 @@ class OllamaProvider(ProviderStrategy):
                                 })
 
                             if data.get("done"):
+                                # Ollama provides exact token counts in the final message
+                                ollama_metrics = {
+                                    "eval_count": data.get("eval_count", 0),
+                                    "prompt_eval_count": data.get("prompt_eval_count", 0),
+                                    "eval_duration": data.get("eval_duration", 0),  # nanoseconds
+                                }
                                 break
                         except json.JSONDecodeError:
                             continue
 
+            elapsed = time.monotonic() - stream_start
+            output_tokens = ollama_metrics.get("eval_count", 0)
+            input_tokens = ollama_metrics.get("prompt_eval_count", 0)
+            # Ollama eval_duration is in nanoseconds
+            eval_ns = ollama_metrics.get("eval_duration", 0)
+            if eval_ns > 0 and output_tokens > 0:
+                tokens_per_sec = round(output_tokens / (eval_ns / 1e9), 1)
+            elif elapsed > 0 and output_tokens > 0:
+                tokens_per_sec = round(output_tokens / elapsed, 1)
+            else:
+                tokens_per_sec = 0
+
             await broadcast_event("insights:chunk", {
                 "projectId": project_id,
                 "type": "done",
+                "metrics": {
+                    "inputTokens": input_tokens,
+                    "outputTokens": output_tokens,
+                    "tokensPerSecond": tokens_per_sec,
+                    "elapsedSeconds": round(elapsed, 1),
+                    "estimated": False,
+                },
             })
 
             return accumulated
