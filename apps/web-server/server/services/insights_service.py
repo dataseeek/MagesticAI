@@ -272,7 +272,7 @@ class InsightsService:
         logger.info(f"[InsightsService] Routing to provider: {provider_id} (model: {provider_model})")
 
         try:
-            await provider.send_message(
+            response_content = await provider.send_message(
                 project_path=project_path,
                 project_id=project_id,
                 message=message,
@@ -281,11 +281,18 @@ class InsightsService:
                 conversation_history=conversation_history if provider_id != "claude" else None,
             )
 
-            # After provider finishes, save assistant message from broadcast events
-            # The provider emits text chunks; we need to listen for "done" to finalize
-            # This is handled by the streaming listener on the frontend side
-            # Here we just need to re-read the accumulated content
-            # (The providers handle broadcasting; session persistence is done below)
+            # Persist the assistant response to disk
+            if response_content and response_content.strip():
+                assistant_msg = InsightsMessage(
+                    id=f"msg-{uuid.uuid4().hex[:8]}",
+                    role="assistant",
+                    content=response_content,
+                    timestamp=datetime.now().isoformat(),
+                    provider=provider_id,
+                    provider_model=provider_model,
+                )
+                session.messages.append(assistant_msg)
+                self._save_session(project_path, session)
 
         except Exception as e:
             logger.error(f"[InsightsService] Provider error: {e}", exc_info=True)

@@ -105,7 +105,7 @@ class OllamaProvider(ProviderStrategy):
         model: str | None,
         model_config: dict | None,
         conversation_history: list[dict] | None,
-    ) -> None:
+    ) -> str:
         effective_model = model or (model_config or {}).get("model", "llama3.2:latest")
 
         # Build messages array with conversation history
@@ -135,6 +135,8 @@ class OllamaProvider(ProviderStrategy):
                 "content": "",
             })
 
+            accumulated = ""
+
             async with httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=10.0)) as client:
                 async with client.stream(
                     "POST",
@@ -150,6 +152,7 @@ class OllamaProvider(ProviderStrategy):
                             data = json.loads(line)
                             content = data.get("message", {}).get("content", "")
                             if content:
+                                accumulated += content
                                 await broadcast_event("insights:chunk", {
                                     "projectId": project_id,
                                     "type": "text",
@@ -166,6 +169,8 @@ class OllamaProvider(ProviderStrategy):
                 "type": "done",
             })
 
+            return accumulated
+
         except Exception as e:
             logger.error(f"[OllamaProvider] Error: {e}", exc_info=True)
             await broadcast_event("insights:chunk", {
@@ -173,3 +178,4 @@ class OllamaProvider(ProviderStrategy):
                 "type": "error",
                 "error": str(e),
             })
+            return ""
