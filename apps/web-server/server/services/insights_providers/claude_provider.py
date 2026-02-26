@@ -138,7 +138,7 @@ class ClaudeProvider(ProviderStrategy):
         model: str | None,
         model_config: dict | None,
         conversation_history: list[dict] | None,
-    ) -> None:
+    ) -> str:
         claude_bin = self._resolve_claude_path()
         cmd = [
             claude_bin,
@@ -294,12 +294,14 @@ class ClaudeProvider(ProviderStrategy):
                     "type": "error",
                     "error": error_msg,
                 })
-                return
+                return ""
 
             await broadcast_event("insights:chunk", {
                 "projectId": project_id,
                 "type": "done",
             })
+
+            return accumulated_content
 
         except Exception as e:
             logger.error(f"[ClaudeProvider] Error: {e}", exc_info=True)
@@ -308,3 +310,4 @@ class ClaudeProvider(ProviderStrategy):
                 "type": "error",
                 "error": str(e),
             })
+            return ""

@@ -90,7 +90,7 @@ class OpenAICompatProvider(ProviderStrategy):
         model: str | None,
         model_config: dict | None,
         conversation_history: list[dict] | None,
-    ) -> None:
+    ) -> str:
         effective_model = model or (model_config or {}).get("model", "")
 
         messages = []
@@ -119,6 +119,8 @@ class OpenAICompatProvider(ProviderStrategy):
                 "content": "",
             })
 
+            accumulated = ""
+
             async with httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=10.0)) as client:
                 async with client.stream(
                     "POST",
@@ -143,6 +145,7 @@ class OpenAICompatProvider(ProviderStrategy):
                                 delta = data.get("choices", [{}])[0].get("delta", {})
                                 content = delta.get("content", "")
                                 if content:
+                                    accumulated += content
                                     await broadcast_event("insights:chunk", {
                                         "projectId": project_id,
                                         "type": "text",
@@ -156,6 +159,8 @@ class OpenAICompatProvider(ProviderStrategy):
                 "type": "done",
             })
 
+            return accumulated
+
         except Exception as e:
             logger.error(f"[OpenAICompat:{self.provider_id}] Error: {e}", exc_info=True)
             await broadcast_event("insights:chunk", {
@@ -163,3 +168,4 @@ class OpenAICompatProvider(ProviderStrategy):
                 "type": "error",
                 "error": str(e),
             })
+            return ""

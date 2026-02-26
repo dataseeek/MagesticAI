@@ -51,7 +51,7 @@ class GeminiProvider(ProviderStrategy):
         model: str | None,
         model_config: dict | None,
         conversation_history: list[dict] | None,
-    ) -> None:
+    ) -> str:
         cmd = ["bash", "-l", "-c"]
 
         effective_model = model or (model_config or {}).get("model", "gemini-2.5-flash")
@@ -115,12 +115,14 @@ class GeminiProvider(ProviderStrategy):
                     "type": "error",
                     "error": error_msg,
                 })
-                return
+                return ""
 
             await broadcast_event("insights:chunk", {
                 "projectId": project_id,
                 "type": "done",
             })
+
+            return accumulated
 
         except Exception as e:
             logger.error(f"[GeminiProvider] Error: {e}", exc_info=True)
@@ -129,3 +131,4 @@ class GeminiProvider(ProviderStrategy):
                 "type": "error",
                 "error": str(e),
             })
+            return ""

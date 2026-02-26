@@ -55,7 +55,7 @@ class CodexProvider(ProviderStrategy):
         model: str | None,
         model_config: dict | None,
         conversation_history: list[dict] | None,
-    ) -> None:
+    ) -> str:
         cmd = ["bash", "-l", "-c"]
 
         codex_cmd = "codex --quiet"
@@ -122,12 +122,14 @@ class CodexProvider(ProviderStrategy):
                     "type": "error",
                     "error": error_msg,
                 })
-                return
+                return ""
 
             await broadcast_event("insights:chunk", {
                 "projectId": project_id,
                 "type": "done",
             })
+
+            return accumulated
 
         except Exception as e:
             logger.error(f"[CodexProvider] Error: {e}", exc_info=True)
@@ -136,3 +138,4 @@ class CodexProvider(ProviderStrategy):
                 "type": "error",
                 "error": str(e),
             })
+            return ""
