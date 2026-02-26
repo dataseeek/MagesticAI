@@ -178,6 +178,19 @@ export function TerminalGrid({ projectPath, onNewTaskClick, isActive = false }: 
     removeTerminal(id);
   }, [removeTerminal]);
 
+  // Re-fit all xterm instances when the terminals view becomes visible again.
+  // xterm FitAddon can't measure while container is display:none, so we dispatch
+  // a resize event to trigger all ResizeObservers once the DOM is visible.
+  useEffect(() => {
+    if (isActive && terminals.length > 0) {
+      // Small delay to let the browser lay out the now-visible container
+      const timer = setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isActive, terminals.length]);
+
   // Handle keyboard shortcut for new terminal (only when this view is active)
   useEffect(() => {
     if (!isActive) return;

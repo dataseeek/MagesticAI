@@ -297,13 +297,14 @@ function AuthenticatedApp() {
                       isInitialized={!!selectedProject?.autoBuildPath}
                     />
                   )}
-                  {activeView === 'terminals' && (
+                  {/* TerminalGrid stays mounted but hidden to preserve xterm instances and PTY connections */}
+                  <div className={activeView === 'terminals' ? 'h-full' : 'hidden'}>
                     <TerminalGrid
                       projectPath={selectedProject?.path}
                       onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
-                      isActive={true}
+                      isActive={activeView === 'terminals'}
                     />
-                  )}
+                  </div>
                   {activeView === 'editor' && (
                     <EditorPage projectPath={selectedProject?.path} />
                   )}
