@@ -340,10 +340,11 @@ export function Sidebar({
 
         {/* Bottom section with New Task */}
         <div className="p-4 space-y-3">
-          {/* Claude Code Status Badge */}
-          <ClaudeCodeStatusBadge onOpenOnboarding={onOpenOnboarding} />
-          {/* CLI Tool Status Badges (Codex, Gemini) */}
-          <CLIToolStatusBadge />
+          {/* CLI Status Badges (Claude Code, Codex, Gemini) */}
+          <div className="space-y-0.5">
+            <ClaudeCodeStatusBadge onOpenOnboarding={onOpenOnboarding} />
+            <CLIToolStatusBadge />
+          </div>
 
           {/* New Task button */}
           <Button
