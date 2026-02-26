@@ -40,8 +40,7 @@ export const THINKING_LEVELS = [
   { value: 'none', label: 'None', description: 'No extended thinking' },
   { value: 'low', label: 'Low', description: 'Brief consideration' },
   { value: 'medium', label: 'Medium', description: 'Moderate analysis' },
-  { value: 'high', label: 'High', description: 'Deep thinking' },
-  { value: 'max', label: 'Max', description: 'Maximum reasoning (Opus only)' }
+  { value: 'high', label: 'High', description: 'Deep thinking' }
 ] as const;
 
 // ============================================
@@ -59,7 +58,7 @@ export const DEFAULT_PHASE_MODELS: PhaseModelConfig = {
 
 // Default phase thinking configuration for Auto profile
 export const DEFAULT_PHASE_THINKING: import('../types/settings').PhaseThinkingConfig = {
-  spec: 'max',   // Deep thinking for comprehensive spec creation
+  spec: 'high',   // Deep thinking for comprehensive spec creation
   planning: 'high',     // High thinking for planning complex features
   coding: 'low',        // Faster coding iterations
   qa: 'low'             // Efficient QA review
@@ -111,7 +110,7 @@ export const DEFAULT_AGENT_PROFILES: AgentProfile[] = [
     name: 'Complex Tasks',
     description: 'For intricate, multi-step implementations requiring deep analysis',
     model: 'opus',
-    thinkingLevel: 'max',
+    thinkingLevel: 'high',
     icon: 'Brain'
   },
   {

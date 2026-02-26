@@ -158,7 +158,7 @@ export interface ColorThemeDefinition {
 }
 
 // Thinking level for Claude model (budget token allocation)
-export type ThinkingLevel = 'none' | 'low' | 'medium' | 'high' | 'max';
+export type ThinkingLevel = 'none' | 'low' | 'medium' | 'high';
 
 // Model type shorthand
 export type ModelTypeShort = 'haiku' | 'sonnet' | 'opus';
