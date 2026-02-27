@@ -1115,6 +1115,89 @@ async def trigger_pr_review(
     )
 
 
+@project_router.get("/prs/{prNumber}/review")
+async def get_pr_review(projectId: str, prNumber: int):
+    """Get stored PR review result.
+
+    Reads the review result JSON from the project's
+    .magestic-ai/github/pr/review_{prNumber}.json file.
+
+    Returns PRReviewResult data or null if no review exists.
+    """
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    review_file = (
+        project_path / ".magestic-ai" / "github" / "pr" / f"review_{prNumber}.json"
+    )
+
+    if not review_file.exists():
+        return {"success": True, "data": None}
+
+    try:
+        result_data = json.loads(review_file.read_text())
+        return {"success": True, "data": result_data}
+    except json.JSONDecodeError:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "Failed to parse stored review data"},
+        )
+    except OSError as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": f"Failed to read review file: {e}"},
+        )
+
+
+@project_router.delete("/prs/{prNumber}/review")
+async def delete_pr_review(projectId: str, prNumber: int):
+    """Delete a stored PR review result.
+
+    Removes the review result JSON file and updates the index.
+    """
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    review_file = (
+        project_path / ".magestic-ai" / "github" / "pr" / f"review_{prNumber}.json"
+    )
+
+    if not review_file.exists():
+        return {"success": True, "data": {"deleted": False, "reason": "No review found"}}
+
+    try:
+        review_file.unlink()
+    except OSError as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": f"Failed to delete review file: {e}"},
+        )
+
+    # Update the index file to remove the entry
+    index_file = project_path / ".magestic-ai" / "github" / "pr" / "index.json"
+    if index_file.exists():
+        try:
+            index_data = json.loads(index_file.read_text())
+            reviews = index_data.get("reviews", [])
+            index_data["reviews"] = [
+                r for r in reviews if r.get("pr_number") != prNumber
+            ]
+            index_file.write_text(json.dumps(index_data, indent=2))
+        except (json.JSONDecodeError, OSError) as e:
+            # Non-fatal: review file was deleted, index update failed
+            pass
+
+    return {"success": True, "data": {"deleted": True}}
+
+
 @project_router.post("/releases")
 async def create_github_release(projectId: str, request: CreateReleaseRequest):
     """Create a GitHub release."""

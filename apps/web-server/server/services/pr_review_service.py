@@ -341,9 +341,10 @@ class PRReviewService:
         logger.info(f"[{project_id}:PR#{pr_number}] Review complete")
 
         # Try to read stored review result JSON from the project's .magestic-ai directory
+        # Runner saves to: .magestic-ai/github/pr/review_{pr_number}.json
         result_data = None
         review_file = (
-            project_path / ".magestic-ai" / "github" / "reviews" / f"pr-{pr_number}.json"
+            project_path / ".magestic-ai" / "github" / "pr" / f"review_{pr_number}.json"
         )
         if review_file.exists():
             try:
