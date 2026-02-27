@@ -218,9 +218,24 @@ const githubAPI: API['github'] = {
     const result = await get(`/projects/${projectId}/github/prs/${prNumber}/logs`);
     return (result.success ? result.data ?? null : null) as never;
   },
-  onPRReviewProgress: () => () => {},
-  onPRReviewComplete: () => () => {},
-  onPRReviewError: () => () => {},
+  onPRReviewProgress: (callback) =>
+    registerCallback('pr:review-progress',
+      (payload: { projectId: string; prNumber: number; phase: string; progress: number; message: string }) => {
+        const { projectId, ...progressData } = payload;
+        callback(projectId, progressData as never);
+      }),
+  onPRReviewComplete: (callback) =>
+    registerCallback('pr:review-complete',
+      (payload: { projectId: string; prNumber: number; result: unknown }) => {
+        const { projectId, result } = payload;
+        callback(projectId, result as never);
+      }),
+  onPRReviewError: (callback) =>
+    registerCallback('pr:review-error',
+      (payload: { projectId: string; prNumber: number; error: string }) => {
+        const { projectId, prNumber, error } = payload;
+        callback(projectId, { prNumber, error } as never);
+      }),
   batchAutoFix: () => {},
   getBatches: async () => [],
   onBatchProgress: () => () => {},
