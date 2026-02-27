@@ -524,6 +524,193 @@ async def install_claude_code():
 
 mcp_router = APIRouter()
 
+# Catalog of well-known MCP servers and the system binary they require.
+# "requires_binary": None means only npx is needed.
+_MCP_CATALOG = [
+    {
+        "id": "mcp-memory",
+        "name": "Memory",
+        "description": "Persistent memory using a knowledge graph",
+        "category": "core",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-memory"],
+        "requires_binary": None,
+        "package": "@modelcontextprotocol/server-memory",
+    },
+    {
+        "id": "mcp-sequential-thinking",
+        "name": "Sequential Thinking",
+        "description": "Dynamic problem-solving through thought sequences",
+        "category": "core",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+        "requires_binary": None,
+        "package": "@modelcontextprotocol/server-sequential-thinking",
+    },
+    {
+        "id": "mcp-postgres",
+        "name": "PostgreSQL",
+        "description": "Query and explore PostgreSQL databases",
+        "category": "database",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-postgres"],
+        "requires_binary": "psql",
+        "package": "@modelcontextprotocol/server-postgres",
+    },
+    {
+        "id": "mcp-sqlite",
+        "name": "SQLite",
+        "description": "Query and explore SQLite databases",
+        "category": "database",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-sqlite"],
+        "requires_binary": "sqlite3",
+        "package": "@modelcontextprotocol/server-sqlite",
+    },
+    {
+        "id": "mcp-mysql",
+        "name": "MySQL",
+        "description": "Query and explore MySQL/MariaDB databases",
+        "category": "database",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "mcp-mysql-server"],
+        "requires_binary": "mysql",
+        "package": "mcp-mysql-server",
+    },
+    {
+        "id": "mcp-puppeteer",
+        "name": "Puppeteer",
+        "description": "Browser automation for web testing and scraping",
+        "category": "browser",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+        "requires_binary": None,
+        "package": "@modelcontextprotocol/server-puppeteer",
+    },
+    {
+        "id": "mcp-playwright",
+        "name": "Playwright",
+        "description": "Cross-browser automation via Playwright",
+        "category": "browser",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@playwright/mcp"],
+        "requires_binary": None,
+        "detect_binary": "playwright",
+        "package": "@playwright/mcp",
+    },
+    {
+        "id": "mcp-brave-search",
+        "name": "Brave Search",
+        "description": "Web and local search via Brave Search API",
+        "category": "search",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+        "requires_binary": None,
+        "package": "@modelcontextprotocol/server-brave-search",
+    },
+    {
+        "id": "mcp-docker",
+        "name": "Docker",
+        "description": "Manage Docker containers, images, and volumes",
+        "category": "devops",
+        "type": "command",
+        "command": "docker",
+        "args": ["mcp"],
+        "requires_binary": "docker",
+        "package": None,
+    },
+    {
+        "id": "mcp-kubernetes",
+        "name": "Kubernetes",
+        "description": "Manage Kubernetes clusters and workloads",
+        "category": "devops",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "mcp-server-kubernetes"],
+        "requires_binary": "kubectl",
+        "package": "mcp-server-kubernetes",
+    },
+    {
+        "id": "mcp-aws",
+        "name": "AWS",
+        "description": "Interact with AWS services via CLI",
+        "category": "devops",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "mcp-server-aws"],
+        "requires_binary": "aws",
+        "package": "mcp-server-aws",
+    },
+    {
+        "id": "mcp-slack",
+        "name": "Slack",
+        "description": "Read and post Slack messages",
+        "category": "communication",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-slack"],
+        "requires_binary": None,
+        "package": "@modelcontextprotocol/server-slack",
+    },
+    {
+        "id": "mcp-redis",
+        "name": "Redis",
+        "description": "Interact with Redis key-value store",
+        "category": "database",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "mcp-server-redis"],
+        "requires_binary": "redis-cli",
+        "package": "mcp-server-redis",
+    },
+    {
+        "id": "mcp-google-maps",
+        "name": "Google Maps",
+        "description": "Geocoding, directions, and place search",
+        "category": "search",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-google-maps"],
+        "requires_binary": None,
+        "package": "@modelcontextprotocol/server-google-maps",
+    },
+]
+
+
+# Templates that overlap with built-in app features (skip in detect results)
+_HIDDEN_TEMPLATE_IDS = {"mcp-puppeteer"}
+
+
+def _check_binary(binary: str) -> bool:
+    """Check if a binary is available on PATH."""
+    import shutil
+    return shutil.which(binary) is not None
+
+
+def _check_npm_package_installed(package: str) -> bool:
+    """Check if an npm package is installed globally."""
+    import shutil
+    import subprocess
+    if not shutil.which("npm"):
+        return False
+    try:
+        result = subprocess.run(
+            ["npm", "list", "-g", "--depth=0", package],
+            capture_output=True, text=True, timeout=8,
+        )
+        return result.returncode == 0 and package in result.stdout
+    except Exception:
+        return False
+
+
 
 class McpServerConfig(BaseModel):
     id: str
@@ -587,6 +774,57 @@ async def test_mcp_connection(server: McpServerConfig):
             "tools": []
         }
     }
+
+
+@mcp_router.get("/detect")
+async def detect_mcp_services():
+    """Detect pre-installed services and CLIs that can be used as MCP servers."""
+    import shutil
+
+    has_npx = shutil.which("npx") is not None
+    results = []
+
+    for entry in _MCP_CATALOG:
+        if entry["id"] in _HIDDEN_TEMPLATE_IDS:
+            continue
+
+        req = entry.get("requires_binary")
+        detect_bin = entry.get("detect_binary")
+
+        # Determine availability
+        if req is not None:
+            available = _check_binary(req)
+            reason = f"{req} detected" if available else f"{req} not found"
+        else:
+            available = has_npx
+            reason = "npx available" if has_npx else "npx not found"
+
+        # Optionally check if there's a hint binary (not required, just nice to have)
+        hint_installed = False
+        if detect_bin:
+            hint_installed = _check_binary(detect_bin)
+
+        # Check if the npm package is already installed globally (only if npx-based)
+        pkg = entry.get("package")
+        npm_installed = False
+        if pkg and available:
+            npm_installed = _check_npm_package_installed(pkg)
+
+        results.append({
+            "id": entry["id"],
+            "name": entry["name"],
+            "description": entry["description"],
+            "category": entry["category"],
+            "type": entry["type"],
+            "command": entry["command"],
+            "args": entry["args"],
+            "available": available,
+            "installed": npm_installed or hint_installed,
+            "reason": reason,
+        })
+
+    return {"success": True, "data": results}
+
 
 
 # ============================================
