@@ -1457,6 +1457,138 @@ async def cancel_pr_review(
     return {"success": True, "data": {"cancelled": True}}
 
 
+@project_router.get("/prs/{prNumber}/new-commits")
+async def check_pr_new_commits(projectId: str, prNumber: int):
+    """Check if there are new commits since the last review.
+
+    Compares the reviewed_commit_sha stored in the review result JSON against
+    the current HEAD SHA of the PR (fetched via gh pr view).
+
+    Returns NewCommitsCheck: hasNewCommits, newCommitCount,
+    lastReviewedCommit, currentHeadCommit.
+    """
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    # Read stored review to get the reviewed commit SHA
+    review_file = (
+        project_path / ".magestic-ai" / "github" / "pr" / f"review_{prNumber}.json"
+    )
+
+    last_reviewed_commit = None
+    if review_file.exists():
+        try:
+            review_data = json.loads(review_file.read_text())
+            last_reviewed_commit = review_data.get("reviewed_commit_sha")
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Get the current HEAD commit SHA of the PR via gh CLI
+    result = run_gh_command(
+        [
+            "pr", "view", str(prNumber),
+            "--json", "commits",
+            "--jq", ".commits[-1].oid",
+        ],
+        cwd=str(project_path),
+    )
+
+    current_head_commit = result.get("output", "").strip() if result["success"] else None
+
+    # If we have no review yet, there are no "new" commits relative to a review
+    if not last_reviewed_commit:
+        return {
+            "success": True,
+            "data": {
+                "hasNewCommits": False,
+                "newCommitCount": 0,
+                "lastReviewedCommit": None,
+                "currentHeadCommit": current_head_commit,
+            },
+        }
+
+    # Compare: if current HEAD differs from reviewed commit, there are new commits
+    has_new_commits = (
+        current_head_commit is not None
+        and current_head_commit != last_reviewed_commit
+    )
+
+    new_commit_count = 0
+    if has_new_commits and current_head_commit:
+        # Count commits between reviewed SHA and current HEAD
+        count_result = run_gh_command(
+            [
+                "api",
+                f"repos/{{owner}}/{{repo}}/compare/{last_reviewed_commit}...{current_head_commit}",
+                "--jq", ".total_commits",
+            ],
+            cwd=str(project_path),
+        )
+        if count_result["success"]:
+            try:
+                new_commit_count = int(count_result["output"].strip())
+            except (ValueError, TypeError):
+                # Fallback: we know there are new commits but can't count
+                new_commit_count = 1
+
+    return {
+        "success": True,
+        "data": {
+            "hasNewCommits": has_new_commits,
+            "newCommitCount": new_commit_count,
+            "lastReviewedCommit": last_reviewed_commit,
+            "currentHeadCommit": current_head_commit,
+        },
+    }
+
+
+@project_router.get("/prs/{prNumber}/logs")
+async def get_pr_review_logs(projectId: str, prNumber: int):
+    """Get PR review execution logs.
+
+    Reads phase-level review logs from the project's
+    .magestic-ai/github/pr/review_{prNumber}_logs.json file.
+
+    Returns PRLogs data with per-phase timing and entries, or null
+    if no logs are available.
+    """
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    logs_file = (
+        project_path
+        / ".magestic-ai"
+        / "github"
+        / "pr"
+        / f"review_{prNumber}_logs.json"
+    )
+
+    if not logs_file.exists():
+        return {"success": True, "data": None}
+
+    try:
+        logs_data = json.loads(logs_file.read_text())
+        return {"success": True, "data": logs_data}
+    except json.JSONDecodeError:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "Failed to parse review logs"},
+        )
+    except OSError as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": f"Failed to read logs file: {e}"},
+        )
+
+
 @project_router.post("/releases")
 async def create_github_release(projectId: str, request: CreateReleaseRequest):
     """Create a GitHub release."""
