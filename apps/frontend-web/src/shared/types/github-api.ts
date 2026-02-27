@@ -211,7 +211,7 @@ export interface NewCommitsCheck {
  * Review progress status
  */
 export interface PRReviewProgress {
-  phase: 'fetching' | 'analyzing' | 'generating' | 'posting' | 'complete';
+  phase: 'starting' | 'fetching' | 'analyzing' | 'generating' | 'posting' | 'complete';
   prNumber: number;
   progress: number;
   message: string;

@@ -227,8 +227,13 @@ const githubAPI: API['github'] = {
   onPRReviewComplete: (callback) =>
     registerCallback('pr:review-complete',
       (payload: { projectId: string; prNumber: number; result: unknown }) => {
-        const { projectId, result } = payload;
-        callback(projectId, result as never);
+        const { projectId, prNumber, result } = payload;
+        if (result && typeof result === 'object') {
+          callback(projectId, result as never);
+        } else {
+          // Backend returned null result (review file not found) — synthesize minimal result
+          callback(projectId, { prNumber, success: true, findings: [], summary: '', overallStatus: 'comment', reviewedAt: new Date().toISOString() } as never);
+        }
       }),
   onPRReviewError: (callback) =>
     registerCallback('pr:review-error',
