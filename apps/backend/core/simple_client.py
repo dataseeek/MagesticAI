@@ -26,12 +26,13 @@ from pathlib import Path
 from agents.tools_pkg import get_agent_config, get_default_thinking_level
 from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient
 from core.auth import get_sdk_env_vars, require_auth_token
+from core.model_config import DEFAULT_UTILITY_MODEL
 from phase_config import get_thinking_budget
 
 
 def create_simple_client(
     agent_type: str = "merge_resolver",
-    model: str = "claude-haiku-4-5-20251001",
+    model: str = DEFAULT_UTILITY_MODEL,
     system_prompt: str | None = None,
     cwd: Path | None = None,
     max_turns: int = 1,

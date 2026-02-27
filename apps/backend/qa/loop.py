@@ -125,9 +125,9 @@ async def run_qa_validation_loop(
         emit_phase(ExecutionPhase.QA_FIXING, "Processing human feedback")
         print("\n📝 Human feedback detected. Running QA Fixer first...")
 
-        # Get model and thinking budget for fixer (uses QA phase config)
-        qa_model = get_phase_model(spec_dir, "qa", model)
-        fixer_thinking_budget = get_phase_thinking_budget(spec_dir, "qa")
+        # Get model and thinking budget for fixer (uses qa_fixer phase config)
+        qa_model = get_phase_model(spec_dir, "qa_fixer", model)
+        fixer_thinking_budget = get_phase_thinking_budget(spec_dir, "qa_fixer")
 
         fix_client = create_client(
             project_dir,
@@ -331,12 +331,13 @@ async def run_qa_validation_loop(
                 print("Escalating to human review.")
                 break
 
-            # Run fixer with phase-specific thinking budget
-            fixer_thinking_budget = get_phase_thinking_budget(spec_dir, "qa")
+            # Run fixer with phase-specific model and thinking budget
+            fixer_model = get_phase_model(spec_dir, "qa_fixer", model)
+            fixer_thinking_budget = get_phase_thinking_budget(spec_dir, "qa_fixer")
             debug(
                 "qa_loop",
                 "Starting QA fixer session...",
-                model=qa_model,
+                model=fixer_model,
                 thinking_budget=fixer_thinking_budget,
             )
             emit_phase(ExecutionPhase.QA_FIXING, "Fixing QA issues")
@@ -345,7 +346,7 @@ async def run_qa_validation_loop(
             fix_client = create_client(
                 project_dir,
                 spec_dir,
-                qa_model,
+                fixer_model,
                 agent_type="qa_fixer",
                 max_thinking_tokens=fixer_thinking_budget,
             )
