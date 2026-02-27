@@ -31,7 +31,8 @@
     "continue": "Continuer",
     "saving": "Enregistrement...",
     "closeIssue": "Fermer le ticket",
-    "closing": "Fermeture..."
+    "closing": "Fermeture...",
+    "openInBrowser": "Ouvrir dans le navigateur"
   },
   "labels": {
     "loading": "Chargement...",

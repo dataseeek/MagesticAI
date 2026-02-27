@@ -74,6 +74,7 @@ class TokenAuthMiddleware(BaseHTTPMiddleware):
         "/static/",
         "/api/auth/",  # Auth endpoints (register, login, refresh, logout)
         "/api/email/auth/",  # OAuth callbacks (redirect from Microsoft/Google)
+        "/api/files/serve",  # File serve for browser preview (path-traversal protected in route)
     )
 
     async def dispatch(self, request: Request, call_next):

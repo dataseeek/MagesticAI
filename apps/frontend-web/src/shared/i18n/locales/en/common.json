@@ -31,7 +31,8 @@
     "continue": "Continue",
     "saving": "Saving...",
     "closeIssue": "Close Issue",
-    "closing": "Closing..."
+    "closing": "Closing...",
+    "openInBrowser": "Open in Browser"
   },
   "labels": {
     "loading": "Loading...",
