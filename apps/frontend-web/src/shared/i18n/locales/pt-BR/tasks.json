@@ -74,8 +74,19 @@
     "labels": {
       "interrupted": "Interrompido",
       "progress": "Progresso",
+      "progressWithStatus": "Progresso ({{status}})",
       "entry": "entrada",
       "entries": "entradas"
+    },
+    "progressStatus": {
+      "idle": "inativo",
+      "planning": "planejando",
+      "planCompleted": "planejamento concluído",
+      "coding": "codificando",
+      "reviewing": "revisando",
+      "fixing": "corrigindo",
+      "complete": "completo",
+      "failed": "falhou"
     },
     "shortPhases": {
       "plan": "Plano",
@@ -94,7 +105,10 @@
     "errorLoadingContent": "Falha ao carregar conteúdo do arquivo",
     "retry": "Tentar novamente",
     "selectFile": "Selecione um arquivo para ver seu conteúdo",
-    "openInIDE": "Abrir na IDE"
+    "openInIDE": "Abrir na IDE",
+    "downloadFile": "Baixar arquivo",
+    "previewInBrowser": "Visualizar no navegador",
+    "backToParent": "Voltar"
   },
   "metadata": {
     "severity": "severidade"

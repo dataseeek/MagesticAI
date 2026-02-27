@@ -41,6 +41,19 @@ const PHASE_LABEL_KEYS: Record<ExecutionPhase, string> = {
   failed: 'execution.phases.failed',
 };
 
+// Phase to progress status translation key mapping
+const PHASE_PROGRESS_STATUS_KEYS: Record<ExecutionPhase, string> = {
+  idle: 'execution.progressStatus.idle',
+  spec_creation: 'execution.progressStatus.planning',
+  planning: 'execution.progressStatus.planning',
+  plan_review: 'execution.progressStatus.planCompleted',
+  coding: 'execution.progressStatus.coding',
+  qa_review: 'execution.progressStatus.reviewing',
+  qa_fixing: 'execution.progressStatus.fixing',
+  complete: 'execution.progressStatus.complete',
+  failed: 'execution.progressStatus.failed',
+};
+
 /**
  * Smart progress indicator that adapts based on execution phase:
  * - Planning/Validation: Shows animated activity bar with entry count
@@ -110,11 +123,14 @@ export const PhaseProgressIndicator = memo(function PhaseProgressIndicator({
   };
 
   // Determine if we should show indeterminate (activity) vs determinate (%) progress
-  const isIndeterminatePhase = phase === 'spec_creation' || phase === 'planning' || phase === 'qa_review' || phase === 'qa_fixing';
-  const showSubtaskProgress = phase === 'coding' || (totalSubtasks > 0 && !isIndeterminatePhase);
+  // If backend is sending a real progress value, show determinate bar even for planning phases
+  const hasLiveProgress = overallProgress !== undefined && overallProgress > 0;
+  const isIndeterminatePhase = !hasLiveProgress && (phase === 'spec_creation' || phase === 'planning' || phase === 'qa_review' || phase === 'qa_fixing');
+  const showSubtaskProgress = hasLiveProgress || phase === 'coding' || (totalSubtasks > 0 && !isIndeterminatePhase);
 
   const colors = PHASE_COLORS[phase] || PHASE_COLORS.idle;
   const phaseLabel = t(PHASE_LABEL_KEYS[phase] || PHASE_LABEL_KEYS.idle);
+  const phaseProgressStatus = t(PHASE_PROGRESS_STATUS_KEYS[phase] || PHASE_PROGRESS_STATUS_KEYS.idle);
   const activeEntries = getActivePhaseEntries();
 
   return (
@@ -123,7 +139,11 @@ export const PhaseProgressIndicator = memo(function PhaseProgressIndicator({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
-            {isStuck ? t('execution.labels.interrupted') : showSubtaskProgress ? t('execution.labels.progress') : phaseLabel}
+            {isStuck
+              ? t('execution.labels.interrupted')
+              : (isRunning || phase !== 'idle')
+                ? t('execution.labels.progressWithStatus', { status: phaseProgressStatus })
+                : t('execution.labels.progress')}
           </span>
           {/* Activity indicator dot for non-coding phases - only animate when visible */}
           {isRunning && !isStuck && isIndeterminatePhase && (

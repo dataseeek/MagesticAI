@@ -526,6 +526,22 @@
       "createAnthropicKey": "Créer une clé API Anthropic",
       "openai": "Ceci ressemble à une API OpenAI. Vous aurez besoin d'une clé API.",
       "createOpenaiKey": "Créer une clé API OpenAI"
+    },
+    "quickTemplates": "Modèles rapides",
+    "quickTemplatesDescription": "Cliquez sur un modèle pour préremplir le formulaire",
+    "quickTemplatesLoading": "Détection des services installés...",
+    "quickTemplatesEmpty": "Aucun service supplémentaire détecté",
+    "quickTemplatesAvailable": "disponible",
+    "quickTemplatesInstalled": "installé",
+    "quickTemplatesNotAvailable": "non installé",
+    "categories": {
+      "core": "Essentiel",
+      "database": "Base de données",
+      "vcs": "Contrôle de version",
+      "browser": "Navigateur",
+      "search": "Recherche",
+      "devops": "DevOps",
+      "communication": "Communication"
     }
   }
 }
