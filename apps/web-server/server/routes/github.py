@@ -13,6 +13,7 @@ import sys
 from pathlib import Path as FilePath
 
 from fastapi import APIRouter, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -40,6 +41,10 @@ class InvestigateRequest(BaseModel):
 
 class ImportIssuesRequest(BaseModel):
     issueNumbers: list[int]
+
+
+class PRReviewRequest(BaseModel):
+    followup: bool = False
 
 
 class CreateReleaseRequest(BaseModel):
@@ -1044,6 +1049,70 @@ async def get_project_github_prs(
 
     prs = [_map_gh_pr(pr) for pr in prs_raw]
     return {"success": True, "data": prs}
+
+
+@project_router.post("/prs/{prNumber}/review")
+async def trigger_pr_review(
+    projectId: str,
+    prNumber: int,
+    request: PRReviewRequest | None = None,
+):
+    """Trigger an async PR review.
+
+    Launches the GitHub runner's review-pr (or followup-review-pr) command
+    as a background subprocess. Progress is emitted via WebSocket events:
+    - pr:review-progress
+    - pr:review-complete
+    - pr:review-error
+
+    Returns 202 Accepted immediately.
+    """
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    followup = request.followup if request else False
+
+    from ..services.pr_review_service import get_pr_review_service
+
+    service = get_pr_review_service()
+
+    if service.is_running(projectId, prNumber):
+        return JSONResponse(
+            status_code=409,
+            content={
+                "success": False,
+                "error": f"A review is already running for PR #{prNumber}",
+            },
+        )
+
+    started = await service.start_review(
+        project_id=projectId,
+        pr_number=prNumber,
+        project_path=project_path,
+        followup=followup,
+    )
+
+    if not started:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "Failed to start PR review"},
+        )
+
+    return JSONResponse(
+        status_code=202,
+        content={
+            "success": True,
+            "data": {
+                "message": f"PR #{prNumber} review started",
+                "prNumber": prNumber,
+                "followup": followup,
+            },
+        },
+    )
 
 
 @project_router.post("/releases")
