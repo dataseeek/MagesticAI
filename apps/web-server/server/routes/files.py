@@ -8,13 +8,16 @@ Handles file operations for the Monaco editor:
 - Git diff viewing
 """
 
+import mimetypes
 import re
 import subprocess
+import urllib.parse
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -353,6 +356,91 @@ async def read_file_direct(
         "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
         "language": detect_language(str(full_path)),
     }
+
+
+@router.get("/serve")
+async def serve_project_file(
+    request: Request,
+    path: str = Query(..., description="Absolute path to the file to serve"),
+    root: str = Query(..., description="Project root directory (for resolving relative URLs)"),
+):
+    """Serve a project file with its correct MIME type.
+
+    For HTML files, rewrites src= and href= attributes so that linked
+    CSS/JS/images load through this same endpoint.  External URLs
+    (http://, https://, //, data:, #, mailto:) are left untouched.
+    """
+    file_path = Path(path).expanduser().resolve()
+    root_path = Path(root).expanduser().resolve()
+
+    # Security: file must exist inside the declared project root
+    if not root_path.is_dir():
+        raise HTTPException(status_code=400, detail="Root is not a directory")
+    try:
+        file_path.relative_to(root_path)
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Access denied: path outside project root")
+
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # Determine MIME type
+    mime_type, _ = mimetypes.guess_type(str(file_path))
+    if mime_type is None:
+        mime_type = "application/octet-stream"
+
+    # Non-HTML files: serve directly with FileResponse
+    if not mime_type.startswith("text/html"):
+        return FileResponse(str(file_path), media_type=mime_type)
+
+    # HTML files: rewrite asset URLs so linked resources load correctly
+    try:
+        html_content = file_path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        html_content = file_path.read_text(encoding="latin-1")
+
+    # Carry the token through to rewritten URLs
+    token = request.query_params.get("token", "")
+    html_dir = file_path.parent
+
+    def _rewrite_url(match: re.Match) -> str:
+        attr = match.group(1)   # e.g. src= or href=
+        quote = match.group(2)  # quote character (" or ')
+        url = match.group(3)    # the URL value
+
+        # Skip external / special URLs
+        if url.startswith(("http://", "https://", "//", "data:", "#", "mailto:", "javascript:")):
+            return match.group(0)
+
+        # Resolve the URL to an absolute filesystem path
+        if url.startswith("/"):
+            # Absolute path from project root (e.g., /static/calculator.css)
+            resolved = (root_path / url.lstrip("/")).resolve()
+        else:
+            # Relative path from HTML file's directory
+            resolved = (html_dir / url).resolve()
+
+        # Security: must stay within project root
+        try:
+            resolved.relative_to(root_path)
+        except ValueError:
+            return match.group(0)  # leave unchanged
+
+        params = urllib.parse.urlencode({
+            "path": str(resolved),
+            "root": str(root_path),
+            "token": token,
+        })
+        return f'{attr}={quote}/api/files/serve?{params}{quote}'
+
+    # Rewrite src="..." and href="..." (both quote styles)
+    rewritten = re.sub(
+        r'''(src|href)\s*=\s*(["'])(.*?)\2''',
+        _rewrite_url,
+        html_content,
+    )
+
+    return HTMLResponse(content=rewritten, media_type="text/html")
 
 
 @router.get("/{project_id}/list", response_model=DirectoryListing)
