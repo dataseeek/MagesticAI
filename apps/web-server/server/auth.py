@@ -131,7 +131,12 @@ class TokenAuthMiddleware(BaseHTTPMiddleware):
 
         # Strategy 2: Fall back to legacy bearer token
         if token == settings.API_TOKEN:
-            # Legacy token - request.state.user stays None (backward compatible)
+            # Legacy token — populate a default user so notifications still work
+            request.state.user = {
+                "id": "default",
+                "email": None,
+                "role": "user",
+            }
             return await call_next(request)
 
         # Neither JWT nor legacy token matched
