@@ -172,12 +172,33 @@ const githubAPI: API['github'] = {
     const result = await get(`/projects/${projectId}/github/prs`);
     return (result.success ? result.data : []) as never;
   },
-  runPRReview: () => {},
-  cancelPRReview: async () => true,
-  postPRReview: async () => true,
-  postPRComment: async () => true,
-  mergePR: async () => true,
-  assignPR: async () => true,
+  runPRReview: (projectId, prNumber) => {
+    post(`/projects/${projectId}/github/prs/${prNumber}/review`, {});
+  },
+  cancelPRReview: async (projectId, prNumber) => {
+    const result = await post(`/projects/${projectId}/github/prs/${prNumber}/cancel`, {});
+    return result.success;
+  },
+  postPRReview: async (projectId, prNumber, selectedFindingIds) => {
+    const result = await post(`/projects/${projectId}/github/prs/${prNumber}/post-review`, {
+      selectedFindingIds: selectedFindingIds ?? null,
+    });
+    return result.success;
+  },
+  postPRComment: async (projectId, prNumber, body) => {
+    const result = await post(`/projects/${projectId}/github/prs/${prNumber}/comment`, { body });
+    return result.success;
+  },
+  mergePR: async (projectId, prNumber, mergeMethod) => {
+    const result = await post(`/projects/${projectId}/github/prs/${prNumber}/merge`, {
+      mergeMethod: mergeMethod ?? 'squash',
+    });
+    return result.success;
+  },
+  assignPR: async (projectId, prNumber, username) => {
+    const result = await post(`/projects/${projectId}/github/prs/${prNumber}/assign`, { username });
+    return result.success;
+  },
   getPRReview: async (projectId, prNumber) => {
     const result = await get(`/projects/${projectId}/github/prs/${prNumber}/review`);
     return (result.success ? result.data ?? null : null) as never;
@@ -190,7 +211,9 @@ const githubAPI: API['github'] = {
     const result = await get(`/projects/${projectId}/github/prs/${prNumber}/new-commits`);
     return (result.success && result.data ? result.data : { hasNewCommits: false, newCommitCount: 0 }) as never;
   },
-  runFollowupReview: () => {},
+  runFollowupReview: (projectId, prNumber) => {
+    post(`/projects/${projectId}/github/prs/${prNumber}/review`, { followup: true });
+  },
   getPRLogs: async (projectId, prNumber) => {
     const result = await get(`/projects/${projectId}/github/prs/${prNumber}/logs`);
     return (result.success ? result.data ?? null : null) as never;
