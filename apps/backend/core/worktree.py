@@ -183,9 +183,14 @@ class WorktreeManager:
         # 2. Always unstage .magestic-ai directory files - these are project-specific
         # and should never be merged from the worktree branch
         magestic_ai_patterns = [".magestic-ai/", "magestic-ai/specs/"]
+        # Root-level runtime files that agents may commit despite .gitignore
+        magestic_ai_root_files = {".magestic-ai-security.json", ".magestic-ai-status"}
         for file in staged_files:
             file = file.strip()
             if not file:
+                continue
+            if file in magestic_ai_root_files:
+                files_to_unstage.add(file)
                 continue
             for pattern in magestic_ai_patterns:
                 if file.startswith(pattern) or f"/{pattern}" in file:
