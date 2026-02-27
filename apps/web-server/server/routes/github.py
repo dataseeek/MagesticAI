@@ -10,7 +10,6 @@ import re
 import shutil
 import subprocess
 import sys
-from datetime import datetime
 from pathlib import Path as FilePath
 
 from fastapi import APIRouter, Query
@@ -997,46 +996,6 @@ async def import_github_issues(projectId: str, request: ImportIssuesRequest):
     }
 
 
-def _map_gh_pr(pr: dict) -> dict:
-    """Map gh CLI PR JSON to the frontend PRData shape."""
-    author = pr.get("author", {}) or {}
-    assignees = pr.get("assignees", []) or []
-    files = pr.get("files", []) or []
-
-    return {
-        "number": pr.get("number", 0),
-        "title": pr.get("title", ""),
-        "body": pr.get("body", ""),
-        "state": (pr.get("state", "OPEN") or "OPEN").lower(),
-        "author": {
-            "login": author.get("login", "") if isinstance(author, dict) else str(author),
-        },
-        "headRefName": pr.get("headRefName", ""),
-        "baseRefName": pr.get("baseRefName", ""),
-        "additions": pr.get("additions", 0),
-        "deletions": pr.get("deletions", 0),
-        "changedFiles": pr.get("changedFiles", 0),
-        "assignees": [
-            {
-                "login": a.get("login", "") if isinstance(a, dict) else str(a),
-            }
-            for a in assignees
-        ],
-        "files": [
-            {
-                "path": f.get("path", ""),
-                "additions": f.get("additions", 0),
-                "deletions": f.get("deletions", 0),
-                "status": f.get("status", ""),
-            }
-            for f in files
-        ],
-        "createdAt": pr.get("createdAt", ""),
-        "updatedAt": pr.get("updatedAt", ""),
-        "htmlUrl": pr.get("url", ""),
-    }
-
-
 @project_router.get("/prs")
 async def get_project_github_prs(
     projectId: str,
@@ -1047,25 +1006,10 @@ async def get_project_github_prs(
     if not project_path:
         return {"success": False, "error": f"Project {projectId} not found"}
 
-    args = [
-        "pr", "list",
-        "--json", "number,title,body,state,author,headRefName,baseRefName,additions,deletions,changedFiles,files,assignees,createdAt,updatedAt,url",
-        "--limit", "100",
-    ]
-    if state and state in ("open", "closed", "merged", "all"):
-        args.extend(["--state", state])
+    from ..services.pr_data_service import get_pr_data_service
 
-    result = run_gh_command(args, cwd=str(project_path))
-    if not result["success"]:
-        return {"success": False, "error": result.get("error", "Failed to fetch pull requests")}
-
-    try:
-        prs_raw = json.loads(result["output"])
-    except json.JSONDecodeError:
-        return {"success": True, "data": []}
-
-    prs = [_map_gh_pr(pr) for pr in prs_raw]
-    return {"success": True, "data": prs}
+    service = get_pr_data_service()
+    return service.list_prs(project_path, state=state)
 
 
 @project_router.post("/prs/{prNumber}/review")
@@ -1148,26 +1092,17 @@ async def get_pr_review(projectId: str, prNumber: int):
             content={"success": False, "error": f"Project {projectId} not found"},
         )
 
-    review_file = (
-        project_path / ".magestic-ai" / "github" / "pr" / f"review_{prNumber}.json"
-    )
+    from ..services.pr_data_service import get_pr_data_service
 
-    if not review_file.exists():
-        return {"success": True, "data": None}
+    service = get_pr_data_service()
+    result = service.get_review(project_path, prNumber)
 
-    try:
-        result_data = json.loads(review_file.read_text())
-        return {"success": True, "data": result_data}
-    except json.JSONDecodeError:
+    if not result["success"]:
         return JSONResponse(
             status_code=500,
-            content={"success": False, "error": "Failed to parse stored review data"},
+            content=result,
         )
-    except OSError as e:
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "error": f"Failed to read review file: {e}"},
-        )
+    return result
 
 
 @project_router.delete("/prs/{prNumber}/review")
@@ -1183,36 +1118,17 @@ async def delete_pr_review(projectId: str, prNumber: int):
             content={"success": False, "error": f"Project {projectId} not found"},
         )
 
-    review_file = (
-        project_path / ".magestic-ai" / "github" / "pr" / f"review_{prNumber}.json"
-    )
+    from ..services.pr_data_service import get_pr_data_service
 
-    if not review_file.exists():
-        return {"success": True, "data": {"deleted": False, "reason": "No review found"}}
+    service = get_pr_data_service()
+    result = service.delete_review(project_path, prNumber)
 
-    try:
-        review_file.unlink()
-    except OSError as e:
+    if not result["success"]:
         return JSONResponse(
             status_code=500,
-            content={"success": False, "error": f"Failed to delete review file: {e}"},
+            content=result,
         )
-
-    # Update the index file to remove the entry
-    index_file = project_path / ".magestic-ai" / "github" / "pr" / "index.json"
-    if index_file.exists():
-        try:
-            index_data = json.loads(index_file.read_text())
-            reviews = index_data.get("reviews", [])
-            index_data["reviews"] = [
-                r for r in reviews if r.get("pr_number") != prNumber
-            ]
-            index_file.write_text(json.dumps(index_data, indent=2))
-        except (json.JSONDecodeError, OSError) as e:
-            # Non-fatal: review file was deleted, index update failed
-            pass
-
-    return {"success": True, "data": {"deleted": True}}
+    return result
 
 
 @project_router.post("/prs/{prNumber}/post-review")
@@ -1233,95 +1149,26 @@ async def post_pr_review_to_github(
             content={"success": False, "error": f"Project {projectId} not found"},
         )
 
-    # Read stored review result
-    review_file = (
-        project_path / ".magestic-ai" / "github" / "pr" / f"review_{prNumber}.json"
-    )
-    if not review_file.exists():
-        return JSONResponse(
-            status_code=404,
-            content={"success": False, "error": f"No review found for PR #{prNumber}"},
-        )
+    from ..services.pr_data_service import get_pr_data_service
 
-    try:
-        review_data = json.loads(review_file.read_text())
-    except (json.JSONDecodeError, OSError) as e:
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "error": f"Failed to read review data: {e}"},
-        )
-
-    findings = review_data.get("findings", [])
+    service = get_pr_data_service()
     selected_ids = request.selectedFindingIds if request else None
-
-    # Filter findings if specific IDs were provided
-    if selected_ids is not None:
-        findings = [f for f in findings if f.get("id") in selected_ids]
-
-    if not findings:
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "error": "No findings to post"},
-        )
-
-    # Build review body from findings
-    body_parts = []
-    body_parts.append(f"## AI Code Review - PR #{prNumber}\n")
-    body_parts.append(f"**Overall Status:** {review_data.get('overallStatus', 'comment')}\n")
-
-    if review_data.get("summary"):
-        body_parts.append(f"### Summary\n{review_data['summary']}\n")
-
-    body_parts.append("### Findings\n")
-    for finding in findings:
-        severity = finding.get("severity", "info").upper()
-        title = finding.get("title", "Untitled")
-        description = finding.get("description", "")
-        file_path = finding.get("file", "")
-        line = finding.get("line", 0)
-        suggested_fix = finding.get("suggestedFix", "")
-
-        location = f"`{file_path}"
-        if line:
-            location += f":{line}"
-        location += "`"
-
-        body_parts.append(f"- **[{severity}]** {title} ({location})")
-        if description:
-            body_parts.append(f"  {description}")
-        if suggested_fix:
-            body_parts.append(f"  💡 **Suggested fix:** {suggested_fix}")
-        body_parts.append("")
-
-    review_body = "\n".join(body_parts)
-
-    # Post as a PR comment using gh CLI
-    result = run_gh_command(
-        ["pr", "comment", str(prNumber), "--body", review_body],
-        cwd=str(project_path),
-    )
+    result = service.post_review_to_github(project_path, prNumber, selected_finding_ids=selected_ids)
 
     if not result["success"]:
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "error": result.get("error", "Failed to post review")},
-        )
+        # Determine appropriate status code based on error
+        error_msg = result.get("error", "")
+        if "No review found" in error_msg:
+            status_code = 404
+        elif "No findings to post" in error_msg:
+            status_code = 400
+        elif "Failed to read" in error_msg:
+            status_code = 500
+        else:
+            status_code = 500
+        return JSONResponse(status_code=status_code, content=result)
 
-    # Update review data to mark findings as posted
-    posted_ids = [f.get("id") for f in findings if f.get("id")]
-    review_data["hasPostedFindings"] = True
-    review_data.setdefault("postedFindingIds", [])
-    for fid in posted_ids:
-        if fid not in review_data["postedFindingIds"]:
-            review_data["postedFindingIds"].append(fid)
-    review_data["postedAt"] = datetime.now().isoformat()
-
-    try:
-        review_file.write_text(json.dumps(review_data, indent=2))
-    except OSError:
-        pass  # Non-fatal: review was posted but metadata update failed
-
-    return {"success": True, "data": {"posted": True, "findingsPosted": len(findings)}}
+    return result
 
 
 @project_router.post("/prs/{prNumber}/comment")
@@ -1338,24 +1185,17 @@ async def post_pr_comment(
             content={"success": False, "error": f"Project {projectId} not found"},
         )
 
-    if not request.body or not request.body.strip():
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "error": "Comment body cannot be empty"},
-        )
+    from ..services.pr_data_service import get_pr_data_service
 
-    result = run_gh_command(
-        ["pr", "comment", str(prNumber), "--body", request.body],
-        cwd=str(project_path),
-    )
+    service = get_pr_data_service()
+    result = service.post_comment(project_path, prNumber, request.body)
 
     if not result["success"]:
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "error": result.get("error", "Failed to post comment")},
-        )
+        error_msg = result.get("error", "")
+        status_code = 400 if "cannot be empty" in error_msg else 500
+        return JSONResponse(status_code=status_code, content=result)
 
-    return {"success": True, "data": {"posted": True}}
+    return result
 
 
 @project_router.post("/prs/{prNumber}/merge")
@@ -1372,24 +1212,18 @@ async def merge_pr(
             content={"success": False, "error": f"Project {projectId} not found"},
         )
 
+    from ..services.pr_data_service import get_pr_data_service
+
+    service = get_pr_data_service()
     merge_method = request.mergeMethod if request else "squash"
-    if merge_method not in ("merge", "squash", "rebase"):
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "error": f"Invalid merge method: {merge_method}. Must be one of: merge, squash, rebase"},
-        )
-
-    args = ["pr", "merge", str(prNumber), f"--{merge_method}"]
-
-    result = run_gh_command(args, cwd=str(project_path))
+    result = service.merge_pr(project_path, prNumber, method=merge_method)
 
     if not result["success"]:
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "error": result.get("error", "Failed to merge PR")},
-        )
+        error_msg = result.get("error", "")
+        status_code = 400 if "Invalid merge method" in error_msg else 500
+        return JSONResponse(status_code=status_code, content=result)
 
-    return {"success": True, "data": {"merged": True, "method": merge_method}}
+    return result
 
 
 @project_router.post("/prs/{prNumber}/assign")
@@ -1406,24 +1240,17 @@ async def assign_pr(
             content={"success": False, "error": f"Project {projectId} not found"},
         )
 
-    if not request.username or not request.username.strip():
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "error": "Username cannot be empty"},
-        )
+    from ..services.pr_data_service import get_pr_data_service
 
-    result = run_gh_command(
-        ["pr", "edit", str(prNumber), "--add-assignee", request.username],
-        cwd=str(project_path),
-    )
+    service = get_pr_data_service()
+    result = service.assign_pr(project_path, prNumber, request.username)
 
     if not result["success"]:
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "error": result.get("error", "Failed to assign user")},
-        )
+        error_msg = result.get("error", "")
+        status_code = 400 if "cannot be empty" in error_msg else 500
+        return JSONResponse(status_code=status_code, content=result)
 
-    return {"success": True, "data": {"assigned": True, "username": request.username}}
+    return result
 
 
 @project_router.post("/prs/{prNumber}/cancel")
@@ -1474,76 +1301,10 @@ async def check_pr_new_commits(projectId: str, prNumber: int):
             content={"success": False, "error": f"Project {projectId} not found"},
         )
 
-    # Read stored review to get the reviewed commit SHA
-    review_file = (
-        project_path / ".magestic-ai" / "github" / "pr" / f"review_{prNumber}.json"
-    )
+    from ..services.pr_data_service import get_pr_data_service
 
-    last_reviewed_commit = None
-    if review_file.exists():
-        try:
-            review_data = json.loads(review_file.read_text())
-            last_reviewed_commit = review_data.get("reviewed_commit_sha")
-        except (json.JSONDecodeError, OSError):
-            pass
-
-    # Get the current HEAD commit SHA of the PR via gh CLI
-    result = run_gh_command(
-        [
-            "pr", "view", str(prNumber),
-            "--json", "commits",
-            "--jq", ".commits[-1].oid",
-        ],
-        cwd=str(project_path),
-    )
-
-    current_head_commit = result.get("output", "").strip() if result["success"] else None
-
-    # If we have no review yet, there are no "new" commits relative to a review
-    if not last_reviewed_commit:
-        return {
-            "success": True,
-            "data": {
-                "hasNewCommits": False,
-                "newCommitCount": 0,
-                "lastReviewedCommit": None,
-                "currentHeadCommit": current_head_commit,
-            },
-        }
-
-    # Compare: if current HEAD differs from reviewed commit, there are new commits
-    has_new_commits = (
-        current_head_commit is not None
-        and current_head_commit != last_reviewed_commit
-    )
-
-    new_commit_count = 0
-    if has_new_commits and current_head_commit:
-        # Count commits between reviewed SHA and current HEAD
-        count_result = run_gh_command(
-            [
-                "api",
-                f"repos/{{owner}}/{{repo}}/compare/{last_reviewed_commit}...{current_head_commit}",
-                "--jq", ".total_commits",
-            ],
-            cwd=str(project_path),
-        )
-        if count_result["success"]:
-            try:
-                new_commit_count = int(count_result["output"].strip())
-            except (ValueError, TypeError):
-                # Fallback: we know there are new commits but can't count
-                new_commit_count = 1
-
-    return {
-        "success": True,
-        "data": {
-            "hasNewCommits": has_new_commits,
-            "newCommitCount": new_commit_count,
-            "lastReviewedCommit": last_reviewed_commit,
-            "currentHeadCommit": current_head_commit,
-        },
-    }
+    service = get_pr_data_service()
+    return service.check_new_commits(project_path, prNumber)
 
 
 @project_router.get("/prs/{prNumber}/logs")
@@ -1563,30 +1324,17 @@ async def get_pr_review_logs(projectId: str, prNumber: int):
             content={"success": False, "error": f"Project {projectId} not found"},
         )
 
-    logs_file = (
-        project_path
-        / ".magestic-ai"
-        / "github"
-        / "pr"
-        / f"review_{prNumber}_logs.json"
-    )
+    from ..services.pr_data_service import get_pr_data_service
 
-    if not logs_file.exists():
-        return {"success": True, "data": None}
+    service = get_pr_data_service()
+    result = service.get_review_logs(project_path, prNumber)
 
-    try:
-        logs_data = json.loads(logs_file.read_text())
-        return {"success": True, "data": logs_data}
-    except json.JSONDecodeError:
+    if not result["success"]:
         return JSONResponse(
             status_code=500,
-            content={"success": False, "error": "Failed to parse review logs"},
+            content=result,
         )
-    except OSError as e:
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "error": f"Failed to read logs file: {e}"},
-        )
+    return result
 
 
 @project_router.post("/releases")
