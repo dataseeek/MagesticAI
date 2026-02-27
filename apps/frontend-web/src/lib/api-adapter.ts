@@ -168,18 +168,33 @@ const githubAPI: API['github'] = {
   onAutoFixProgress: () => () => {},
   onAutoFixComplete: () => () => {},
   onAutoFixError: () => () => {},
-  listPRs: async () => [],
+  listPRs: async (projectId) => {
+    const result = await get(`/projects/${projectId}/github/prs`);
+    return (result.success ? result.data : []) as never;
+  },
   runPRReview: () => {},
   cancelPRReview: async () => true,
   postPRReview: async () => true,
   postPRComment: async () => true,
   mergePR: async () => true,
   assignPR: async () => true,
-  getPRReview: async () => null,
-  deletePRReview: async () => true,
-  checkNewCommits: async () => ({ hasNewCommits: false, newCommitCount: 0 }),
+  getPRReview: async (projectId, prNumber) => {
+    const result = await get(`/projects/${projectId}/github/prs/${prNumber}/review`);
+    return (result.success ? result.data ?? null : null) as never;
+  },
+  deletePRReview: async (projectId, prNumber) => {
+    const result = await del(`/projects/${projectId}/github/prs/${prNumber}/review`);
+    return result.success;
+  },
+  checkNewCommits: async (projectId, prNumber) => {
+    const result = await get(`/projects/${projectId}/github/prs/${prNumber}/new-commits`);
+    return (result.success && result.data ? result.data : { hasNewCommits: false, newCommitCount: 0 }) as never;
+  },
   runFollowupReview: () => {},
-  getPRLogs: async () => null,
+  getPRLogs: async (projectId, prNumber) => {
+    const result = await get(`/projects/${projectId}/github/prs/${prNumber}/logs`);
+    return (result.success ? result.data ?? null : null) as never;
+  },
   onPRReviewProgress: () => () => {},
   onPRReviewComplete: () => () => {},
   onPRReviewError: () => () => {},
