@@ -1673,6 +1673,11 @@ class AgentService:
         try:
             plan = json.loads(plan_file.read_text())
 
+            # Don't overwrite if user explicitly marked task as done via kanban
+            if plan.get("status") == "done":
+                logger.info(f"[AgentService._update_plan_status] Plan status is 'done' (user-set), skipping overwrite for {spec_id}")
+                return
+
             # Fix 2: Validate that the plan is not just a minimal status object
             # A valid plan should have phases and subtasks from spec creation
             if "phases" not in plan or not plan.get("phases"):

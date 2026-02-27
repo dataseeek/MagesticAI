@@ -801,9 +801,10 @@ export const webAPI: API & { _isWebMode: boolean } = {
   getRecentErrors: async () => [],
   listLogFiles: async () => [],
 
-  // MCP Health Check
+  // MCP Health Check & Detection
   checkMcpHealth: (server: CustomMcpServer) => post('/mcp/health', server),
   testMcpConnection: (server: CustomMcpServer) => post('/mcp/test-connection', server),
+  detectMcpServices: () => get('/mcp/detect'),
 };
 
 /**

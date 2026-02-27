@@ -355,9 +355,9 @@ class NotificationService:
 
         body_html = f"""
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #2563eb;">{_html_escape(title)}</h2>
+            <h2 style="color: #0ea5e9;">{_html_escape(title)}</h2>
             <p>{_html_escape(message)}</p>
-            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
+            <hr style="border: none; border-top: 1px solid #204660; margin: 16px 0;" />
             <p style="color: #6b7280; font-size: 13px;">
                 Task: {_html_escape(task_id)}<br/>
                 Project: {_html_escape(project_id)}<br/>

@@ -25,7 +25,8 @@ import type {
   GitStatus,
   CustomMcpServer,
   McpHealthCheckResult,
-  McpTestConnectionResult
+  McpTestConnectionResult,
+  DetectedMcpService
 } from './project';
 import type {
   Task,
@@ -621,6 +622,7 @@ export interface API {
   // MCP Server health check operations
   checkMcpHealth: (server: CustomMcpServer) => Promise<IPCResult<McpHealthCheckResult>>;
   testMcpConnection: (server: CustomMcpServer) => Promise<IPCResult<McpTestConnectionResult>>;
+  detectMcpServices: () => Promise<IPCResult<DetectedMcpService[]>>;
 }
 
 declare global {

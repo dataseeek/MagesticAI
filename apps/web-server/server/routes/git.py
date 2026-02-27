@@ -528,28 +528,6 @@ mcp_router = APIRouter()
 # "requires_binary": None means only npx is needed.
 _MCP_CATALOG = [
     {
-        "id": "mcp-memory",
-        "name": "Memory",
-        "description": "Persistent memory using a knowledge graph",
-        "category": "core",
-        "type": "command",
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-memory"],
-        "requires_binary": None,
-        "package": "@modelcontextprotocol/server-memory",
-    },
-    {
-        "id": "mcp-sequential-thinking",
-        "name": "Sequential Thinking",
-        "description": "Dynamic problem-solving through thought sequences",
-        "category": "core",
-        "type": "command",
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
-        "requires_binary": None,
-        "package": "@modelcontextprotocol/server-sequential-thinking",
-    },
-    {
         "id": "mcp-postgres",
         "name": "PostgreSQL",
         "description": "Query and explore PostgreSQL databases",
