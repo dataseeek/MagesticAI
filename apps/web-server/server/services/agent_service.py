@@ -67,6 +67,30 @@ def phase_to_review_reason(phase: TaskPhase) -> str | None:
     return mapping.get(phase)
 
 
+# Phase ranges for overall progress scaling (start%, end%)
+# Maps within-phase progress (0-100) to an overall range so progress is monotonically increasing.
+PHASE_RANGES: dict[str, tuple[float, float]] = {
+    "spec_creation": (0, 20),
+    "planning": (0, 20),
+    "plan_review": (20, 20),   # Fixed at 20%
+    "coding": (20, 80),
+    "qa_review": (80, 95),
+    "qa_fixing": (80, 95),
+    "completed": (95, 100),
+    "failed": (0, 0),          # Keep whatever was last
+}
+
+
+def scale_progress(phase: str, phase_progress: float) -> float:
+    """Scale within-phase progress (0-100) to overall progress range.
+
+    Example: coding phase at 50% → 20 + (50/100) × 60 = 50% overall.
+    """
+    start, end = PHASE_RANGES.get(phase, (0, 100))
+    width = end - start
+    return round(start + (phase_progress / 100) * width)
+
+
 @dataclass
 class TaskProgress:
     """Real-time task progress information."""
@@ -79,6 +103,7 @@ class TaskProgress:
     subtask_index: int | None = None
     subtask_total: int | None = None
     percentage: float | None = None
+    overall_progress: float | None = None  # Override scaled overall progress
     sequence_number: int = 0  # For frontend out-of-order detection
     started_at: str | None = None  # Task start time for UI display
     data: dict = field(default_factory=dict)
@@ -793,8 +818,13 @@ class AgentService:
         try:
             # Use task:update event which frontend handles correctly for progress
             # Frontend's onTaskUpdate handler expects: {taskId, executionProgress?, phase?, subtasks?, ...}
-            percentage = progress.percentage or 0
-            phase_value = progress.phase.value if progress.phase else None
+            phase_progress = progress.percentage or 0
+            phase_value = progress.phase.value if progress.phase else "coding"
+            # Scale within-phase progress to overall range, unless explicitly overridden
+            if progress.overall_progress is not None:
+                overall_progress = progress.overall_progress
+            else:
+                overall_progress = scale_progress(phase_value, phase_progress)
 
             # Get sequence number for out-of-order detection
             sequence_number = self._get_next_sequence_number(progress.task_id)
@@ -829,8 +859,8 @@ class AgentService:
             await emit_task_update(progress.task_id, {
                 "executionProgress": {
                     "phase": phase_value,
-                    "phaseProgress": percentage,
-                    "overallProgress": percentage,
+                    "phaseProgress": phase_progress,
+                    "overallProgress": overall_progress,
                     "currentSubtask": progress.subtask,
                     "message": progress.message,
                     "sequenceNumber": sequence_number,
@@ -1172,7 +1202,7 @@ class AgentService:
                         "executionProgress": {
                             "phase": "coding",  # Default to coding during execution
                             "phaseProgress": progress,
-                            "overallProgress": progress,
+                            "overallProgress": scale_progress("coding", progress),
                             "currentSubtask": current_subtask,
                             "message": f"{completed}/{total} subtasks completed",
                         },
@@ -1241,12 +1271,13 @@ class AgentService:
                                     # Update plan status to human_review
                                     await self._update_plan_status(project_path, detected_spec_id, "human_review", task_id)
 
-                                    # Emit PLAN_REVIEW phase (maps to "human_review" status)
+                                    # Emit PLAN_REVIEW phase (maps to "human_review" status) — plan_review always scales to 20%
                                     await self._emit_progress(
                                         TaskProgress(
                                             task_id=task_id,
                                             phase=TaskPhase.PLAN_REVIEW,
                                             message="Spec created - waiting for human approval",
+                                            percentage=100,
                                         ),
                                         previous_phase=TaskPhase.SPEC_CREATION,  # Enable status event emission
                                     )
@@ -1330,12 +1361,13 @@ class AgentService:
                                     self._task_profiles.pop(task_id, None)
                                     self._task_subtask_states.pop(task_id, None)
 
-                                    # Emit PLAN_REVIEW phase (maps to "human_review" status)
+                                    # Emit PLAN_REVIEW phase (maps to "human_review" status) — plan_review always scales to 20%
                                     await self._emit_progress(
                                         TaskProgress(
                                             task_id=task_id,
                                             phase=TaskPhase.PLAN_REVIEW,
                                             message="Spec created - waiting for human approval",
+                                            percentage=100,
                                         ),
                                         previous_phase=TaskPhase.SPEC_CREATION,  # Enable status event emission
                                     )
@@ -1360,12 +1392,15 @@ class AgentService:
                             self._task_rate_limits.pop(task_id, None)
                             self._task_subtask_states.pop(task_id, None)
 
-                            # Emit completion
+                            # Emit completion (20% overall = planning complete, override scaling
+                            # since COMPLETED phase would normally scale to 95-100%)
                             await self._emit_progress(
                                 TaskProgress(
                                     task_id=task_id,
                                     phase=TaskPhase.COMPLETED,
                                     message="Spec created successfully",
+                                    percentage=100,
+                                    overall_progress=20,
                                 ),
                                 previous_phase=TaskPhase.SPEC_CREATION,
                             )
@@ -1839,11 +1874,12 @@ class AgentService:
         # Store spec directory for reading implementation plans during progress updates
         self._spec_dirs[task_id] = spec_dir
 
-        # Emit initial progress
+        # Emit initial progress (50% within spec_creation phase → 10% overall)
         await self._emit_progress(TaskProgress(
             task_id=task_id,
             phase=TaskPhase.SPEC_CREATION,
             message="Starting spec creation...",
+            percentage=50,
         ))
 
         # Start output processing in background
@@ -2053,11 +2089,12 @@ class AgentService:
         # Store log writers for cleanup
         self._task_log_writers[task_id] = (log_writer, main_log_writer)
 
-        # Emit initial progress
+        # Emit initial progress (100% within planning phase → 20% overall)
         await self._emit_progress(TaskProgress(
             task_id=task_id,
             phase=TaskPhase.PLANNING,
             message="Starting task execution...",
+            percentage=100,
         ))
 
         # Initialize planning phase in logs
