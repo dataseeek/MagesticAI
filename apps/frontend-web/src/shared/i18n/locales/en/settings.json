@@ -313,6 +313,10 @@
       "qa": {
         "label": "QA Review",
         "description": "Quality assurance and validation"
+      },
+      "qa_fixer": {
+        "label": "QA Fixer",
+        "description": "Fixes issues reported by QA review"
       }
     }
   },

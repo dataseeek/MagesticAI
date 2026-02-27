@@ -313,6 +313,10 @@
       "qa": {
         "label": "Révision QA",
         "description": "Assurance qualité et validation"
+      },
+      "qa_fixer": {
+        "label": "Correcteur QA",
+        "description": "Corrige les problèmes signalés par la révision QA"
       }
     }
   },

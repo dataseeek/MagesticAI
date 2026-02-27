@@ -243,6 +243,19 @@
       "detecting": "Détection des fournisseurs...",
       "noProviders": "Aucun fournisseur disponible",
       "via": "via {{provider}}"
+    },
+    "createTask": {
+      "button": "Créer une tâche",
+      "dialogTitle": "Créer une tâche depuis le chat",
+      "dialogDescription": "Vérifiez et modifiez la tâche générée par l'IA avant de l'ajouter à votre backlog.",
+      "generating": "Résumé de la conversation...",
+      "titleLabel": "Titre",
+      "titlePlaceholder": "Entrez le titre de la tâche",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Entrez la description de la tâche",
+      "cancel": "Annuler",
+      "confirm": "Créer la tâche",
+      "creating": "Création..."
     }
   },
   "downloads": {

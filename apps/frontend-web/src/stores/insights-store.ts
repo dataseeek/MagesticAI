@@ -344,8 +344,16 @@ export async function switchSession(projectId: string, sessionId: string): Promi
 export async function deleteSession(projectId: string, sessionId: string): Promise<boolean> {
   const result = await window.API.deleteInsightsSession(projectId, sessionId);
   if (result.success) {
-    // Reload sessions list and current session
-    await loadInsightsSession(projectId);
+    const data = result.data as { switchedTo?: string } | undefined;
+    if (data?.switchedTo) {
+      // Switch to the next available session
+      await switchSession(projectId, data.switchedTo);
+    } else {
+      // No sessions remain — clear the view
+      useInsightsStore.getState().clearSession();
+    }
+    // Reload sessions list
+    await loadInsightsSessions(projectId);
     return true;
   }
   return false;
@@ -399,6 +407,17 @@ export async function createTaskFromSuggestion(
   return null;
 }
 
+export async function generateTaskFromChat(
+  projectId: string,
+  modelConfig?: InsightsModelConfig
+): Promise<{ title: string; description: string } | null> {
+  const result = await window.API.generateTaskFromChat(projectId, modelConfig);
+  if (result.success && result.data) {
+    return result.data;
+  }
+  return null;
+}
+
 // IPC listener setup - call this once when the app initializes
 export function setupInsightsListeners(): () => void {
   const store = useInsightsStore.getState;
@@ -406,6 +425,8 @@ export function setupInsightsListeners(): () => void {
   // Listen for streaming chunks
   const unsubStreamChunk = window.API.onInsightsStreamChunk(
     (_projectId, chunk: InsightsStreamChunk) => {
+      // Ignore events from the generate-task sentinel to avoid polluting the chat
+      if (_projectId.startsWith('__gen_task_')) return;
       switch (chunk.type) {
         case 'text':
           if (chunk.content) {

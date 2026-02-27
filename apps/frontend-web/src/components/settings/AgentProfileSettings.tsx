@@ -32,7 +32,7 @@ const iconMap: Record<string, React.ElementType> = {
   Sparkles
 };
 
-const PHASE_KEYS: Array<keyof PhaseModelConfig> = ['spec', 'planning', 'coding', 'qa'];
+const PHASE_KEYS: Array<keyof PhaseModelConfig> = ['spec', 'planning', 'coding', 'qa', 'qa_fixer'];
 
 /**
  * Agent Profile Settings component
