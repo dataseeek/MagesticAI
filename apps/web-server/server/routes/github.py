@@ -975,6 +975,77 @@ async def import_github_issues(projectId: str, request: ImportIssuesRequest):
     }
 
 
+def _map_gh_pr(pr: dict) -> dict:
+    """Map gh CLI PR JSON to the frontend PRData shape."""
+    author = pr.get("author", {}) or {}
+    assignees = pr.get("assignees", []) or []
+    files = pr.get("files", []) or []
+
+    return {
+        "number": pr.get("number", 0),
+        "title": pr.get("title", ""),
+        "body": pr.get("body", ""),
+        "state": (pr.get("state", "OPEN") or "OPEN").lower(),
+        "author": {
+            "login": author.get("login", "") if isinstance(author, dict) else str(author),
+        },
+        "headRefName": pr.get("headRefName", ""),
+        "baseRefName": pr.get("baseRefName", ""),
+        "additions": pr.get("additions", 0),
+        "deletions": pr.get("deletions", 0),
+        "changedFiles": pr.get("changedFiles", 0),
+        "assignees": [
+            {
+                "login": a.get("login", "") if isinstance(a, dict) else str(a),
+            }
+            for a in assignees
+        ],
+        "files": [
+            {
+                "path": f.get("path", ""),
+                "additions": f.get("additions", 0),
+                "deletions": f.get("deletions", 0),
+                "status": f.get("status", ""),
+            }
+            for f in files
+        ],
+        "createdAt": pr.get("createdAt", ""),
+        "updatedAt": pr.get("updatedAt", ""),
+        "htmlUrl": pr.get("url", ""),
+    }
+
+
+@project_router.get("/prs")
+async def get_project_github_prs(
+    projectId: str,
+    state: str | None = Query(None),
+):
+    """Get GitHub pull requests for a project."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return {"success": False, "error": f"Project {projectId} not found"}
+
+    args = [
+        "pr", "list",
+        "--json", "number,title,body,state,author,headRefName,baseRefName,additions,deletions,changedFiles,files,assignees,createdAt,updatedAt,url",
+        "--limit", "100",
+    ]
+    if state and state in ("open", "closed", "merged", "all"):
+        args.extend(["--state", state])
+
+    result = run_gh_command(args, cwd=str(project_path))
+    if not result["success"]:
+        return {"success": False, "error": result.get("error", "Failed to fetch pull requests")}
+
+    try:
+        prs_raw = json.loads(result["output"])
+    except json.JSONDecodeError:
+        return {"success": True, "data": []}
+
+    prs = [_map_gh_pr(pr) for pr in prs_raw]
+    return {"success": True, "data": prs}
+
+
 @project_router.post("/releases")
 async def create_github_release(projectId: str, request: CreateReleaseRequest):
     """Create a GitHub release."""
