@@ -6,7 +6,9 @@ Handles running agent sessions and post-session processing including
 memory updates and recovery tracking.
 """
 
+import json
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 
 from claude_agent_sdk import ClaudeSDKClient
@@ -47,6 +49,21 @@ from .utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _append_build_progress(
+    spec_dir: Path, subtask_id: str, subtask: dict, session_num: int, commit_hash: str | None
+) -> None:
+    """Append a completed subtask line to build-progress.txt."""
+    progress_file = spec_dir / "build-progress.txt"
+    desc = subtask.get("title", subtask.get("description", subtask_id))
+    commit_ref = f" ({commit_hash[:8]})" if commit_hash else ""
+    line = f"  [x] {subtask_id}: {desc}{commit_ref}\n"
+    try:
+        with open(progress_file, "a") as f:
+            f.write(line)
+    except OSError:
+        pass
 
 
 async def post_session_processing(
@@ -106,6 +123,22 @@ async def post_session_processing(
 
     print_key_value("Subtask status", subtask_status)
     print_key_value("New commits", str(new_commits))
+
+    # Fallback: if agent didn't update status but made commits, force-mark as completed
+    if subtask_status == "pending" and new_commits > 0:
+        print_status(
+            f"Agent didn't update status but made {new_commits} commit(s) — marking completed",
+            "info",
+        )
+        subtask["status"] = "completed"
+        subtask["updated_at"] = datetime.now(timezone.utc).isoformat()
+        subtask["notes"] = f"Auto-completed: {new_commits} commit(s) detected"
+        plan_file = spec_dir / "implementation_plan.json"
+        plan["last_updated"] = datetime.now(timezone.utc).isoformat()
+        with open(plan_file, "w") as f:
+            json.dump(plan, f, indent=2)
+        sync_plan_to_source(spec_dir, source_spec_dir)
+        subtask_status = "completed"
 
     if subtask_status == "completed":
         # Success! Record the attempt and good commit
@@ -179,6 +212,11 @@ async def post_session_processing(
         except Exception as e:
             logger.warning(f"Error saving session memory: {e}")
             print_status("Memory save failed", "warning")
+
+        # Append to build-progress.txt for frontend visibility
+        _append_build_progress(spec_dir, subtask_id, subtask, session_num, commit_after)
+        if source_spec_dir:
+            _append_build_progress(source_spec_dir, subtask_id, subtask, session_num, commit_after)
 
         return True
 
