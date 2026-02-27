@@ -542,6 +542,11 @@ def load_spec_metadata(spec_dir: Path) -> dict:
             metadata["status"] = "human_review"
             metadata["reviewReason"] = "completed"
 
+    # Final safety: "done"/"completed" always wins over all auto-detection
+    # This guards against task_logs or subtask detection overriding user intent
+    if explicit_status in ("done", "completed"):
+        metadata["status"] = explicit_status
+
     # Only use file-based status detection if no explicit status was set via kanban
     # AND status wasn't already determined from task_logs.json (coding completed)
     # This allows users to override status via drag-and-drop
@@ -1142,7 +1147,7 @@ async def update_task(task_id: str, update: TaskUpdate):
                     pass
 
             # Update model-related fields that phase_config.py expects
-            model_fields = ["model", "thinkingLevel", "isAutoProfile", "phaseModels", "phaseThinking", "mode"]
+            model_fields = ["model", "thinkingLevel", "isAutoProfile", "phaseModels", "phaseThinking", "mode", "requireReviewBeforeCoding"]
             for field in model_fields:
                 if field in metadata_dict:
                     if metadata_dict[field] is None:
@@ -1282,6 +1287,20 @@ async def approve_plan(task_id: str, request: ApprovePlanRequest = ApprovePlanRe
             from ..services.agent_service import get_agent_service
 
             agent_service = get_agent_service()
+
+            # Clean up stale spec creation process if still tracked as running.
+            # The spec_runner process may have exited but the monitor may not have
+            # cleaned up running_tasks (e.g., if the process hung or monitor failed).
+            if agent_service.is_running(task_id):
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info(f"[ApprovePlan] Cleaning up stale spec creation process for {task_id}")
+                try:
+                    await agent_service.stop_task(task_id)
+                except Exception as stop_err:
+                    logger.warning(f"[ApprovePlan] Failed to stop stale process: {stop_err}")
+                    # Force-remove from running_tasks as fallback
+                    agent_service.running_tasks.pop(task_id, None)
 
             # Read mode from task_metadata.json
             task_metadata_file = spec_dir / "task_metadata.json"
