@@ -1314,6 +1314,7 @@ export function AgentTools() {
         onOpenChange={setShowCustomMcpDialog}
         server={editingCustomServer}
         existingIds={(envConfig?.customMcpServers || []).map(s => s.id)}
+        existingServers={envConfig?.customMcpServers || []}
         onSave={handleSaveCustomServer}
       />
     </div>
