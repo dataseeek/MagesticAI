@@ -457,8 +457,8 @@ class InsightsService:
         if model_config:
             effective_config.update({k: v for k, v in model_config.items() if v is not None})
 
-        # Use haiku for fast summarization regardless of session's model
-        model_value = "haiku"
+        # Use session's configured model, defaulting to haiku for fast summarization
+        model_value = effective_config.get("model", "haiku")
 
         # Resolve Claude CLI path
         claude_bin = shutil.which("claude") or "claude"

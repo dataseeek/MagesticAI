@@ -12,6 +12,7 @@ import type {
   TaskMetadata,
   Task
 } from '../shared/types';
+import { DEFAULT_FEATURE_MODELS, DEFAULT_FEATURE_THINKING } from '../shared/constants/models';
 
 interface ToolUsage {
   name: string;
@@ -289,8 +290,8 @@ export function sendMessage(projectId: string, message: string, modelConfig?: In
   const configToUse = modelConfig || session?.modelConfig;
   const configWithProvider = {
     provider: 'claude' as const,
-    model: 'sonnet',
-    thinkingLevel: 'medium' as const,
+    model: DEFAULT_FEATURE_MODELS.insights,
+    thinkingLevel: DEFAULT_FEATURE_THINKING.insights,
     ...configToUse,
   };
 
