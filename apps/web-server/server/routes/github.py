@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path as FilePath
 
 from fastapi import APIRouter, Query
@@ -45,6 +46,22 @@ class ImportIssuesRequest(BaseModel):
 
 class PRReviewRequest(BaseModel):
     followup: bool = False
+
+
+class PostPRReviewRequest(BaseModel):
+    selectedFindingIds: list[str] | None = None
+
+
+class PostPRCommentRequest(BaseModel):
+    body: str
+
+
+class MergePRRequest(BaseModel):
+    mergeMethod: str = "squash"  # merge, squash, rebase
+
+
+class AssignPRRequest(BaseModel):
+    username: str
 
 
 class CreateReleaseRequest(BaseModel):
@@ -1196,6 +1213,248 @@ async def delete_pr_review(projectId: str, prNumber: int):
             pass
 
     return {"success": True, "data": {"deleted": True}}
+
+
+@project_router.post("/prs/{prNumber}/post-review")
+async def post_pr_review_to_github(
+    projectId: str,
+    prNumber: int,
+    request: PostPRReviewRequest | None = None,
+):
+    """Post review findings as GitHub review comments.
+
+    Reads the stored review result, filters by selectedFindingIds if provided,
+    and posts each finding as a file-level review comment via gh CLI.
+    """
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    # Read stored review result
+    review_file = (
+        project_path / ".magestic-ai" / "github" / "pr" / f"review_{prNumber}.json"
+    )
+    if not review_file.exists():
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"No review found for PR #{prNumber}"},
+        )
+
+    try:
+        review_data = json.loads(review_file.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": f"Failed to read review data: {e}"},
+        )
+
+    findings = review_data.get("findings", [])
+    selected_ids = request.selectedFindingIds if request else None
+
+    # Filter findings if specific IDs were provided
+    if selected_ids is not None:
+        findings = [f for f in findings if f.get("id") in selected_ids]
+
+    if not findings:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": "No findings to post"},
+        )
+
+    # Build review body from findings
+    body_parts = []
+    body_parts.append(f"## AI Code Review - PR #{prNumber}\n")
+    body_parts.append(f"**Overall Status:** {review_data.get('overallStatus', 'comment')}\n")
+
+    if review_data.get("summary"):
+        body_parts.append(f"### Summary\n{review_data['summary']}\n")
+
+    body_parts.append("### Findings\n")
+    for finding in findings:
+        severity = finding.get("severity", "info").upper()
+        title = finding.get("title", "Untitled")
+        description = finding.get("description", "")
+        file_path = finding.get("file", "")
+        line = finding.get("line", 0)
+        suggested_fix = finding.get("suggestedFix", "")
+
+        location = f"`{file_path}"
+        if line:
+            location += f":{line}"
+        location += "`"
+
+        body_parts.append(f"- **[{severity}]** {title} ({location})")
+        if description:
+            body_parts.append(f"  {description}")
+        if suggested_fix:
+            body_parts.append(f"  💡 **Suggested fix:** {suggested_fix}")
+        body_parts.append("")
+
+    review_body = "\n".join(body_parts)
+
+    # Post as a PR comment using gh CLI
+    result = run_gh_command(
+        ["pr", "comment", str(prNumber), "--body", review_body],
+        cwd=str(project_path),
+    )
+
+    if not result["success"]:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": result.get("error", "Failed to post review")},
+        )
+
+    # Update review data to mark findings as posted
+    posted_ids = [f.get("id") for f in findings if f.get("id")]
+    review_data["hasPostedFindings"] = True
+    review_data.setdefault("postedFindingIds", [])
+    for fid in posted_ids:
+        if fid not in review_data["postedFindingIds"]:
+            review_data["postedFindingIds"].append(fid)
+    review_data["postedAt"] = datetime.now().isoformat()
+
+    try:
+        review_file.write_text(json.dumps(review_data, indent=2))
+    except OSError:
+        pass  # Non-fatal: review was posted but metadata update failed
+
+    return {"success": True, "data": {"posted": True, "findingsPosted": len(findings)}}
+
+
+@project_router.post("/prs/{prNumber}/comment")
+async def post_pr_comment(
+    projectId: str,
+    prNumber: int,
+    request: PostPRCommentRequest,
+):
+    """Post a general comment on a PR via gh pr comment."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    if not request.body or not request.body.strip():
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": "Comment body cannot be empty"},
+        )
+
+    result = run_gh_command(
+        ["pr", "comment", str(prNumber), "--body", request.body],
+        cwd=str(project_path),
+    )
+
+    if not result["success"]:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": result.get("error", "Failed to post comment")},
+        )
+
+    return {"success": True, "data": {"posted": True}}
+
+
+@project_router.post("/prs/{prNumber}/merge")
+async def merge_pr(
+    projectId: str,
+    prNumber: int,
+    request: MergePRRequest | None = None,
+):
+    """Merge a PR with configurable merge method (merge/squash/rebase)."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    merge_method = request.mergeMethod if request else "squash"
+    if merge_method not in ("merge", "squash", "rebase"):
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": f"Invalid merge method: {merge_method}. Must be one of: merge, squash, rebase"},
+        )
+
+    args = ["pr", "merge", str(prNumber), f"--{merge_method}"]
+
+    result = run_gh_command(args, cwd=str(project_path))
+
+    if not result["success"]:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": result.get("error", "Failed to merge PR")},
+        )
+
+    return {"success": True, "data": {"merged": True, "method": merge_method}}
+
+
+@project_router.post("/prs/{prNumber}/assign")
+async def assign_pr(
+    projectId: str,
+    prNumber: int,
+    request: AssignPRRequest,
+):
+    """Assign a user to a PR via gh pr edit --add-assignee."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    if not request.username or not request.username.strip():
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "error": "Username cannot be empty"},
+        )
+
+    result = run_gh_command(
+        ["pr", "edit", str(prNumber), "--add-assignee", request.username],
+        cwd=str(project_path),
+    )
+
+    if not result["success"]:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": result.get("error", "Failed to assign user")},
+        )
+
+    return {"success": True, "data": {"assigned": True, "username": request.username}}
+
+
+@project_router.post("/prs/{prNumber}/cancel")
+async def cancel_pr_review(
+    projectId: str,
+    prNumber: int,
+):
+    """Cancel an ongoing PR review process."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    from ..services.pr_review_service import get_pr_review_service
+
+    service = get_pr_review_service()
+
+    if not service.is_running(projectId, prNumber):
+        return {"success": True, "data": {"cancelled": False, "reason": "No review is running"}}
+
+    cancelled = await service.cancel_review(projectId, prNumber)
+
+    if not cancelled:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "Failed to cancel review"},
+        )
+
+    return {"success": True, "data": {"cancelled": True}}
 
 
 @project_router.post("/releases")
