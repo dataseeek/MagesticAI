@@ -313,6 +313,10 @@
       "qa": {
         "label": "Revisão QA",
         "description": "Garantia de qualidade e validação"
+      },
+      "qa_fixer": {
+        "label": "Corretor QA",
+        "description": "Corrige problemas reportados pela revisão QA"
       }
     }
   },

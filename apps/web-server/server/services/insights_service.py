@@ -8,6 +8,7 @@ Streams responses via WebSocket and persists sessions to disk.
 import asyncio
 import json
 import logging
+import re
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -17,6 +18,53 @@ from ..websockets.events import broadcast_event
 from .insights_providers import get_provider
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_task_json(raw: str) -> dict:
+    """Parse a JSON task object from LLM output.
+
+    Tries, in order:
+      1. Strip markdown fences and json.loads the whole string
+      2. Brace-matching extraction
+      3. Fallback: use the raw text as the description
+    """
+    # Strip markdown fences (```json ... ``` or ``` ... ```)
+    cleaned = re.sub(r"^```(?:json)?\s*", "", raw.strip(), flags=re.MULTILINE)
+    cleaned = re.sub(r"\s*```$", "", cleaned.strip(), flags=re.MULTILINE)
+
+    # Attempt 1: direct parse
+    try:
+        parsed = json.loads(cleaned)
+        if isinstance(parsed, dict):
+            return {
+                "title": str(parsed.get("title", "")).strip(),
+                "description": str(parsed.get("description", "")).strip(),
+            }
+    except json.JSONDecodeError:
+        pass
+
+    # Attempt 2: brace-matching — find first { … }
+    start = cleaned.find("{")
+    if start != -1:
+        depth = 0
+        for i in range(start, len(cleaned)):
+            if cleaned[i] == "{":
+                depth += 1
+            elif cleaned[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        parsed = json.loads(cleaned[start:i + 1])
+                        if isinstance(parsed, dict):
+                            return {
+                                "title": str(parsed.get("title", "")).strip(),
+                                "description": str(parsed.get("description", "")).strip(),
+                            }
+                    except json.JSONDecodeError:
+                        break
+
+    # Attempt 3: use raw text as description
+    return {"title": "", "description": cleaned.strip()}
 
 
 @dataclass
@@ -205,21 +253,34 @@ class InsightsService:
         sessions.sort(key=lambda x: x.get("updatedAt", ""), reverse=True)
         return sessions
 
-    def delete_session(self, project_path: Path, session_id: str) -> bool:
-        """Delete a session."""
+    def delete_session(self, project_path: Path, session_id: str) -> dict:
+        """Delete a session. Returns info about what happened."""
         session_file = self._get_session_file(project_path, session_id)
-        if session_file.exists():
-            session_file.unlink()
+        if not session_file.exists():
+            return {"deleted": False}
 
-            if session_id in self._sessions:
-                del self._sessions[session_id]
+        session_file.unlink()
 
-            current_file = self._get_current_session_file(project_path)
-            if current_file.exists() and current_file.read_text().strip() == session_id:
-                current_file.unlink()
+        if session_id in self._sessions:
+            del self._sessions[session_id]
 
-            return True
-        return False
+        was_current = False
+        current_file = self._get_current_session_file(project_path)
+        if current_file.exists() and current_file.read_text().strip() == session_id:
+            current_file.unlink()
+            was_current = True
+
+        # If the deleted session was the current one, switch to the most recent remaining session
+        switched_to = None
+        if was_current:
+            remaining = self.list_sessions(project_path)
+            if remaining:
+                # Switch to the most recent session (list is already sorted by updatedAt desc)
+                next_session_id = remaining[0]["id"]
+                current_file.write_text(next_session_id)
+                switched_to = next_session_id
+
+        return {"deleted": True, "switchedTo": switched_to}
 
     def rename_session(self, project_path: Path, session_id: str, new_title: str) -> bool:
         """Rename a session."""
@@ -351,6 +412,113 @@ class InsightsService:
             logger.info(f"[InsightsService] Cancelled running task for project {project_id}")
             return True
         return False
+
+    async def generate_task_from_chat(
+        self,
+        project_path: Path,
+        project_id: str,
+        model_config: dict | None = None,
+    ) -> dict:
+        """Summarize the current chat session into a structured task.
+
+        Runs a lightweight ``claude --print`` call (no tool use,
+        no streaming) to produce a JSON ``{title, description}`` object.
+        """
+        import os
+        import shutil
+
+        session = self.get_current_session(project_path, project_id)
+        if not session or not session.messages:
+            return {"title": "", "description": ""}
+
+        # Build transcript
+        transcript_lines: list[str] = []
+        for msg in session.messages:
+            role = "User" if msg.role == "user" else "Assistant"
+            transcript_lines.append(f"[{role}]: {msg.content}")
+        transcript = "\n\n".join(transcript_lines)
+
+        summarization_prompt = (
+            "You are a product manager assistant. Based on the following conversation, "
+            "create a structured task for a software development backlog.\n\n"
+            "Return ONLY a JSON object with exactly two keys:\n"
+            '- "title": a concise task title (max 80 chars)\n'
+            '- "description": a PRD-style description with context, requirements, '
+            "and acceptance criteria in markdown\n\n"
+            "Conversation transcript:\n"
+            f"{transcript}\n\n"
+            "Respond with ONLY the JSON object, no other text."
+        )
+
+        # Resolve model
+        effective_config = dict(self.DEFAULT_MODEL_CONFIG)
+        if session.model_config:
+            effective_config.update({k: v for k, v in session.model_config.items() if v is not None})
+        if model_config:
+            effective_config.update({k: v for k, v in model_config.items() if v is not None})
+
+        # Use haiku for fast summarization regardless of session's model
+        model_value = "haiku"
+
+        # Resolve Claude CLI path
+        claude_bin = shutil.which("claude") or "claude"
+
+        # Lightweight call: --print (non-interactive, single response)
+        cmd = [claude_bin, "--print", "--model", model_value, summarization_prompt]
+
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+        env.pop("CLAUDECODE", None)
+
+        # Resolve OAuth token (reuse Claude provider logic)
+        try:
+            provider = get_provider("claude")
+            token, _pid, profile_name = provider._resolve_claude_token()
+            if token:
+                env["CLAUDE_CODE_OAUTH_TOKEN"] = token
+                logger.info(f"[InsightsService] generate_task using profile: {profile_name}")
+        except Exception:
+            pass
+
+        logger.info(f"[InsightsService] Generating task via claude --print (model={model_value})")
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=str(project_path),
+                env=env,
+            )
+
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120)
+            response = stdout.decode("utf-8", errors="replace").strip()
+
+            stderr_text = stderr.decode("utf-8", errors="replace").strip() if stderr else ""
+            logger.info(
+                f"[InsightsService] generate_task CLI finished: "
+                f"rc={proc.returncode}, stdout_len={len(response)}, "
+                f"stderr_len={len(stderr_text)}"
+            )
+            if stderr_text:
+                logger.info(f"[InsightsService] generate_task stderr: {stderr_text[:500]}")
+            if response:
+                logger.info(f"[InsightsService] generate_task stdout: {response[:300]}")
+
+            if proc.returncode != 0 and not response:
+                logger.error(f"[InsightsService] claude CLI exited {proc.returncode}")
+                return {"title": "", "description": ""}
+
+            if response:
+                return _parse_task_json(response)
+            return {"title": "", "description": ""}
+
+        except asyncio.TimeoutError:
+            logger.error("[InsightsService] generate_task_from_chat timed out (120s)")
+            return {"title": "", "description": ""}
+        except Exception as e:
+            logger.error(f"[InsightsService] generate_task_from_chat failed: {e}", exc_info=True)
+            return {"title": "", "description": ""}
 
     def clear_session(self, project_path: Path, project_id: str) -> InsightsSession:
         """Clear the current session and create a new one."""

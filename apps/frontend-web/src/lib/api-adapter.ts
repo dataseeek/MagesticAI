@@ -687,6 +687,8 @@ export const webAPI: API & { _isWebMode: boolean } = {
   clearInsightsSession: (projectId: string) => del(`/projects/${projectId}/insights`),
   createTaskFromInsights: (projectId: string, title: string, description: string, metadata?: TaskMetadata) =>
     post(`/projects/${projectId}/insights/create-task`, { title, description, metadata }),
+  generateTaskFromChat: (projectId: string, modelConfig?: InsightsModelConfig) =>
+    post(`/projects/${projectId}/insights/generate-task`, { modelConfig }),
   listInsightsSessions: (projectId: string) => get(`/projects/${projectId}/insights/sessions`),
   newInsightsSession: (projectId: string) => post(`/projects/${projectId}/insights/sessions`),
   switchInsightsSession: (projectId: string, sessionId: string) =>

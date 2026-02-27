@@ -243,6 +243,19 @@
       "detecting": "Detecting providers...",
       "noProviders": "No providers available",
       "via": "via {{provider}}"
+    },
+    "createTask": {
+      "button": "Create Task",
+      "dialogTitle": "Create Task from Chat",
+      "dialogDescription": "Review and edit the AI-generated task before adding it to your backlog.",
+      "generating": "Summarizing conversation...",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter task title",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Enter task description",
+      "cancel": "Cancel",
+      "confirm": "Create Task",
+      "creating": "Creating..."
     }
   },
   "downloads": {

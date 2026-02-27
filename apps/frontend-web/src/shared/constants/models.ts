@@ -53,15 +53,17 @@ export const DEFAULT_PHASE_MODELS: PhaseModelConfig = {
   spec: 'opus',       // Best quality for spec creation
   planning: 'opus',   // Complex architecture decisions benefit from Opus
   coding: 'opus',     // Highest quality implementation
-  qa: 'opus'          // Thorough QA review
+  qa: 'opus',         // Thorough QA review
+  qa_fixer: 'sonnet'  // Efficient QA fixing
 };
 
 // Default phase thinking configuration for Auto profile
 export const DEFAULT_PHASE_THINKING: import('../types/settings').PhaseThinkingConfig = {
-  spec: 'high',   // Deep thinking for comprehensive spec creation
-  planning: 'high',     // High thinking for planning complex features
-  coding: 'low',        // Faster coding iterations
-  qa: 'low'             // Efficient QA review
+  spec: 'high',       // Deep thinking for comprehensive spec creation
+  planning: 'high',   // High thinking for planning complex features
+  coding: 'low',      // Faster coding iterations
+  qa: 'low',          // Efficient QA review
+  qa_fixer: 'low'     // Efficient QA fixing
 };
 
 // ============================================

@@ -780,6 +780,10 @@ async def detect_insights_providers(projectId: str = Path(...)):
     }
 
 
+class GenerateTaskRequest(BaseModel):
+    modelConfig: dict | None = None
+
+
 class CreateTaskRequest(BaseModel):
     title: str
     description: str
@@ -915,18 +919,36 @@ async def clear_insights_session(projectId: str = Path(...)):
 @insights_router.post("/create-task")
 async def create_task_from_insights(projectId: str = Path(...), request: CreateTaskRequest = ...):
     """Create a task from insights conversation."""
-    # Import task creation logic
-    from .tasks import TaskCreateRequest, create_task
+    from .tasks import TaskCreate, create_task
 
     try:
-        task_request = TaskCreateRequest(
+        task_request = TaskCreate(
+            project_id=projectId,
             title=request.title,
             description=request.description,
-            metadata=request.metadata,
         )
-        result = await create_task(projectId, task_request)
-        return {"success": True, "data": result.get("data")}
+        result = await create_task(task_request)
+        return {"success": True, "data": result}
     except Exception as e:
+        logger.error(f"create_task_from_insights failed: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
+@insights_router.post("/generate-task")
+async def generate_task_from_chat(projectId: str = Path(...), request: GenerateTaskRequest = ...):
+    """Generate a structured task (title + description) from the current chat session."""
+    project_path = _get_project_path(projectId)
+    service = get_insights_service()
+
+    try:
+        result = await service.generate_task_from_chat(
+            project_path=project_path,
+            project_id=projectId,
+            model_config=request.modelConfig,
+        )
+        return {"success": True, "data": result}
+    except Exception as e:
+        logger.error(f"generate_task_from_chat failed: {e}", exc_info=True)
         return {"success": False, "error": str(e)}
 
 
@@ -998,8 +1020,8 @@ async def delete_insights_session(projectId: str = Path(...), sessionId: str = P
     """Delete an insights session."""
     project_path = _get_project_path(projectId)
     service = get_insights_service()
-    success = service.delete_session(project_path, sessionId)
-    return {"success": success}
+    result = service.delete_session(project_path, sessionId)
+    return {"success": result["deleted"], "data": {"switchedTo": result.get("switchedTo")}}
 
 
 @insights_router.patch("/sessions/{sessionId}")

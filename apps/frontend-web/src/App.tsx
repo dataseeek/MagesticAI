@@ -330,7 +330,7 @@ function AuthenticatedApp() {
                   )}
                   {activeView === 'changelog' && <Changelog />}
                   {activeView === 'insights' && (
-                    <Insights projectId={selectedProject?.id || ''} />
+                    <Insights projectId={selectedProject?.id || ''} onNavigate={setActiveView} />
                   )}
                   {activeView === 'agent-tools' && <AgentTools />}
                 </>

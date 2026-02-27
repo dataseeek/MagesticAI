@@ -14,7 +14,8 @@ import {
   FolderSearch,
   PanelLeftClose,
   PanelLeft,
-  Square
+  Square,
+  ListPlus
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -36,10 +37,13 @@ import {
   renameSession,
   updateModelConfig,
   createTaskFromSuggestion,
+  generateTaskFromChat,
   setupInsightsListeners
 } from '../stores/insights-store';
 import { loadTasks } from '../stores/task-store';
+import { useTranslation } from 'react-i18next';
 import { ChatHistorySidebar } from './ChatHistorySidebar';
+import { CreateTaskFromChatDialog } from './CreateTaskFromChatDialog';
 import { InsightsModelSelector } from './InsightsModelSelector';
 import type { InsightsChatMessage, InsightsModelConfig, InsightsProvider } from '../shared/types';
 import {
@@ -106,9 +110,10 @@ const markdownComponents = {
 
 interface InsightsProps {
   projectId: string;
+  onNavigate?: (view: 'kanban' | 'terminals' | 'editor' | 'context' | 'github-issues' | 'github-prs' | 'changelog' | 'insights' | 'worktrees' | 'agent-tools') => void;
 }
 
-export function Insights({ projectId }: InsightsProps) {
+export function Insights({ projectId, onNavigate }: InsightsProps) {
   const session = useInsightsStore((state) => state.session);
   const sessions = useInsightsStore((state) => state.sessions);
   const status = useInsightsStore((state) => state.status);
@@ -117,10 +122,19 @@ export function Insights({ projectId }: InsightsProps) {
   const isLoadingSessions = useInsightsStore((state) => state.isLoadingSessions);
   const lastMetrics = useInsightsStore((state) => state.lastMetrics);
 
+  const { t } = useTranslation(['common']);
+
   const [inputValue, setInputValue] = useState('');
   const [creatingTask, setCreatingTask] = useState<string | null>(null);
   const [taskCreated, setTaskCreated] = useState<Set<string>>(new Set());
   const [showSidebar, setShowSidebar] = useState(true);
+
+  // Create Task from Chat state
+  const [showCreateTaskDialog, setShowCreateTaskDialog] = useState(false);
+  const [isGeneratingTask, setIsGeneratingTask] = useState(false);
+  const [isCreatingGeneratedTask, setIsCreatingGeneratedTask] = useState(false);
+  const [generatedTitle, setGeneratedTitle] = useState('');
+  const [generatedDescription, setGeneratedDescription] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -211,6 +225,37 @@ export function Insights({ projectId }: InsightsProps) {
     }
   };
 
+  const handleGenerateTask = async () => {
+    setShowCreateTaskDialog(true);
+    setIsGeneratingTask(true);
+    setGeneratedTitle('');
+    setGeneratedDescription('');
+
+    try {
+      const result = await generateTaskFromChat(projectId, session?.modelConfig);
+      if (result) {
+        setGeneratedTitle(result.title);
+        setGeneratedDescription(result.description);
+      }
+    } finally {
+      setIsGeneratingTask(false);
+    }
+  };
+
+  const handleConfirmGeneratedTask = async (title: string, description: string) => {
+    setIsCreatingGeneratedTask(true);
+    try {
+      const task = await createTaskFromSuggestion(projectId, title, description);
+      if (task) {
+        loadTasks(projectId);
+        setShowCreateTaskDialog(false);
+        onNavigate?.('kanban');
+      }
+    } finally {
+      setIsCreatingGeneratedTask(false);
+    }
+  };
+
   const isLoading = status.phase === 'thinking' || status.phase === 'streaming';
   const messages = session?.messages || [];
 
@@ -264,6 +309,16 @@ export function Insights({ projectId }: InsightsProps) {
               onConfigChange={handleModelConfigChange}
               disabled={isLoading}
             />
+            {messages.length > 0 && !isLoading && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateTask}
+              >
+                <ListPlus className="mr-2 h-4 w-4" />
+                {t('common:insights.createTask.button')}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -289,7 +344,19 @@ export function Insights({ projectId }: InsightsProps) {
               Ask questions about your codebase, get suggestions for improvements,
               or discuss features you'd like to implement.
             </p>
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <Button
+              variant="outline"
+              size="default"
+              className="mt-6 text-sm font-medium"
+              onClick={() => {
+                setInputValue("Let's create a new task together");
+                textareaRef.current?.focus();
+              }}
+            >
+              <ListPlus className="mr-2 h-4 w-4" />
+              Let's create a new task together
+            </Button>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
               {[
                 'What is the architecture of this project?',
                 'Suggest improvements for code quality',
@@ -429,6 +496,17 @@ export function Insights({ projectId }: InsightsProps) {
         </p>
       </div>
       </div>
+
+      {/* Create Task from Chat Dialog */}
+      <CreateTaskFromChatDialog
+        open={showCreateTaskDialog}
+        onOpenChange={setShowCreateTaskDialog}
+        initialTitle={generatedTitle}
+        initialDescription={generatedDescription}
+        isGenerating={isGeneratingTask}
+        onConfirm={handleConfirmGeneratedTask}
+        isCreating={isCreatingGeneratedTask}
+      />
     </div>
   );
 }

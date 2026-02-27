@@ -169,7 +169,8 @@ export interface PhaseModelConfig {
   spec: ModelTypeShort;       // Spec creation (discovery, requirements, context)
   planning: ModelTypeShort;   // Implementation planning
   coding: ModelTypeShort;     // Actual coding implementation
-  qa: ModelTypeShort;         // QA review and fixing
+  qa: ModelTypeShort;         // QA review
+  qa_fixer: ModelTypeShort;   // QA fixing
 }
 
 // Thinking level configuration per phase
@@ -178,6 +179,7 @@ export interface PhaseThinkingConfig {
   planning: ThinkingLevel;
   coding: ThinkingLevel;
   qa: ThinkingLevel;
+  qa_fixer: ThinkingLevel;
 }
 
 // Feature-specific model configuration (for non-pipeline features)

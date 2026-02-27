@@ -487,6 +487,10 @@ export interface API {
     description: string,
     metadata?: TaskMetadata
   ) => Promise<IPCResult<Task>>;
+  generateTaskFromChat: (
+    projectId: string,
+    modelConfig?: InsightsModelConfig
+  ) => Promise<IPCResult<{ title: string; description: string }>>;
   listInsightsSessions: (projectId: string) => Promise<IPCResult<InsightsSessionSummary[]>>;
   newInsightsSession: (projectId: string) => Promise<IPCResult<InsightsSession>>;
   switchInsightsSession: (projectId: string, sessionId: string) => Promise<IPCResult<InsightsSession | null>>;

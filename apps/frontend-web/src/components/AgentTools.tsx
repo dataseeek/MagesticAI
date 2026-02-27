@@ -71,7 +71,7 @@ interface AgentConfig {
   // Maps to settings source - either a phase or a feature
   settingsSource: {
     type: 'phase';
-    phase: 'spec' | 'planning' | 'coding' | 'qa';
+    phase: 'spec' | 'planning' | 'coding' | 'qa' | 'qa_fixer';
   } | {
     type: 'feature';
     feature: 'insights' | 'githubIssues' | 'githubPrs' | 'utility';
@@ -188,7 +188,7 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
     tools: ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'Bash', 'WebFetch', 'WebSearch'],
     mcp_servers: ['context7', 'graphiti-memory', 'magestic-ai'],
     mcp_optional: ['puppeteer'],
-    settingsSource: { type: 'phase', phase: 'qa' },
+    settingsSource: { type: 'phase', phase: 'qa_fixer' },
   },
 
   // Utility Phases - use feature settings
