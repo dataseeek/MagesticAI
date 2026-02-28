@@ -10,6 +10,7 @@ import { TerminalGrid } from './components/TerminalGrid';
 import { Worktrees } from './components/Worktrees';
 import { Context } from './components/context/Context';
 import { GitHubIssues } from './components/GitHubIssues';
+import { GitHubPRs } from './components/github-prs/GitHubPRs';
 import { Changelog } from './components/changelog/Changelog';
 import { Insights } from './components/Insights';
 import { AgentTools } from './components/AgentTools';
@@ -324,9 +325,10 @@ function AuthenticatedApp() {
                     />
                   )}
                   {activeView === 'github-prs' && (
-                    <div className="flex h-full items-center justify-center text-muted-foreground">
-                      <p>Pull Requests view coming soon</p>
-                    </div>
+                    <GitHubPRs
+                      onOpenSettings={() => setIsSettingsDialogOpen(true)}
+                      isActive={true}
+                    />
                   )}
                   {activeView === 'changelog' && <Changelog />}
                   {activeView === 'insights' && (
