@@ -175,11 +175,9 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
     }
   }, [task.id]);
 
-  // Load worktree status when task is in human_review (but not for plan_review since no worktree exists yet)
+  // Load worktree status when task is in human_review (including plan_review — worktrees exist for all phases)
   useEffect(() => {
-    // Skip worktree loading for plan_review tasks - worktrees are only created after plan approval
-    const isPlanReview = task.reviewReason === 'plan_review';
-    if (needsReview && !isPlanReview) {
+    if (needsReview) {
       loadWorktreeStatus();
     } else {
       setWorktreeStatus(null);
@@ -533,7 +531,7 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
   // NOTE: This must be placed AFTER loadMergePreview definition since it depends on that callback
   useEffect(() => {
     // Only auto-load if:
-    // 1. Task needs review (but not plan_review - no worktree exists yet)
+    // 1. Task needs review (skip merge preview for plan_review - no code changes to merge)
     // 2. Worktree exists
     // 3. We haven't already loaded the preview for this task
     // 4. We're not currently loading
