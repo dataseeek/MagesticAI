@@ -532,6 +532,7 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
   // Unified merge orchestrator — resolves uncommitted, git conflicts, then merges in sequence
   const unifiedMerge = useCallback(async (stageOnlyParam: boolean) => {
     setWorkspaceError(null);
+    let mergeSucceeded = false;
 
     try {
       // Step 1: Resolve uncommitted conflicts if they exist
@@ -549,15 +550,16 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
       }
 
       // Step 2: Resolve git merge conflicts if they exist
-      // Re-read mergePreview after potential refresh — use a fresh fetch
+      // Only resolve when there are actual file conflicts or AI-resolvable conflicts.
+      // needsRebase alone (branch behind but no conflicting files) is handled by the
+      // merge endpoint itself — no need to call resolve first.
       const freshPreviewResult = await window.API.mergeWorktreePreview(task.specId);
       const freshPreview = freshPreviewResult.success ? freshPreviewResult.data?.preview : null;
       const hasGitConflictsNow = freshPreview?.gitConflicts?.hasConflicts;
       const hasAIConflictsNow = freshPreview && freshPreview.conflicts && freshPreview.conflicts.length > 0;
-      const needsRebaseNow = freshPreview?.gitConflicts?.needsRebase && (freshPreview?.gitConflicts?.commitsBehind || 0) > 0;
       const hasPathMappedNow = (freshPreview?.summary?.pathMappedAIMergeCount || 0) > 0;
 
-      if (hasGitConflictsNow || hasAIConflictsNow || needsRebaseNow || hasPathMappedNow) {
+      if (hasGitConflictsNow || hasAIConflictsNow || hasPathMappedNow) {
         setMergeStep('resolving_git_conflicts');
         let resolveResult;
         if (freshPreview?.gitConflicts?.mergeInProgress) {
@@ -575,6 +577,7 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
       setMergeStep('merging');
       const mergeResult = await window.API.mergeWorktree(task.specId, { noCommit: stageOnlyParam });
       if (mergeResult.success && mergeResult.data?.success) {
+        mergeSucceeded = true;
         return { success: true, data: mergeResult.data, stageOnly: stageOnlyParam };
       } else {
         const errorMsg = mergeResult.data?.message || mergeResult.error || 'Failed to merge changes';
@@ -593,12 +596,15 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
       return { success: false };
     } finally {
       setMergeStep('idle');
-      // Always refresh state
-      hasLoadedPreviewRef.current = null;
-      await Promise.all([
-        loadMergePreview(),
-        loadWorktreeStatus()
-      ]);
+      // Only refresh state on failure — on success the worktree is deleted
+      // and the caller (handleMerge) handles post-merge actions
+      if (!mergeSucceeded) {
+        hasLoadedPreviewRef.current = null;
+        await Promise.all([
+          loadMergePreview(),
+          loadWorktreeStatus()
+        ]).catch(() => { /* worktree may already be gone */ });
+      }
     }
   }, [task.specId, mergePreview?.uncommittedChanges?.hasConflicts, loadMergePreview, loadWorktreeStatus]);
 
