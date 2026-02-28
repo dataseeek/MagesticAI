@@ -79,6 +79,15 @@ class TaskCreate(TaskBase):
     metadata: Optional["TaskMetadataUpdate"] = Field(None, description="Optional task metadata")
 
 
+class SelectedSkill(BaseModel):
+    """A skill selected to be applied to a task."""
+
+    id: str           # '{category}/{skill_name}'
+    name: str         # human-readable display name
+    category: str     # parent category
+    source: str | None = None  # optional source URL from skill metadata
+
+
 class TaskMetadata(BaseModel):
     """Task metadata fields."""
 
@@ -101,6 +110,8 @@ class TaskMetadata(BaseModel):
     # Archive info
     archivedAt: str | None = None
     archivedInVersion: str | None = None
+    # Skills attached to this task
+    selectedSkills: list[SelectedSkill] | None = None
 
 
 class Task(TaskBase):
@@ -154,6 +165,8 @@ class TaskMetadataUpdate(BaseModel):
     attachedImages: list | None = None
     # Referenced files (can be null to clear)
     referencedFiles: list | None = None
+    # Skills attached to this task (can be null to clear)
+    selectedSkills: list[SelectedSkill] | None = None
 
 
 class TaskUpdate(BaseModel):
