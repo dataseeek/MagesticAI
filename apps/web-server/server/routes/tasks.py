@@ -403,15 +403,30 @@ def load_spec_metadata(spec_dir: Path) -> dict:
                     has_active_phase = True
                     break
 
-            # If no active phase, check if coding is completed (ready for review)
-            # This handles the case where the build finished but merge hasn't happened yet
+            # If no active phase, check for terminal states
             if not has_active_phase:
-                coding_phase = phases.get("coding", {})
-                if coding_phase.get("status") == "completed" and coding_phase.get("entries"):
-                    # Coding is done with log entries - task is ready for human review
-                    metadata["phase"] = "coding"
+                # Check if any phase failed → task needs human intervention
+                has_failed_phase = any(
+                    phase_data.get("status") == "failed"
+                    for phase_data in phases.values()
+                )
+                if has_failed_phase:
                     metadata["status"] = "human_review"
-                    metadata["reviewReason"] = "completed"  # Signal to frontend that build is complete
+                    metadata["reviewReason"] = "errors"
+                else:
+                    # Check validation phase completed (strongest completion signal)
+                    validation_phase = phases.get("validation", {})
+                    if validation_phase.get("status") == "completed" and validation_phase.get("entries"):
+                        metadata["phase"] = "validation"
+                        metadata["status"] = "human_review"
+                        metadata["reviewReason"] = "completed"
+                    else:
+                        # Fall back to coding phase completed
+                        coding_phase = phases.get("coding", {})
+                        if coding_phase.get("status") == "completed" and coding_phase.get("entries"):
+                            metadata["phase"] = "coding"
+                            metadata["status"] = "human_review"
+                            metadata["reviewReason"] = "completed"
         except (json.JSONDecodeError, KeyError):
             pass
 
@@ -704,10 +719,30 @@ def get_execution_progress(spec_dir: Path, subtasks: list) -> dict | None:
                 current_phase = phase_map.get(log_phase, log_phase)
                 current_phase_key = log_phase
 
+        # If no active phase, check for terminal states (completed/failed)
+        if current_phase == "idle" and phases:
+            has_failed = any(p.get("status") == "failed" for p in phases.values())
+            has_completed = any(p.get("status") == "completed" for p in phases.values())
+
+            if has_failed:
+                current_phase = "failed"
+            elif has_completed:
+                validation = phases.get("validation", {})
+                coding = phases.get("coding", {})
+                if validation.get("status") == "completed":
+                    current_phase = "complete"
+                elif coding.get("status") == "completed":
+                    current_phase = "complete"
+
         # Calculate overall progress from subtasks
         completed = sum(1 for s in subtasks if s.status == "completed")
         total = len(subtasks)
         overall_progress = int((completed / total) * 100) if total > 0 else 0
+
+        # Override progress for terminal states
+        if current_phase in ("complete", "failed"):
+            phase_progress = 100
+            overall_progress = 100
 
         # Calculate phase-specific progress
         if current_phase_key:
