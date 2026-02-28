@@ -43,7 +43,7 @@ Package layout
         ollama.py     — OllamaProvider   (local Ollama adapter)
         factory.py    — get_qa_llm_provider() factory function
 
-Usage (planned — see subtask 2.6 / 3.1)::
+Usage::
 
     from qa.providers import get_qa_llm_provider
 
@@ -57,7 +57,7 @@ Usage (planned — see subtask 2.6 / 3.1)::
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, AsyncIterator, Any
+from typing import AsyncIterator, Any
 
 from .types import (
     AssistantMessage,
@@ -66,10 +66,6 @@ from .types import (
     ToolUseBlock,
     UserMessage,
 )
-
-if TYPE_CHECKING:
-    pass
-
 
 # ---------------------------------------------------------------------------
 # Abstract base class
@@ -161,6 +157,14 @@ class BaseLLMProvider(ABC):
 
 
 # ---------------------------------------------------------------------------
+# Factory (imported after BaseLLMProvider to avoid circular imports)
+# ---------------------------------------------------------------------------
+
+# factory.py references BaseLLMProvider only under TYPE_CHECKING, so this
+# deferred import is safe regardless of which module was loaded first.
+from .factory import get_qa_llm_provider, list_provider_aliases, list_providers  # noqa: E402
+
+# ---------------------------------------------------------------------------
 # Re-export public symbols
 # ---------------------------------------------------------------------------
 
@@ -173,4 +177,8 @@ __all__ = [
     "ToolUseBlock",
     "ToolResultBlock",
     "UserMessage",
+    # Factory
+    "get_qa_llm_provider",
+    "list_providers",
+    "list_provider_aliases",
 ]
