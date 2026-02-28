@@ -75,8 +75,14 @@ from qa.providers.ollama import OllamaProvider  # noqa: E402
 # ===========================================================================
 
 def _run(coro):
-    """Run a coroutine in a new event loop (test helper)."""
-    return asyncio.get_event_loop().run_until_complete(coro)
+    """Run a coroutine in a new event loop (test helper).
+
+    Uses asyncio.run() to create a fresh event loop each time, which is safe
+    in Python 3.10+ where asyncio.get_event_loop() raises RuntimeError in
+    threads that have no current event loop (including the main thread after
+    the conftest has manipulated the loop).
+    """
+    return asyncio.run(coro)
 
 
 async def _collect(async_gen) -> list:
