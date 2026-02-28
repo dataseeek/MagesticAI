@@ -2,13 +2,15 @@
 CodexAgenticProvider — Agentic Codex CLI adapter for coding/planning phases
 ============================================================================
 
-Runs ``codex --full-auto`` as a subprocess, which handles file operations
-and command execution autonomously.  The prompt is sent via stdin and the
-CLI's output is streamed back as ``AssistantMessage`` / ``TextBlock`` objects.
+Runs ``codex exec --full-auto`` as a non-interactive subprocess, which handles
+file operations and command execution autonomously.  The prompt is sent via
+stdin (``-``) and the CLI's output is streamed back as ``AssistantMessage`` /
+``TextBlock`` objects.
 
 Unlike ``CodexCLIProvider`` (text-only, ``-q`` flag), this provider uses
-``--full-auto`` mode which gives Codex full agentic capabilities:
-file reads/writes, command execution, etc.
+``exec --full-auto`` mode which gives Codex full agentic capabilities:
+file reads/writes, command execution, etc.  The ``exec`` subcommand runs
+headless without requiring a terminal.
 
 Usage::
 
@@ -26,7 +28,7 @@ Usage::
 
 CLI invocation shape::
 
-    codex --full-auto [--model <model>] [<extra_args>...] -- "<prompt>"
+    codex exec --full-auto [--model <model>] [-C <dir>] [<extra_args>...] -
 """
 
 from __future__ import annotations
@@ -51,8 +53,9 @@ class CodexAgenticProvider(BaseLLMProvider):
     """
     Agentic Codex provider for coding/planning/spec/qa_fixer phases.
 
-    Runs ``codex --full-auto`` which handles file ops and commands
-    autonomously.  Streams output as AssistantMessage/TextBlock messages.
+    Runs ``codex exec --full-auto`` (non-interactive/headless) which handles
+    file ops and commands autonomously.  Streams output as
+    AssistantMessage/TextBlock messages.
 
     Args:
         model: Codex model identifier (e.g. ``"gpt-5.3-codex"``).
@@ -158,16 +161,25 @@ class CodexAgenticProvider(BaseLLMProvider):
         yield AssistantMessage(content=[TextBlock(text=response_text)])
 
     def _build_command(self) -> list[str]:
-        """Build the argv list for ``codex --full-auto``."""
-        cmd: list[str] = [self._codex_path, "--full-auto"]
+        """Build the argv list for ``codex exec --full-auto``.
+
+        Uses ``exec`` subcommand for non-interactive/headless execution.
+        The ``-`` at the end tells Codex to read the prompt from stdin.
+        Uses ``-C`` to set the working directory inside the CLI.
+        """
+        cmd: list[str] = [self._codex_path, "exec", "--full-auto"]
 
         if self._model:
             cmd += ["--model", self._model]
 
+        if self._working_dir:
+            cmd += ["-C", str(self._working_dir)]
+
         if self._extra_args:
             cmd.extend(self._extra_args)
 
-        cmd.append("--")
+        # "-" tells codex exec to read prompt from stdin
+        cmd.append("-")
         return cmd
 
     async def __aenter__(self) -> "CodexAgenticProvider":

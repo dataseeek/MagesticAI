@@ -2,13 +2,13 @@
 GeminiAgenticProvider — Agentic Gemini CLI adapter for coding/planning phases
 ==============================================================================
 
-Runs ``gemini --sandbox`` as a subprocess, which handles file operations
-and command execution autonomously.  The prompt is sent via stdin and the
-CLI's output is streamed back as ``AssistantMessage`` / ``TextBlock`` objects.
+Runs ``gemini --yolo`` as a subprocess, which auto-approves all tool actions
+(file reads/writes, command execution) autonomously.  The prompt is sent via
+stdin and the CLI's output is streamed back as ``AssistantMessage`` /
+``TextBlock`` objects.
 
-Unlike ``GeminiCLIProvider`` (text-only), this provider uses ``--sandbox``
-mode which gives Gemini full agentic capabilities: file reads/writes,
-command execution, etc.
+Unlike ``GeminiCLIProvider`` (text-only), this provider uses ``--yolo`` mode
+which gives Gemini full agentic capabilities without requiring Docker.
 
 Usage::
 
@@ -26,7 +26,7 @@ Usage::
 
 CLI invocation shape::
 
-    gemini --sandbox [--model <model>] [<extra_args>...]
+    gemini --yolo -p <prompt> [--model <model>] [<extra_args>...]
 """
 
 from __future__ import annotations
@@ -51,8 +51,9 @@ class GeminiAgenticProvider(BaseLLMProvider):
     """
     Agentic Gemini provider for coding/planning/spec/qa_fixer phases.
 
-    Runs ``gemini --sandbox`` which handles file ops and commands
-    autonomously.  Streams output as AssistantMessage/TextBlock messages.
+    Runs ``gemini --yolo`` which auto-approves all tool actions (file ops,
+    commands) autonomously.  Streams output as AssistantMessage/TextBlock
+    messages.
 
     Args:
         model: Gemini model identifier (e.g. ``"gemini-3.1-pro-preview"``).
@@ -89,11 +90,11 @@ class GeminiAgenticProvider(BaseLLMProvider):
         self._pending_prompt = prompt
 
     def receive_response(self) -> AsyncIterator[Any]:
-        """Return an async generator that runs the Gemini CLI in sandbox mode."""
+        """Return an async generator that runs the Gemini CLI in yolo mode."""
         return self._run_gemini()
 
     async def _run_gemini(self) -> AsyncGenerator[Any, None]:
-        """Spawn gemini --sandbox, stream output as AssistantMessage blocks."""
+        """Spawn gemini --yolo, stream output as AssistantMessage blocks."""
         if not self._pending_prompt:
             logger.warning("GeminiAgenticProvider.receive_response() called before query()")
             return
@@ -133,7 +134,7 @@ class GeminiAgenticProvider(BaseLLMProvider):
                 except ProcessLookupError:
                     pass
             raise asyncio.TimeoutError(
-                f"Gemini CLI (sandbox) timed out after {self._timeout}s."
+                f"Gemini CLI (yolo) timed out after {self._timeout}s."
             )
 
         stdout_text = stdout_bytes.decode("utf-8", errors="replace").strip()
@@ -148,7 +149,7 @@ class GeminiAgenticProvider(BaseLLMProvider):
 
         if proc.returncode != 0 and not stdout_text:
             error_detail = stderr_text or f"exit code {proc.returncode}"
-            raise RuntimeError(f"Gemini CLI (sandbox) error: {error_detail}")
+            raise RuntimeError(f"Gemini CLI (yolo) error: {error_detail}")
 
         if stderr_text:
             logger.warning("Gemini CLI stderr (first 500 chars): %s", stderr_text[:500])
@@ -158,8 +159,8 @@ class GeminiAgenticProvider(BaseLLMProvider):
         yield AssistantMessage(content=[TextBlock(text=response_text)])
 
     def _build_command(self) -> list[str]:
-        """Build the argv list for ``gemini --sandbox``."""
-        cmd: list[str] = [self._gemini_path, "--sandbox"]
+        """Build the argv list for ``gemini --yolo -p <prompt>``."""
+        cmd: list[str] = [self._gemini_path, "--yolo"]
 
         if self._model:
             cmd += ["--model", self._model]
