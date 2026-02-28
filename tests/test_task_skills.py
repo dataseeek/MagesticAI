@@ -266,9 +266,17 @@ class TestWriteSkillContext:
             from server.services.agent_service import AgentService
             return AgentService()
 
-    def _write_task_metadata(self, selected_skills: list[str]) -> None:
-        """Write task_metadata.json with selectedSkills as list of skill ID strings."""
-        data = {"selectedSkills": selected_skills}
+    def _write_task_metadata(self, selected_skills: list) -> None:
+        """Write task_metadata.json with selectedSkills in production format (list of dicts)."""
+        if selected_skills and isinstance(selected_skills[0], str):
+            # Convert string IDs to dict format (production shape)
+            skill_dicts = [
+                {"id": sid, "name": sid.split("/")[-1], "category": sid.split("/")[0], "source": None}
+                for sid in selected_skills
+            ]
+        else:
+            skill_dicts = selected_skills
+        data = {"selectedSkills": skill_dicts}
         (self.spec_dir / "task_metadata.json").write_text(
             json.dumps(data, indent=2), encoding="utf-8"
         )

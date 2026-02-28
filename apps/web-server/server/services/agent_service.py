@@ -1706,16 +1706,25 @@ class AgentService:
         task_metadata_file = spec_dir / "task_metadata.json"
 
         # Load task metadata to get selected skills
-        selected_skills: list[str] = []
+        selected_skill_ids: list[str] = []
         if task_metadata_file.exists():
             try:
                 task_metadata = json.loads(task_metadata_file.read_text())
-                selected_skills = task_metadata.get("selectedSkills", [])
+                raw_skills = task_metadata.get("selectedSkills", [])
+                # selectedSkills is stored as list[dict] with {id, name, category, source}
+                # Also handle plain string IDs for backward compatibility
+                for item in raw_skills:
+                    if isinstance(item, dict):
+                        sid = item.get("id", "")
+                    else:
+                        sid = str(item)
+                    if sid:
+                        selected_skill_ids.append(sid)
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"[AgentService] Could not read task_metadata.json for skills: {e}")
 
         # If no skills selected, remove any existing skill_context.md
-        if not selected_skills:
+        if not selected_skill_ids:
             if skill_context_file.exists():
                 try:
                     skill_context_file.unlink()
@@ -1731,7 +1740,7 @@ class AgentService:
         sections: list[str] = []
         loaded_count = 0
 
-        for skill_id in selected_skills[:5]:
+        for skill_id in selected_skill_ids[:5]:
             # Parse skill_id format: "{category}/{skill_name}"
             if "/" not in skill_id:
                 logger.warning(f"[AgentService] Invalid skill_id format (missing '/'): {skill_id}")

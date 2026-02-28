@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { SkillCategory, SkillSummary, SkillDetail, SkillSuggestion } from '../shared/types';
-import { get, post } from '../lib/api-client';
+import { get } from '../lib/api-client';
 
 interface SkillsState {
   // Data
@@ -130,9 +130,12 @@ export async function fetchSkills(category: string, force = false): Promise<void
   store.clearError();
 
   try {
-    const result = await get<SkillSummary[]>(`/skills/${encodeURIComponent(category)}`);
+    const params = new URLSearchParams({ category, limit: '200' });
+    const result = await get<{ items: SkillSummary[]; total: number; page: number; limit: number; has_next: boolean }>(
+      `/skills/list?${params.toString()}`
+    );
     if (result.success && result.data) {
-      store.setSkillsForCategory(category, result.data);
+      store.setSkillsForCategory(category, result.data.items);
     } else {
       store.setError(result.error ?? `Failed to load skills for category: ${category}`);
     }
@@ -162,9 +165,11 @@ export async function searchSkills(query: string, category?: string): Promise<vo
       params.set('category', category);
     }
 
-    const result = await get<SkillSummary[]>(`/skills/search?${params.toString()}`);
+    const result = await get<{ items: SkillSummary[]; total: number; page: number; limit: number; has_next: boolean }>(
+      `/skills/search?${params.toString()}`
+    );
     if (result.success && result.data) {
-      store.setSearchResults(result.data);
+      store.setSearchResults(result.data.items);
     } else {
       store.setError(result.error ?? 'Failed to search skills');
     }
@@ -210,11 +215,17 @@ export async function fetchSuggestions(taskDescription: string): Promise<void> {
   store.clearError();
 
   try {
-    const result = await post<SkillSuggestion[]>('/skills/suggestions', {
+    const params = new URLSearchParams({
       task_description: taskDescription.trim(),
+      limit: '10',
     });
+    const result = await get<SkillSuggestion[]>(`/skills/suggest?${params.toString()}`);
     if (result.success && result.data) {
-      store.setSuggestions(result.data);
+      const mapped = result.data.map((s: any) => ({
+        ...s,
+        relevanceScore: s.relevance_score ?? s.relevanceScore ?? 0,
+      }));
+      store.setSuggestions(mapped);
     } else {
       store.setError(result.error ?? 'Failed to fetch skill suggestions');
     }
