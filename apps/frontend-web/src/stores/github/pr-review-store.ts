@@ -115,8 +115,14 @@ export const usePRReviewStore = create<PRReviewStoreState>((set, get) => ({
   }),
 
   setPRReviewResult: (projectId: string, result: PRReviewResult, options?: { preserveNewCommitsCheck?: boolean }) => set((state) => {
-    const key = `${projectId}:${result.prNumber}`;
+    // Handle both camelCase (prNumber) and snake_case (pr_number) from backend
+    const prNum = result.prNumber ?? (result as Record<string, unknown>).pr_number as number;
+    const key = `${projectId}:${prNum}`;
     const existing = state.prReviews[key];
+    // Normalize pr_number to prNumber for consistent frontend usage
+    if (!result.prNumber && prNum) {
+      result = { ...result, prNumber: prNum };
+    }
     return {
       prReviews: {
         ...state.prReviews,
