@@ -14,8 +14,8 @@ from pathlib import Path
 
 # Memory integration for cross-session learning
 from agents.memory_manager import get_graphiti_context, save_session_memory
-from claude_agent_sdk import ClaudeSDKClient
 from debug import debug, debug_detailed, debug_error, debug_section, debug_success
+from qa.providers import BaseLLMProvider
 from prompts_pkg import get_qa_reviewer_prompt
 from security.tool_input_validator import get_safe_tool_input
 from task_logger import (
@@ -32,7 +32,7 @@ from .criteria import get_qa_signoff_status
 
 
 async def run_qa_agent_session(
-    client: ClaudeSDKClient,
+    client: BaseLLMProvider,
     project_dir: Path,
     spec_dir: Path,
     qa_session: int,
@@ -44,7 +44,7 @@ async def run_qa_agent_session(
     Run a QA reviewer agent session.
 
     Args:
-        client: Claude SDK client
+        client: LLM provider (BaseLLMProvider implementation)
         project_dir: Project root directory (for capability detection)
         spec_dir: Spec directory
         qa_session: QA iteration number

@@ -76,7 +76,20 @@
         "refreshModels": "Atualizar Modelos",
         "downloadModel": "Baixar Modelo"
       },
-      "testConnection": "Testar Conexão"
+      "testConnection": "Testar Conexão",
+      "qaProvider": {
+        "title": "Provedor LLM para QA",
+        "description": "Selecione o modelo de IA usado para executar sessões de revisão de QA",
+        "providerLabel": "Provedor",
+        "providerDescription": "Escolha qual LLM conduz as revisões de garantia de qualidade após cada build. Claude é o padrão.",
+        "cliNote": "Certifique-se de que a ferramenta CLI selecionada está instalada e autenticada nesta máquina antes de executar revisões de QA.",
+        "providers": {
+          "claude": "Claude (Anthropic)",
+          "codex": "Codex CLI (OpenAI)",
+          "gemini": "Gemini CLI (Google)",
+          "ollama": "Ollama (Local)"
+        }
+      }
     },
     "integrations": {
       "title": "Integrações",
