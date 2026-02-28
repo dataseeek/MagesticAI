@@ -169,8 +169,8 @@ export interface PhaseModelConfig {
   spec: ModelTypeShort;       // Spec creation (discovery, requirements, context)
   planning: ModelTypeShort;   // Implementation planning
   coding: ModelTypeShort;     // Actual coding implementation
-  qa: ModelTypeShort;         // QA review
-  qa_fixer: ModelTypeShort;   // QA fixing
+  qa: string;                 // QA review — Claude shorthands or provider model IDs (e.g. 'gpt-5.3-codex')
+  qa_fixer: string;           // QA fixing — Claude shorthands or provider model IDs
 }
 
 // Thinking level configuration per phase

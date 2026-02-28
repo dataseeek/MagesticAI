@@ -5,6 +5,7 @@ import { cn } from '../../lib/utils';
 import {
   DEFAULT_AGENT_PROFILES,
   AVAILABLE_MODELS,
+  QA_AVAILABLE_MODELS,
   THINKING_LEVELS,
   DEFAULT_PHASE_MODELS,
   DEFAULT_PHASE_THINKING
@@ -20,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '../ui/select';
-import type { AgentProfile, PhaseModelConfig, PhaseThinkingConfig, ModelTypeShort, ThinkingLevel } from '../../shared/types/settings';
+import type { AgentProfile, PhaseModelConfig, PhaseThinkingConfig, ThinkingLevel } from '../../shared/types/settings';
 
 /**
  * Icon mapping for agent profile icons
@@ -62,7 +63,7 @@ export function AgentProfileSettings() {
     }
   };
 
-  const handlePhaseModelChange = async (phase: keyof PhaseModelConfig, value: ModelTypeShort) => {
+  const handlePhaseModelChange = async (phase: keyof PhaseModelConfig, value: string) => {
     const newPhaseModels = { ...currentPhaseModels, [phase]: value };
     await saveSettings({ customPhaseModels: newPhaseModels });
   };
@@ -83,7 +84,8 @@ export function AgentProfileSettings() {
    * Get human-readable model label
    */
   const getModelLabel = (modelValue: string): string => {
-    const model = AVAILABLE_MODELS.find((m) => m.value === modelValue);
+    const model = AVAILABLE_MODELS.find((m) => m.value === modelValue)
+      || QA_AVAILABLE_MODELS.find((m) => m.value === modelValue);
     return model?.label || modelValue;
   };
 
@@ -245,13 +247,13 @@ export function AgentProfileSettings() {
                           <Label className="text-xs text-muted-foreground">{t('agentProfile.model')}</Label>
                           <Select
                             value={currentPhaseModels[phase]}
-                            onValueChange={(value) => handlePhaseModelChange(phase, value as ModelTypeShort)}
+                            onValueChange={(value) => handlePhaseModelChange(phase, value)}
                           >
                             <SelectTrigger className="h-9">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {AVAILABLE_MODELS.map((m) => (
+                              {((phase === 'qa' || phase === 'qa_fixer') ? QA_AVAILABLE_MODELS : AVAILABLE_MODELS).map((m) => (
                                 <SelectItem key={m.value} value={m.value}>
                                   {m.label}
                                 </SelectItem>

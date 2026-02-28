@@ -15,6 +15,22 @@ export const AVAILABLE_MODELS = [
   { value: 'haiku', label: 'Claude Haiku 4.5' }
 ] as const;
 
+// Models available for QA and QA Fixer phases (Claude + alternative providers)
+// The provider is inferred from the model ID on the backend, so no separate
+// QA LLM Provider setting is needed.
+export const QA_AVAILABLE_MODELS = [
+  { value: 'opus', label: 'Claude Opus 4.6' },
+  { value: 'sonnet', label: 'Claude Sonnet 4.6' },
+  { value: 'haiku', label: 'Claude Haiku 4.5' },
+  { value: 'gpt-5.3-codex', label: 'Codex — GPT-5.3' },
+  { value: 'gpt-5.1-codex-max', label: 'Codex — GPT-5.1 Max' },
+  { value: 'gpt-5-codex-mini', label: 'Codex — GPT-5 Mini' },
+  { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
+  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
+  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+] as const;
+
 // Maps model shorthand to actual Claude model IDs
 export const MODEL_ID_MAP: Record<string, string> = {
   opus: 'claude-opus-4-6',

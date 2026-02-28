@@ -55,6 +55,7 @@ import {
   DEFAULT_FEATURE_MODELS,
   DEFAULT_FEATURE_THINKING,
   AVAILABLE_MODELS,
+  QA_AVAILABLE_MODELS,
   THINKING_LEVELS
 } from '../shared/constants/models';
 import type { ModelTypeShort, ThinkingLevel } from '../shared/types/settings';
@@ -82,9 +83,10 @@ interface AgentConfig {
   };
 }
 
-// Helper to get model label from short name
-function getModelLabel(modelShort: ModelTypeShort): string {
-  const model = AVAILABLE_MODELS.find(m => m.value === modelShort);
+// Helper to get model label from short name or full model ID
+function getModelLabel(modelShort: string): string {
+  const model = AVAILABLE_MODELS.find(m => m.value === modelShort)
+    || QA_AVAILABLE_MODELS.find(m => m.value === modelShort);
   return model?.label.replace('Claude ', '') || modelShort;
 }
 
@@ -940,7 +942,7 @@ export function AgentTools() {
 
   // Resolve model and thinking for an agent based on its settings source
   const resolveAgentSettings = useMemo(() => {
-    return (config: AgentConfig): { model: ModelTypeShort; thinking: ThinkingLevel } => {
+    return (config: AgentConfig): { model: string; thinking: ThinkingLevel } => {
       const source = config.settingsSource;
 
       if (source.type === 'phase') {

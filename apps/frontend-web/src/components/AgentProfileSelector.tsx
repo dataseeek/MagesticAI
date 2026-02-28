@@ -21,6 +21,7 @@ import {
 import {
   DEFAULT_AGENT_PROFILES,
   AVAILABLE_MODELS,
+  QA_AVAILABLE_MODELS,
   THINKING_LEVELS,
   DEFAULT_PHASE_MODELS,
   DEFAULT_PHASE_THINKING
@@ -257,7 +258,7 @@ export function AgentProfileSelector({
             <div className="px-4 pb-4 -mt-1">
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {(Object.keys(PHASE_LABEL_KEYS) as Array<keyof PhaseModelConfig>).map((phase) => {
-                  const modelLabel = AVAILABLE_MODELS.find(m => m.value === currentPhaseModels[phase])?.label?.replace('Claude ', '') || currentPhaseModels[phase];
+                  const modelLabel = (AVAILABLE_MODELS.find(m => m.value === currentPhaseModels[phase]) || QA_AVAILABLE_MODELS.find(m => m.value === currentPhaseModels[phase]))?.label?.replace('Claude ', '') || currentPhaseModels[phase];
                   return (
                     <div key={phase} className="flex items-center justify-between rounded bg-background/50 px-2 py-1">
                       <span className="text-muted-foreground">{t(PHASE_LABEL_KEYS[phase].label)}:</span>
@@ -294,7 +295,7 @@ export function AgentProfileSelector({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {AVAILABLE_MODELS.map((m) => (
+                          {((phase === 'qa' || phase === 'qa_fixer') ? QA_AVAILABLE_MODELS : AVAILABLE_MODELS).map((m) => (
                             <SelectItem key={m.value} value={m.value}>
                               {m.label}
                             </SelectItem>

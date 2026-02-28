@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ShieldCheck } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { AnthropicIcon } from '../../icons/AnthropicIcon';
 import { OllamaIcon } from '../../icons/OllamaIcon';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../ui/collapsible';
 import { SettingsSection } from '../SettingsSection';
 import { LocalLLMSettings } from './LocalLLMSettings';
 import { LLMAccountsSettings } from './LLMAccountsSettings';
-import { QALLMProviderSettings } from './QALLMProviderSettings';
 import type { AppSettings } from '../../../shared/types/settings';
 
 interface LLMProvidersPageProps {
@@ -76,14 +75,6 @@ export function LLMProvidersPage({ settings, onSettingsChange, isOpen }: LLMProv
           description={t('sections.llmProvider.localLlms.description')}
         >
           <LocalLLMSettings settings={settings} onSettingsChange={onSettingsChange} />
-        </Panel>
-
-        <Panel
-          icon={<ShieldCheck className="h-4 w-4" />}
-          title={t('sections.llmProvider.qaProvider.title')}
-          description={t('sections.llmProvider.qaProvider.description')}
-        >
-          <QALLMProviderSettings settings={settings} onSettingsChange={onSettingsChange} />
         </Panel>
       </div>
     </SettingsSection>

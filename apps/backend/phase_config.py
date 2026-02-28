@@ -488,32 +488,41 @@ def get_fast_mode(spec_dir: Path) -> bool:
     return False
 
 
-def get_qa_llm_provider_name(spec_dir: Path) -> str:
+def infer_qa_provider_from_model(model: str) -> str:
     """
-    Get the QA LLM provider name configured for this task.
+    Infer the QA LLM provider from the model ID.
 
-    Priority:
-    1. task_metadata.json["qaLlmProvider"] (set by settings UI)
-    2. QA_LLM_PROVIDER environment variable
-    3. Default: "claude"
+    The provider is determined by the model string itself, so a separate
+    provider setting is no longer needed.
+
+    Claude shorthands (opus, sonnet, haiku) or claude-* IDs -> 'claude'
+    gpt-* or *codex* IDs -> 'codex'
+    gemini-* IDs -> 'gemini'
+    Otherwise -> check QA_LLM_PROVIDER env var, then default 'claude'
 
     Args:
-        spec_dir: Path to the spec directory
+        model: Model shorthand or full model ID
 
     Returns:
-        Provider name string (e.g., "claude", "gemini", "codex", "ollama")
+        Provider name string (e.g., "claude", "codex", "gemini")
     """
-    metadata = load_task_metadata(spec_dir)
-    if metadata:
-        qa_provider = metadata.get("qaLlmProvider")
-        if qa_provider:
-            return str(qa_provider)
+    m = model.strip().lower()
 
+    # Claude models: known shorthands or full claude-* IDs
+    if m in MODEL_ID_MAP or m.startswith("claude-"):
+        return "claude"
+
+    # OpenAI Codex models
+    if m.startswith("gpt-") or "codex" in m:
+        return "codex"
+
+    # Google Gemini models
+    if m.startswith("gemini"):
+        return "gemini"
+
+    # Env fallback for unknown models (e.g., ollama custom models)
     env_provider = os.environ.get("QA_LLM_PROVIDER", "").strip()
-    if env_provider:
-        return env_provider
-
-    return "claude"
+    return env_provider or "claude"
 
 
 def get_spec_phase_thinking_budget(phase_name: str) -> int | None:
