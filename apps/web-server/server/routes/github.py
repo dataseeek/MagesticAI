@@ -507,7 +507,7 @@ async def detect_github_repo(path: str = Query(...)):
     result = run_gh_command(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"], cwd=path)
     if result["success"]:
         return {"success": True, "data": result["output"]}
-    return {"success": True, "data": ""}}
+    return {"success": True, "data": ""}
 
 
 @router.get("/branches")
