@@ -142,6 +142,7 @@ class TaskLogWriter:
     PHASE_MAP = {
         TaskPhase.SPEC_CREATION: "planning",
         TaskPhase.PLANNING: "planning",
+        TaskPhase.PLAN_REVIEW: "planning",
         TaskPhase.CODING: "coding",
         TaskPhase.QA_REVIEW: "validation",
         TaskPhase.QA_FIXING: "validation",
@@ -415,6 +416,8 @@ class AgentService:
         self._task_subtask_states: dict[str, dict[str, str]] = {}
         # Track spec directory per task for reading implementation plans
         self._spec_dirs: dict[str, Path] = {}
+        # Track tasks that were manually stopped (to prevent _monitor_process from re-handling)
+        self._task_stopped: set[str] = set()
 
     @property
     def backend_path(self) -> Path:
@@ -1001,8 +1004,8 @@ class AgentService:
                         if current_phase not in (TaskPhase.COMPLETED, TaskPhase.FAILED):
                             log_writer.set_phase_status(spec_id, current_phase, "active")
                         # Ensure validation phase is properly marked completed when task completes
-                        if current_phase == TaskPhase.COMPLETED and old_phase == TaskPhase.QA_REVIEW:
-                            log_writer.set_phase_status(spec_id, TaskPhase.QA_REVIEW, "completed")
+                        if current_phase == TaskPhase.COMPLETED and old_phase in (TaskPhase.QA_REVIEW, TaskPhase.QA_FIXING):
+                            log_writer.set_phase_status(spec_id, old_phase, "completed")
 
                 # Always emit progress for phase events (even if phase didn't change)
                 progress = TaskProgress(
@@ -1578,6 +1581,12 @@ class AgentService:
                         return  # Exit this monitor instance
                     else:
                         logger.warning(f"[AgentService] No alternate profile available for task {task_id}, surfacing failure")
+
+            # If stop_task() already handled cleanup, skip duplicate processing
+            if task_id in self._task_stopped:
+                self._task_stopped.discard(task_id)
+                logger.info(f"[AgentService] Task {task_id} was stopped by user, skipping _monitor_process cleanup")
+                return
 
             # Get actual phase BEFORE cleanup (needed for proper status emission)
             actual_phase = self._get_current_phase(task_id)
@@ -2265,6 +2274,9 @@ class AgentService:
             logger.info(f"[AgentService] Task {task_id} not in running_tasks (already stopped or never started)")
             return False
 
+        # Mark as stopped BEFORE termination so _monitor_process defers to us
+        self._task_stopped.add(task_id)
+
         proc = self.running_tasks[task_id]
         proc.terminate()
 
@@ -2274,6 +2286,29 @@ class AgentService:
             proc.kill()
             await proc.wait()
 
+        # Get actual phase and spec info BEFORE cleanup
+        actual_phase = self._get_current_phase(task_id)
+        spec_dir = self._spec_dirs.get(task_id)
+
+        # Finalize log writers — flush pending text, mark phase as failed
+        if task_id in self._task_log_writers:
+            log_writer, main_log_writer = self._task_log_writers[task_id]
+            # Parse spec_id from task_id (format: "project_id:spec_id")
+            spec_id = task_id.split(":", 1)[1] if ":" in task_id else task_id
+            log_writer.finalize(spec_id, actual_phase)
+            log_writer.set_phase_status(spec_id, actual_phase, "failed")
+            main_log_writer.finalize(spec_id, actual_phase)
+            main_log_writer.set_phase_status(spec_id, actual_phase, "failed")
+            del self._task_log_writers[task_id]
+            logger.debug(f"[AgentService] Finalized task logs for stopped task {task_id}")
+
+        # Persist failed status to implementation_plan.json
+        if spec_dir:
+            # Derive project_path: spec_dir is .magestic-ai/specs/XXX, project root is 3 levels up
+            project_path = spec_dir.parent.parent.parent
+            spec_id = task_id.split(":", 1)[1] if ":" in task_id else task_id
+            await self._update_plan_status(project_path, spec_id, "failed", task_id)
+
         # Use pop with default to handle race condition where _monitor_process
         # might have already removed the task
         self.running_tasks.pop(task_id, None)
@@ -2281,7 +2316,13 @@ class AgentService:
         self._task_start_times.pop(task_id, None)
         self._task_subtask_states.pop(task_id, None)
         self._spec_dirs.pop(task_id, None)
+        self._task_current_phases.pop(task_id, None)
+        self._task_profiles.pop(task_id, None)
+        self._task_rate_limits.pop(task_id, None)
+        self._task_user_ids.pop(task_id, None)
 
+        # Emit human_review with errors reason (not just FAILED phase)
+        await emit_task_status(task_id, "human_review", "errors")
         await self._emit_progress(TaskProgress(
             task_id=task_id,
             phase=TaskPhase.FAILED,
