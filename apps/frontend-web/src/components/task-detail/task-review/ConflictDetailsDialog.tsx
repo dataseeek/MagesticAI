@@ -53,7 +53,16 @@ export function ConflictDetailsDialog({
             Merge Conflicts Analysis
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {mergePreview?.conflicts.length || 0} potential conflict{(mergePreview?.conflicts.length || 0) !== 1 ? 's' : ''} detected.
+            {mergePreview?.gitConflicts?.hasConflicts ? (
+              <>
+                Branch has diverged with {mergePreview.gitConflicts.commitsBehind} commit{mergePreview.gitConflicts.commitsBehind !== 1 ? 's' : ''} behind
+                and {mergePreview.gitConflicts.conflictingFiles.length} conflicting file{mergePreview.gitConflicts.conflictingFiles.length !== 1 ? 's' : ''}.
+              </>
+            ) : (
+              <>
+                {mergePreview?.conflicts.length || 0} potential conflict{(mergePreview?.conflicts.length || 0) !== 1 ? 's' : ''} detected.
+              </>
+            )}
             {autoMergeable.length > 0 && (
               <span className="text-success ml-1">
                 {autoMergeable.length} can be auto-merged.
@@ -72,6 +81,48 @@ export function ConflictDetailsDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="flex-1 overflow-auto min-h-0 -mx-6 px-6">
+          {/* Git-level conflicts (branch divergence) */}
+          {mergePreview?.gitConflicts?.hasConflicts && (
+            <div className="mb-4 p-3 bg-warning/10 rounded-lg border border-warning/30">
+              <div className="flex items-center gap-2 mb-2 text-sm font-medium text-warning">
+                <GitMerge className="h-4 w-4" />
+                Branch Diverged
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                The main branch has{' '}
+                <span className="font-medium text-foreground">
+                  {mergePreview.gitConflicts.commitsBehind}
+                </span>{' '}
+                new commit{mergePreview.gitConflicts.commitsBehind !== 1 ? 's' : ''} since this
+                worktree was created.
+                {mergePreview.gitConflicts.conflictingFiles.length > 0 && (
+                  <span>
+                    {' '}{mergePreview.gitConflicts.conflictingFiles.length} file
+                    {mergePreview.gitConflicts.conflictingFiles.length !== 1 ? 's' : ''} have
+                    conflicting changes:
+                  </span>
+                )}
+              </p>
+              {mergePreview.gitConflicts.conflictingFiles.length > 0 && (
+                <ul className="space-y-1 mb-2">
+                  {mergePreview.gitConflicts.conflictingFiles.map((file, idx) => (
+                    <li
+                      key={idx}
+                      className="text-xs font-mono text-muted-foreground flex items-center gap-2 p-1.5 bg-secondary/30 rounded border border-border"
+                    >
+                      <AlertTriangle className="h-3 w-3 text-warning shrink-0" />
+                      <span className="truncate">{file}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-2">
+                <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                AI will automatically merge these conflicts when you click Stage Changes.
+              </p>
+            </div>
+          )}
+
           {mergePreview?.conflicts && mergePreview.conflicts.length > 0 ? (
             <div className="space-y-3">
               {/* Auto-mergeable conflicts section */}
@@ -119,11 +170,11 @@ export function ConflictDetailsDialog({
                 </div>
               )}
             </div>
-          ) : (
+          ) : !mergePreview?.gitConflicts?.hasConflicts ? (
             <div className="text-center py-8 text-muted-foreground">
               No conflicts detected
             </div>
-          )}
+          ) : null}
         </div>
         <AlertDialogFooter className="mt-4">
           <AlertDialogCancel>Close</AlertDialogCancel>
