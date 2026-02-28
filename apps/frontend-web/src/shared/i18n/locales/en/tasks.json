@@ -105,6 +105,26 @@
   "metadata": {
     "severity": "severity"
   },
+  "skills": {
+    "browseTab": "Browse",
+    "searchTab": "Search",
+    "suggestionsTab": "Suggestions",
+    "selectCategory": "Select a category",
+    "categoryCount": "{{count}}",
+    "searchPlaceholder": "Search skills…",
+    "clearSearch": "Clear search",
+    "noResults": "No results found",
+    "analyzing": "Analyzing…",
+    "noSuggestions": "Add a longer task description to get suggestions",
+    "selectedCount": "{{count}}/{{max}} skills selected",
+    "maximumReached": "Maximum reached",
+    "noSkillsSelected": "No skills selected",
+    "selectSkill": "{{name}}",
+    "removeSkill": "Remove {{name}}",
+    "relevanceMatch": "{{score}}%",
+    "showPreview": "Show preview",
+    "hidePreview": "Hide preview"
+  },
   "notifications": {
     "profileSwitch": {
       "title": "Switched Claude profile",
