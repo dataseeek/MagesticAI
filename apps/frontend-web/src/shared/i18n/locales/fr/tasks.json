@@ -101,6 +101,7 @@
     "severity": "sévérité"
   },
   "skills": {
+    "title": "Compétences IA",
     "browseTab": "Parcourir",
     "searchTab": "Rechercher",
     "suggestionsTab": "Suggestions",
