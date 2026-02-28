@@ -54,8 +54,7 @@ import {
   DEFAULT_PHASE_THINKING,
   DEFAULT_FEATURE_MODELS,
   DEFAULT_FEATURE_THINKING,
-  AVAILABLE_MODELS,
-  QA_AVAILABLE_MODELS,
+  ALL_AVAILABLE_MODELS,
   THINKING_LEVELS
 } from '../shared/constants/models';
 import type { ModelTypeShort, ThinkingLevel } from '../shared/types/settings';
@@ -85,8 +84,7 @@ interface AgentConfig {
 
 // Helper to get model label from short name or full model ID
 function getModelLabel(modelShort: string): string {
-  const model = AVAILABLE_MODELS.find(m => m.value === modelShort)
-    || QA_AVAILABLE_MODELS.find(m => m.value === modelShort);
+  const model = ALL_AVAILABLE_MODELS.find(m => m.value === modelShort);
   return model?.label.replace('Claude ', '') || modelShort;
 }
 

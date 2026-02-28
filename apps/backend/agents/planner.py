@@ -9,7 +9,8 @@ import logging
 from pathlib import Path
 
 from core.client import create_client
-from phase_config import get_phase_model, get_phase_thinking_budget
+from phase_config import get_phase_model, get_phase_thinking_budget, infer_provider_from_model
+from providers.factory import get_provider
 from phase_event import ExecutionPhase, emit_phase
 from task_logger import (
     LogPhase,
@@ -95,12 +96,21 @@ async def run_followup_planner(
     # Respects task_metadata.json configuration when no CLI override
     planning_model = get_phase_model(spec_dir, "planning", model)
     planning_thinking_budget = get_phase_thinking_budget(spec_dir, "planning")
-    client = create_client(
-        project_dir,
-        spec_dir,
-        planning_model,
-        max_thinking_tokens=planning_thinking_budget,
-    )
+    provider_name = infer_provider_from_model(planning_model)
+    if provider_name == "claude":
+        client = create_client(
+            project_dir,
+            spec_dir,
+            planning_model,
+            max_thinking_tokens=planning_thinking_budget,
+        )
+    else:
+        client = get_provider(
+            provider_name,
+            phase="planning",
+            model=planning_model,
+            working_dir=project_dir,
+        )
 
     # Generate follow-up planner prompt
     prompt = get_followup_planner_prompt(spec_dir)

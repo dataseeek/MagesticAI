@@ -4,6 +4,7 @@
  */
 
 import type { AgentProfile, PhaseModelConfig, FeatureModelConfig, FeatureThinkingConfig } from '../types/settings';
+import { apiRequest } from '../../lib/api-client';
 
 // ============================================
 // Available Models
@@ -15,10 +16,10 @@ export const AVAILABLE_MODELS = [
   { value: 'haiku', label: 'Claude Haiku 4.5' }
 ] as const;
 
-// Models available for QA and QA Fixer phases (Claude + alternative providers)
+// Models available for all phases (Claude + alternative providers)
 // The provider is inferred from the model ID on the backend, so no separate
-// QA LLM Provider setting is needed.
-export const QA_AVAILABLE_MODELS = [
+// provider setting is needed per phase.
+export const ALL_AVAILABLE_MODELS = [
   { value: 'opus', label: 'Claude Opus 4.6' },
   { value: 'sonnet', label: 'Claude Sonnet 4.6' },
   { value: 'haiku', label: 'Claude Haiku 4.5' },
@@ -30,6 +31,26 @@ export const QA_AVAILABLE_MODELS = [
   { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
   { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
 ] as const;
+
+// Backward compatibility alias
+export const QA_AVAILABLE_MODELS = ALL_AVAILABLE_MODELS;
+
+// Dynamically fetch installed Ollama chat models for phase dropdowns
+export async function fetchOllamaModels(): Promise<{ value: string; label: string }[]> {
+  try {
+    const result = await apiRequest<{ models: { name: string }[] }>('/settings/ollama/models');
+    if (result.success && result.data?.models) {
+      return result.data.models.map(m => ({
+        value: `ollama:${m.name}`,
+        label: `Ollama — ${m.name}`,
+      }));
+    }
+  } catch { /* Ollama not running — no models */ }
+  return [];
+}
+
+// Backward compatibility alias
+export const fetchOllamaQAModels = fetchOllamaModels;
 
 // Maps model shorthand to actual Claude model IDs
 export const MODEL_ID_MAP: Record<string, string> = {

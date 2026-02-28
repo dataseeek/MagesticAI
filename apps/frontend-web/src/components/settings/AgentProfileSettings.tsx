@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Brain, Scale, Zap, Check, Sparkles, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import {
   DEFAULT_AGENT_PROFILES,
-  AVAILABLE_MODELS,
-  QA_AVAILABLE_MODELS,
+  ALL_AVAILABLE_MODELS,
   THINKING_LEVELS,
   DEFAULT_PHASE_MODELS,
-  DEFAULT_PHASE_THINKING
+  DEFAULT_PHASE_THINKING,
+  fetchOllamaModels
 } from '../../shared/constants';
 import { useSettingsStore, saveSettings } from '../../stores/settings-store';
 import { SettingsSection } from './SettingsSection';
@@ -45,6 +45,11 @@ export function AgentProfileSettings() {
   const settings = useSettingsStore((state) => state.settings);
   const selectedProfileId = settings.selectedAgentProfile || 'auto';
   const [showPhaseConfig, setShowPhaseConfig] = useState(selectedProfileId === 'auto');
+  const [ollamaModels, setOllamaModels] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    fetchOllamaModels().then(setOllamaModels);
+  }, []);
 
   // Get current phase config from settings or defaults
   const currentPhaseModels: PhaseModelConfig = settings.customPhaseModels || DEFAULT_PHASE_MODELS;
@@ -84,8 +89,8 @@ export function AgentProfileSettings() {
    * Get human-readable model label
    */
   const getModelLabel = (modelValue: string): string => {
-    const model = AVAILABLE_MODELS.find((m) => m.value === modelValue)
-      || QA_AVAILABLE_MODELS.find((m) => m.value === modelValue);
+    const model = ALL_AVAILABLE_MODELS.find((m) => m.value === modelValue)
+      || ollamaModels.find((m) => m.value === modelValue);
     return model?.label || modelValue;
   };
 
@@ -253,7 +258,7 @@ export function AgentProfileSettings() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {((phase === 'qa' || phase === 'qa_fixer') ? QA_AVAILABLE_MODELS : AVAILABLE_MODELS).map((m) => (
+                              {[...ALL_AVAILABLE_MODELS, ...ollamaModels].map((m) => (
                                 <SelectItem key={m.value} value={m.value}>
                                   {m.label}
                                 </SelectItem>

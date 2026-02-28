@@ -488,9 +488,9 @@ def get_fast_mode(spec_dir: Path) -> bool:
     return False
 
 
-def infer_qa_provider_from_model(model: str) -> str:
+def infer_provider_from_model(model: str) -> str:
     """
-    Infer the QA LLM provider from the model ID.
+    Infer the LLM provider from the model ID.  Works for any phase.
 
     The provider is determined by the model string itself, so a separate
     provider setting is no longer needed.
@@ -498,15 +498,20 @@ def infer_qa_provider_from_model(model: str) -> str:
     Claude shorthands (opus, sonnet, haiku) or claude-* IDs -> 'claude'
     gpt-* or *codex* IDs -> 'codex'
     gemini-* IDs -> 'gemini'
+    ollama:* prefix -> 'ollama'
     Otherwise -> check QA_LLM_PROVIDER env var, then default 'claude'
 
     Args:
         model: Model shorthand or full model ID
 
     Returns:
-        Provider name string (e.g., "claude", "codex", "gemini")
+        Provider name string (e.g., "claude", "codex", "gemini", "ollama")
     """
     m = model.strip().lower()
+
+    # Explicit prefix: "ollama:model-name"
+    if m.startswith("ollama:"):
+        return "ollama"
 
     # Claude models: known shorthands or full claude-* IDs
     if m in MODEL_ID_MAP or m.startswith("claude-"):
@@ -523,6 +528,36 @@ def infer_qa_provider_from_model(model: str) -> str:
     # Env fallback for unknown models (e.g., ollama custom models)
     env_provider = os.environ.get("QA_LLM_PROVIDER", "").strip()
     return env_provider or "claude"
+
+
+# Backward compatibility alias
+infer_qa_provider_from_model = infer_provider_from_model
+
+
+# Provider capabilities: which providers support agentic phases (file ops, code execution)
+PROVIDER_AGENTIC_SUPPORT = {"claude", "codex", "gemini"}
+
+
+def validate_phase_provider(phase: Phase, model: str) -> tuple[bool, str]:
+    """
+    Validate that the model/provider is compatible with the phase.
+
+    Agentic phases (spec, planning, coding, qa_fixer) require providers that
+    support file operations and code execution.  Ollama only supports text-only
+    mode suitable for the QA review phase.
+
+    Args:
+        phase: Execution phase (spec, planning, coding, qa, qa_fixer)
+        model: Model shorthand or full model ID
+
+    Returns:
+        Tuple of (is_valid, error_message).  error_message is empty when valid.
+    """
+    provider = infer_provider_from_model(model)
+    agentic_phases: set[str] = {"spec", "planning", "coding", "qa_fixer"}
+    if provider == "ollama" and phase in agentic_phases:
+        return False, f"Ollama models don't support agentic mode needed for {phase} phase"
+    return True, ""
 
 
 def get_spec_phase_thinking_budget(phase_name: str) -> int | None:

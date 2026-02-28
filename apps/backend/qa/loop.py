@@ -11,7 +11,8 @@ from pathlib import Path
 
 from core.client import create_client
 from debug import debug, debug_error, debug_section, debug_success, debug_warning
-from phase_config import get_phase_model, get_phase_thinking_budget, infer_qa_provider_from_model
+from phase_config import get_phase_model, get_phase_thinking_budget, infer_provider_from_model
+from providers.factory import get_provider
 from phase_event import ExecutionPhase, emit_phase
 from progress import count_subtasks, is_build_complete
 from task_logger import (
@@ -93,9 +94,9 @@ def _create_qa_reviewer_provider(
     if normalised in {"gemini", "gemini-cli", "google"}:
         return get_qa_llm_provider(provider_name, model=model, working_dir=project_dir)
 
-    # ollama / local / unknown — use factory default kwargs; model defaults
-    # to the provider's built-in default (e.g., "llama3.2" for Ollama).
-    return get_qa_llm_provider(provider_name)
+    # ollama / local / unknown — pass model through so the user's selection
+    # is honoured (e.g., "llama3.2" after prefix stripping).
+    return get_qa_llm_provider(provider_name, model=model)
 
 
 # =============================================================================
@@ -185,14 +186,23 @@ async def run_qa_validation_loop(
         # Get model and thinking budget for fixer (uses qa_fixer phase config)
         qa_model = get_phase_model(spec_dir, "qa_fixer", model)
         fixer_thinking_budget = get_phase_thinking_budget(spec_dir, "qa_fixer")
+        fixer_provider = infer_provider_from_model(qa_model)
 
-        fix_client = create_client(
-            project_dir,
-            spec_dir,
-            qa_model,
-            agent_type="qa_fixer",
-            max_thinking_tokens=fixer_thinking_budget,
-        )
+        if fixer_provider == "claude":
+            fix_client = create_client(
+                project_dir,
+                spec_dir,
+                qa_model,
+                agent_type="qa_fixer",
+                max_thinking_tokens=fixer_thinking_budget,
+            )
+        else:
+            fix_client = get_provider(
+                fixer_provider,
+                phase="qa_fixer",
+                model=qa_model,
+                working_dir=project_dir,
+            )
 
         async with fix_client:
             fix_status, fix_response = await run_qa_fixer_session(
@@ -253,19 +263,21 @@ async def run_qa_validation_loop(
         # Run QA reviewer with phase-specific model and thinking budget
         qa_model = get_phase_model(spec_dir, "qa", model)
         qa_thinking_budget = get_phase_thinking_budget(spec_dir, "qa")
-        qa_provider_name = infer_qa_provider_from_model(qa_model)
+        qa_provider_name = infer_provider_from_model(qa_model)
+        # Strip provider prefix if present (e.g., "ollama:llama3.2" → "llama3.2")
+        actual_qa_model = qa_model.split(":", 1)[1] if ":" in qa_model and qa_provider_name == "ollama" else qa_model
         debug(
             "qa_loop",
             "Creating provider for QA reviewer session...",
             provider=qa_provider_name,
-            model=qa_model,
+            model=actual_qa_model,
             thinking_budget=qa_thinking_budget,
         )
         reviewer_provider = _create_qa_reviewer_provider(
             qa_provider_name,
             project_dir,
             spec_dir,
-            qa_model,
+            actual_qa_model,
             qa_thinking_budget,
         )
 
@@ -393,22 +405,32 @@ async def run_qa_validation_loop(
             # Run fixer with phase-specific model and thinking budget
             fixer_model = get_phase_model(spec_dir, "qa_fixer", model)
             fixer_thinking_budget = get_phase_thinking_budget(spec_dir, "qa_fixer")
+            fixer_provider_name = infer_provider_from_model(fixer_model)
             debug(
                 "qa_loop",
                 "Starting QA fixer session...",
                 model=fixer_model,
+                provider=fixer_provider_name,
                 thinking_budget=fixer_thinking_budget,
             )
             emit_phase(ExecutionPhase.QA_FIXING, "Fixing QA issues")
             print("\nRunning QA Fixer Agent...")
 
-            fix_client = create_client(
-                project_dir,
-                spec_dir,
-                fixer_model,
-                agent_type="qa_fixer",
-                max_thinking_tokens=fixer_thinking_budget,
-            )
+            if fixer_provider_name == "claude":
+                fix_client = create_client(
+                    project_dir,
+                    spec_dir,
+                    fixer_model,
+                    agent_type="qa_fixer",
+                    max_thinking_tokens=fixer_thinking_budget,
+                )
+            else:
+                fix_client = get_provider(
+                    fixer_provider_name,
+                    phase="qa_fixer",
+                    model=fixer_model,
+                    working_dir=project_dir,
+                )
 
             async with fix_client:
                 fix_status, fix_response = await run_qa_fixer_session(

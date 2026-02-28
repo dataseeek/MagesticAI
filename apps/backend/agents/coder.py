@@ -11,7 +11,8 @@ import logging
 from pathlib import Path
 
 from core.client import create_client
-from phase_config import get_phase_model, get_phase_thinking_budget
+from phase_config import get_phase_model, get_phase_thinking_budget, infer_provider_from_model
+from providers.factory import get_provider
 from phase_event import ExecutionPhase, emit_phase
 from progress import (
     count_subtasks,
@@ -234,14 +235,25 @@ async def run_autonomous_agent(
         phase_thinking_budget = get_phase_thinking_budget(spec_dir, current_phase)
 
         # Create client (fresh context) with phase-specific model and thinking
-        # Use appropriate agent_type for correct tool permissions and thinking budget
-        client = create_client(
-            project_dir,
-            spec_dir,
-            phase_model,
-            agent_type="planner" if first_run else "coder",
-            max_thinking_tokens=phase_thinking_budget,
-        )
+        # Route through provider factory for non-Claude models
+        provider_name = infer_provider_from_model(phase_model)
+        if provider_name == "claude":
+            # Use existing create_client for Claude (preserves MCP, security, etc.)
+            client = create_client(
+                project_dir,
+                spec_dir,
+                phase_model,
+                agent_type="planner" if first_run else "coder",
+                max_thinking_tokens=phase_thinking_budget,
+            )
+        else:
+            # Use agentic provider for non-Claude models
+            client = get_provider(
+                provider_name,
+                phase=current_phase,
+                model=phase_model,
+                working_dir=project_dir,
+            )
 
         # Generate appropriate prompt
         if first_run:
