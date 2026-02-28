@@ -16,6 +16,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { cn, formatRelativeTime } from '../../lib/utils';
@@ -49,6 +50,7 @@ interface TaskMetadataProps {
 }
 
 export function TaskMetadata({ task }: TaskMetadataProps) {
+  const { t } = useTranslation(['tasks']);
   const hasClassification = task.metadata && (
     task.metadata.category ||
     task.metadata.priority ||
@@ -243,6 +245,22 @@ export function TaskMetadata({ task }: TaskMetadataProps) {
                       {file}
                     </TooltipContent>
                   </Tooltip>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Skills */}
+          {task.metadata?.selectedSkills && task.metadata.selectedSkills.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-muted-foreground">
+                {t('tasks:skills.title')}
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {task.metadata.selectedSkills.map(skill => (
+                  <Badge key={skill.id} variant="secondary">
+                    {skill.name}
+                  </Badge>
                 ))}
               </div>
             </div>
