@@ -247,8 +247,11 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
           state.setStagedProjectPath(result.data.projectPath);
           state.setSuggestedCommitMessage(result.data.suggestedCommitMessage);
         } else {
-          // Mark task as done after successful merge
-          await persistTaskStatus(task.id, 'done');
+          // Mark task as done after successful merge (force skips subtask validation)
+          const statusUpdated = await persistTaskStatus(task.id, 'done', { force: true });
+          if (!statusUpdated) {
+            console.warn('Merge succeeded but failed to persist done status for task:', task.id);
+          }
           onOpenChange(false);
         }
       }

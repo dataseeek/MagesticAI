@@ -615,7 +615,8 @@ export async function submitReview(
  */
 export async function persistTaskStatus(
   taskId: string,
-  status: TaskStatus
+  status: TaskStatus,
+  options?: { force?: boolean }
 ): Promise<boolean> {
   const store = useTaskStore.getState();
 
@@ -624,7 +625,7 @@ export async function persistTaskStatus(
     store.updateTaskStatus(taskId, status);
 
     // Persist to file
-    const result = await window.API.updateTaskStatus(taskId, status);
+    const result = await window.API.updateTaskStatus(taskId, status, options);
     if (!result.success) {
       console.error('Failed to persist task status:', result.error);
       return false;

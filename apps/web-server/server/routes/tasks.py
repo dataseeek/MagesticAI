@@ -998,6 +998,7 @@ class TaskStatusUpdate(BaseModel):
     """Model for updating only task status (for kanban)."""
 
     status: TaskStatus
+    force: bool = False  # Skip validation (e.g., after successful merge)
 
 
 @router.patch("/{task_id}/status", response_model=Task)
@@ -1031,7 +1032,8 @@ async def update_task_status(task_id: str, update: TaskStatusUpdate):
     plan, plan_file = get_plan_with_worktree_sync(project_path, spec_id)
 
     # Validate "done" status - ensure all subtasks are completed
-    if update.status == "done":
+    # Skip validation when force=True (e.g., after successful merge)
+    if update.status == "done" and not update.force:
         is_valid, error_msg = validate_done_status(plan)
         if not is_valid:
             raise HTTPException(

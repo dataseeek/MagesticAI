@@ -320,8 +320,8 @@ export const webAPI: API & { _isWebMode: boolean } = {
   },
   submitReview: (taskId: string, approved: boolean, feedback?: string) =>
     post(`/tasks/${taskId}/review`, { approved, feedback }),
-  updateTaskStatus: (taskId: string, status: TaskStatus) =>
-    patch(`/tasks/${taskId}/status`, { status }),
+  updateTaskStatus: (taskId: string, status: TaskStatus, options?: { force?: boolean }) =>
+    patch(`/tasks/${taskId}/status`, { status, ...(options?.force && { force: true }) }),
   recoverStuckTask: (taskId: string, options?: TaskRecoveryOptions) =>
     post(`/tasks/${taskId}/recover`, options),
   checkTaskRunning: async (taskId: string) => {
