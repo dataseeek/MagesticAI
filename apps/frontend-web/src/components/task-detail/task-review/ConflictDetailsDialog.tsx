@@ -1,7 +1,6 @@
-import { AlertTriangle, GitMerge, CheckCircle, Sparkles, Loader2, Info } from 'lucide-react';
+import { AlertTriangle, GitMerge, CheckCircle, Sparkles, Info } from 'lucide-react';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -10,7 +9,6 @@ import {
   AlertDialogTitle,
 } from '../../ui/alert-dialog';
 import { Badge } from '../../ui/badge';
-import { Button } from '../../ui/button';
 import { cn } from '../../../lib/utils';
 import { getSeverityIcon, getSeverityVariant } from './utils';
 import type { MergeConflict, MergeStats, GitConflictInfo } from '../../../shared/types';
@@ -18,11 +16,7 @@ import type { MergeConflict, MergeStats, GitConflictInfo } from '../../../shared
 interface ConflictDetailsDialogProps {
   open: boolean;
   mergePreview: { files: string[]; conflicts: MergeConflict[]; summary: MergeStats; gitConflicts?: GitConflictInfo } | null;
-  stageOnly: boolean;
   onOpenChange: (open: boolean) => void;
-  onMerge: () => void;
-  onResolveWithAI?: () => void;
-  isResolvingConflicts?: boolean;
 }
 
 /**
@@ -31,18 +25,12 @@ interface ConflictDetailsDialogProps {
 export function ConflictDetailsDialog({
   open,
   mergePreview,
-  stageOnly,
   onOpenChange,
-  onMerge,
-  onResolveWithAI,
-  isResolvingConflicts = false,
 }: ConflictDetailsDialogProps) {
   // Categorize conflicts
   const autoMergeable = mergePreview?.conflicts.filter(c => c.canAutoMerge) || [];
   const needsAI = mergePreview?.conflicts.filter(c => !c.canAutoMerge && (c.severity === 'low' || c.severity === 'medium')) || [];
   const needsHuman = mergePreview?.conflicts.filter(c => !c.canAutoMerge && (c.severity === 'high' || c.severity === 'critical')) || [];
-
-  const hasResolvableConflicts = needsAI.length > 0;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -178,39 +166,6 @@ export function ConflictDetailsDialog({
         </div>
         <AlertDialogFooter className="mt-4">
           <AlertDialogCancel>Close</AlertDialogCancel>
-          <div className="flex gap-2">
-            {hasResolvableConflicts && onResolveWithAI && (
-              <Button
-                variant="secondary"
-                onClick={onResolveWithAI}
-                disabled={isResolvingConflicts}
-                className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400"
-              >
-                {isResolvingConflicts ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Resolving...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Resolve {needsAI.length} with AI
-                  </>
-                )}
-              </Button>
-            )}
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                onOpenChange(false);
-                onMerge();
-              }}
-              className="bg-warning text-warning-foreground hover:bg-warning/90"
-            >
-              <GitMerge className="mr-2 h-4 w-4" />
-              {stageOnly ? 'Stage with AI Merge' : 'Merge with AI'}
-            </AlertDialogAction>
-          </div>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

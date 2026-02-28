@@ -239,10 +239,9 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
     state.setIsMerging(true);
     state.setWorkspaceError(null);
     try {
-      // Use specId (e.g., "004-kanban-border-color") not the UUID
-      const result = await window.API.mergeWorktree(task.specId, { noCommit: state.stageOnly });
-      if (result.success && result.data?.success) {
-        if (state.stageOnly && result.data.staged) {
+      const result = await state.unifiedMerge(state.stageOnly);
+      if (result.success && result.data) {
+        if (result.stageOnly && result.data.staged) {
           state.setWorkspaceError(null);
           state.setStagedSuccess(result.data.message || 'Changes staged in main project');
           state.setStagedProjectPath(result.data.projectPath);
@@ -252,20 +251,8 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
           await persistTaskStatus(task.id, 'done');
           onOpenChange(false);
         }
-      } else {
-        // Check for uncommitted local changes error and show user-friendly message
-        const errorMsg = result.data?.message || result.error || 'Failed to merge changes';
-        if (errorMsg.includes('local changes') && errorMsg.includes('would be overwritten')) {
-          state.setWorkspaceError(
-            'Your main project has uncommitted changes that conflict with this build. ' +
-            'Please commit or stash your local changes before merging.'
-          );
-        } else {
-          state.setWorkspaceError(errorMsg);
-        }
       }
-    } catch (error) {
-      state.setWorkspaceError(error instanceof Error ? error.message : 'Unknown error during merge');
+      // Errors are handled inside unifiedMerge via setWorkspaceError
     } finally {
       state.setIsMerging(false);
     }
@@ -567,9 +554,8 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
                             mergePreview={state.mergePreview}
                             isLoadingPreview={state.isLoadingPreview}
                             showConflictDialog={state.showConflictDialog}
-                            isResolvingConflicts={state.isResolvingConflicts}
-                            isResolvingUncommitted={state.isResolvingUncommitted}
                             isAbortingMerge={state.isAbortingMerge}
+                            mergeStep={state.mergeStep}
                             phaseLogs={state.phaseLogs ?? undefined}
                             onFeedbackChange={state.setFeedback}
                             onReject={handleReject}
@@ -580,8 +566,6 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
                             onStageOnlyChange={state.setStageOnly}
                             onShowConflictDialog={state.setShowConflictDialog}
                             onLoadMergePreview={state.loadMergePreview}
-                            onResolveWithAI={state.resolveConflictsWithAI}
-                            onResolveUncommitted={state.resolveUncommittedConflicts}
                             onAbortMerge={state.abortMerge}
                             onClose={handleClose}
                             onSwitchToTerminals={onSwitchToTerminals}
