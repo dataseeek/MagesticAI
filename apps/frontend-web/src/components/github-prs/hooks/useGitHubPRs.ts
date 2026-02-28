@@ -93,7 +93,7 @@ export function useGitHubPRs(projectId?: string): UseGitHubPRsResult {
 
     try {
       // First check connection
-      const connectionResult = await window.API.github.checkGitHubConnection(projectId);
+      const connectionResult = await window.API.checkGitHubConnection(projectId);
       if (connectionResult.success && connectionResult.data) {
         setIsConnected(connectionResult.data.connected);
         setRepoFullName(connectionResult.data.repoFullName || null);
