@@ -15,6 +15,8 @@ configure_safe_encoding()
 
 from core.client import create_client
 from debug import debug, debug_detailed, debug_error, debug_section, debug_success
+from phase_config import infer_provider_from_model
+from providers.factory import get_provider
 from security.tool_input_validator import get_safe_tool_input
 from task_logger import (
     LogEntryType,
@@ -132,17 +134,28 @@ class AgentRunner:
             )
 
         # Create client with thinking budget
+        # Route through provider factory for non-Claude models
+        provider_name = infer_provider_from_model(self.model)
         debug(
             "agent_runner",
-            "Creating Claude SDK client...",
+            "Creating LLM client...",
+            provider=provider_name,
             thinking_budget=thinking_budget,
         )
-        client = create_client(
-            self.project_dir,
-            self.spec_dir,
-            self.model,
-            max_thinking_tokens=thinking_budget,
-        )
+        if provider_name == "claude":
+            client = create_client(
+                self.project_dir,
+                self.spec_dir,
+                self.model,
+                max_thinking_tokens=thinking_budget,
+            )
+        else:
+            client = get_provider(
+                provider_name,
+                phase="spec",
+                model=self.model,
+                working_dir=self.project_dir,
+            )
 
         current_tool = None
         message_count = 0

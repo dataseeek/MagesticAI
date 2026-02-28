@@ -165,12 +165,13 @@ export type ModelTypeShort = 'haiku' | 'sonnet' | 'opus';
 
 // Phase-based model configuration for Auto profile
 // Each phase can use a different model optimized for that task type
+// All phases accept any provider model ID (Claude shorthands, Codex, Gemini, Ollama, etc.)
 export interface PhaseModelConfig {
-  spec: ModelTypeShort;       // Spec creation (discovery, requirements, context)
-  planning: ModelTypeShort;   // Implementation planning
-  coding: ModelTypeShort;     // Actual coding implementation
-  qa: string;                 // QA review — Claude shorthands or provider model IDs (e.g. 'gpt-5.3-codex')
-  qa_fixer: string;           // QA fixing — Claude shorthands or provider model IDs
+  spec: string;       // Spec creation — any provider model ID
+  planning: string;   // Implementation planning — any provider model ID
+  coding: string;     // Actual coding implementation — any provider model ID
+  qa: string;         // QA review — any provider model ID
+  qa_fixer: string;   // QA fixing — any provider model ID
 }
 
 // Thinking level configuration per phase
