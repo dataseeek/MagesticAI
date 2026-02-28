@@ -247,6 +247,8 @@ export interface AppSettings {
   llmAnthropicModel?: string;
   llmOpenaiModel?: string;
   llmOpenaiBaseUrl?: string;
+  // QA LLM Provider (which LLM drives QA review sessions)
+  qaLlmProvider?: 'claude' | 'codex' | 'gemini' | 'ollama';
   // Onboarding wizard completion state
   onboardingCompleted?: boolean;
   // Selected agent profile for preset model/thinking configurations
