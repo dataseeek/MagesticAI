@@ -251,7 +251,7 @@ export function TaskMetadata({ task }: TaskMetadataProps) {
           )}
 
           {/* Skills */}
-          {task.metadata?.selectedSkills?.length > 0 && (
+          {task.metadata?.selectedSkills && task.metadata.selectedSkills.length > 0 && (
             <div className="flex flex-col gap-1">
               <span className="text-sm font-medium text-muted-foreground">
                 {t('tasks:skills.title')}
