@@ -1901,6 +1901,7 @@ class AgentService:
         # Fix 5: Check if task requires manual review before coding
         # If requireReviewBeforeCoding is true, DON'T auto-approve (let user review the plan)
         should_auto_approve = True  # Default for web mode
+        spec_phase_model = None  # Model for spec creation phase
         if spec_dir:
             task_metadata_file = spec_dir / "task_metadata.json"
             if task_metadata_file.exists():
@@ -1910,6 +1911,9 @@ class AgentService:
                     if metadata.get("requireReviewBeforeCoding", False):
                         should_auto_approve = False
                         logger.info(f"[AgentService] Task {task_id} requires manual review - NOT auto-approving spec")
+                    # Read spec phase model from auto profile config
+                    if metadata.get("isAutoProfile") and metadata.get("phaseModels"):
+                        spec_phase_model = metadata["phaseModels"].get("spec")
                 except (json.JSONDecodeError, OSError) as e:
                     logger.warning(f"[AgentService] Failed to read task_metadata.json: {e}")
 
@@ -1920,6 +1924,11 @@ class AgentService:
             "--task", f"{title}\n\n{description}",
             "--project-dir", str(project_path),
         ]
+
+        # Pass spec phase model if configured (multi-model support)
+        if spec_phase_model:
+            cmd.extend(["--model", spec_phase_model])
+            logger.info(f"[AgentService] Using spec phase model: {spec_phase_model}")
 
         # Fix 1: Only auto-approve if task doesn't require manual review
         if should_auto_approve:
