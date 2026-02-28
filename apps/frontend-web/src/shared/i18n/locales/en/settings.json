@@ -76,7 +76,20 @@
         "refreshModels": "Refresh Models",
         "downloadModel": "Download Model"
       },
-      "testConnection": "Test Connection"
+      "testConnection": "Test Connection",
+      "qaProvider": {
+        "title": "QA LLM Provider",
+        "description": "Select the AI model used to run QA review sessions",
+        "providerLabel": "Provider",
+        "providerDescription": "Choose which LLM drives quality-assurance reviews after each build. Claude is the default.",
+        "cliNote": "Ensure the selected CLI tool is installed and authenticated on this machine before running QA reviews.",
+        "providers": {
+          "claude": "Claude (Anthropic)",
+          "codex": "Codex CLI (OpenAI)",
+          "gemini": "Gemini CLI (Google)",
+          "ollama": "Ollama (Local)"
+        }
+      }
     },
     "integrations": {
       "title": "Integrations",
