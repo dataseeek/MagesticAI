@@ -940,7 +940,8 @@ Created via Magestic AI Web UI
             requirements["metadata"] = metadata_dict
 
             # Sync task_metadata.json for phase_config.py to read model/thinking settings
-            model_fields = ["model", "thinkingLevel", "isAutoProfile", "phaseModels", "phaseThinking", "mode"]
+            # Also include selectedSkills so agent_service.py can inject skill context
+            model_fields = ["model", "thinkingLevel", "isAutoProfile", "phaseModels", "phaseThinking", "mode", "selectedSkills"]
             task_metadata = {field: metadata_dict[field] for field in model_fields if field in metadata_dict}
             if task_metadata:
                 (spec_dir / "task_metadata.json").write_text(json.dumps(task_metadata, indent=2))
@@ -1113,7 +1114,8 @@ async def update_task(task_id: str, update: TaskUpdate):
                     pass
 
             # Update model-related fields that phase_config.py expects
-            model_fields = ["model", "thinkingLevel", "isAutoProfile", "phaseModels", "phaseThinking", "mode"]
+            # Also include selectedSkills so agent_service.py can inject skill context
+            model_fields = ["model", "thinkingLevel", "isAutoProfile", "phaseModels", "phaseThinking", "mode", "selectedSkills"]
             for field in model_fields:
                 if field in metadata_dict:
                     if metadata_dict[field] is None:
