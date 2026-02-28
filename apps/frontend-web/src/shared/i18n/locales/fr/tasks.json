@@ -100,6 +100,26 @@
   "metadata": {
     "severity": "sévérité"
   },
+  "skills": {
+    "browseTab": "Parcourir",
+    "searchTab": "Rechercher",
+    "suggestionsTab": "Suggestions",
+    "selectCategory": "Sélectionnez une catégorie",
+    "categoryCount": "{{count}}",
+    "searchPlaceholder": "Rechercher des compétences…",
+    "clearSearch": "Effacer la recherche",
+    "noResults": "Aucun résultat trouvé",
+    "analyzing": "Analyse en cours…",
+    "noSuggestions": "Ajoutez une description de tâche plus longue pour obtenir des suggestions",
+    "selectedCount": "{{count}}/{{max}} compétences sélectionnées",
+    "maximumReached": "Maximum atteint",
+    "noSkillsSelected": "Aucune compétence sélectionnée",
+    "selectSkill": "{{name}}",
+    "removeSkill": "Supprimer {{name}}",
+    "relevanceMatch": "{{score}}%",
+    "showPreview": "Afficher l'aperçu",
+    "hidePreview": "Masquer l'aperçu"
+  },
   "notifications": {
     "profileSwitch": {
       "title": "Profil Claude changé",
