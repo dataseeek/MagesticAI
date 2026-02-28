@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -5,6 +6,7 @@ import { AnthropicIcon } from '../../icons/AnthropicIcon';
 import { OpenAIIcon } from '../../icons/OpenAIIcon';
 import { GeminiIcon } from '../../icons/GeminiIcon';
 import { OllamaIcon } from '../../icons/OllamaIcon';
+import { apiRequest } from '@/lib/api-client';
 import type { AppSettings } from '@/shared/types/settings';
 
 interface QALLMProviderSettingsProps {
@@ -12,8 +14,10 @@ interface QALLMProviderSettingsProps {
   onSettingsChange: (settings: AppSettings) => void;
 }
 
+type QaLlmProvider = NonNullable<AppSettings['qaLlmProvider']>;
+
 const QA_LLM_PROVIDERS: {
-  value: NonNullable<AppSettings['qaLlmProvider']>;
+  value: QaLlmProvider;
   labelKey: string;
   icon: React.ReactNode;
 }[] = [
@@ -42,13 +46,50 @@ const QA_LLM_PROVIDERS: {
 export function QALLMProviderSettings({ settings, onSettingsChange }: QALLMProviderSettingsProps) {
   const { t } = useTranslation('settings');
 
-  const currentProvider = settings.qaLlmProvider ?? 'claude';
+  const [currentProvider, setCurrentProvider] = useState<QaLlmProvider>(
+    settings.qaLlmProvider ?? 'claude'
+  );
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleProviderChange = (value: string) => {
-    onSettingsChange({
-      ...settings,
-      qaLlmProvider: value as NonNullable<AppSettings['qaLlmProvider']>,
-    });
+  // Read on mount: fetch the authoritative value from the dedicated endpoint
+  useEffect(() => {
+    async function fetchProvider() {
+      try {
+        const result = await apiRequest<{ qaLlmProvider: QaLlmProvider }>('/settings/qa-llm-provider');
+        if (result.success && result.data?.qaLlmProvider) {
+          const fetched = result.data.qaLlmProvider;
+          setCurrentProvider(fetched);
+          // Sync into parent settings if the fetched value differs
+          if (fetched !== settings.qaLlmProvider) {
+            onSettingsChange({ ...settings, qaLlmProvider: fetched });
+          }
+        }
+      } catch {
+        // Fall back to the value supplied by parent settings
+      }
+    }
+    fetchProvider();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist on change: immediately write to the dedicated API endpoint
+  const handleProviderChange = async (value: string) => {
+    const provider = value as QaLlmProvider;
+
+    // Optimistic local update
+    setCurrentProvider(provider);
+    onSettingsChange({ ...settings, qaLlmProvider: provider });
+
+    setIsSaving(true);
+    try {
+      await apiRequest('/settings/qa-llm-provider', {
+        method: 'PUT',
+        body: { qaLlmProvider: provider },
+      });
+    } catch {
+      // Persist failure is non-fatal; parent state still reflects the choice
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -60,7 +101,11 @@ export function QALLMProviderSettings({ settings, onSettingsChange }: QALLMProvi
         <p className="text-xs text-muted-foreground">
           {t('sections.llmProvider.qaProvider.providerDescription')}
         </p>
-        <Select value={currentProvider} onValueChange={handleProviderChange}>
+        <Select
+          value={currentProvider}
+          onValueChange={handleProviderChange}
+          disabled={isSaving}
+        >
           <SelectTrigger id="qa-llm-provider-select" className="w-full max-w-md">
             <SelectValue />
           </SelectTrigger>
