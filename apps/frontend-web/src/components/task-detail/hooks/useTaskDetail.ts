@@ -59,12 +59,14 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
     conflicts: MergeConflict[];
     summary: MergeStats;
     gitConflicts?: GitConflictInfo;
+    uncommittedChanges?: { hasChanges: boolean; files: string[]; count: number; conflictingFiles?: string[]; hasConflicts?: boolean } | null;
   } | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [showConflictDialog, setShowConflictDialog] = useState(false);
   const [isResolvingConflicts, setIsResolvingConflicts] = useState(false);
   const [isResolvingUncommitted, setIsResolvingUncommitted] = useState(false);
   const [isAbortingMerge, setIsAbortingMerge] = useState(false);
+  const [mergeStep, setMergeStep] = useState<'idle' | 'resolving_uncommitted' | 'resolving_git_conflicts' | 'merging'>('idle');
 
   const selectedProject = useProjectStore((state) => state.getSelectedProject());
   const isRunning = task.status === 'in_progress';
@@ -527,6 +529,79 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
     }
   }, [task.specId, loadMergePreview, loadWorktreeStatus]);
 
+  // Unified merge orchestrator — resolves uncommitted, git conflicts, then merges in sequence
+  const unifiedMerge = useCallback(async (stageOnlyParam: boolean) => {
+    setWorkspaceError(null);
+
+    try {
+      // Step 1: Resolve uncommitted conflicts if they exist
+      const hasUncommittedConflicts = mergePreview?.uncommittedChanges?.hasConflicts;
+      if (hasUncommittedConflicts) {
+        setMergeStep('resolving_uncommitted');
+        const result = await window.API.resolveUncommittedConflicts(task.specId);
+        if (!result.success || !result.data) {
+          setWorkspaceError(result.error || 'Failed to resolve uncommitted conflicts');
+          return { success: false };
+        }
+        // Refresh merge preview to get updated state
+        hasLoadedPreviewRef.current = null;
+        await loadMergePreview();
+      }
+
+      // Step 2: Resolve git merge conflicts if they exist
+      // Re-read mergePreview after potential refresh — use a fresh fetch
+      const freshPreviewResult = await window.API.mergeWorktreePreview(task.specId);
+      const freshPreview = freshPreviewResult.success ? freshPreviewResult.data?.preview : null;
+      const hasGitConflictsNow = freshPreview?.gitConflicts?.hasConflicts;
+      const hasAIConflictsNow = freshPreview && freshPreview.conflicts && freshPreview.conflicts.length > 0;
+      const needsRebaseNow = freshPreview?.gitConflicts?.needsRebase && (freshPreview?.gitConflicts?.commitsBehind || 0) > 0;
+      const hasPathMappedNow = (freshPreview?.summary?.pathMappedAIMergeCount || 0) > 0;
+
+      if (hasGitConflictsNow || hasAIConflictsNow || needsRebaseNow || hasPathMappedNow) {
+        setMergeStep('resolving_git_conflicts');
+        let resolveResult;
+        if (freshPreview?.gitConflicts?.mergeInProgress) {
+          resolveResult = await window.API.resolveGitMergeConflicts(task.specId);
+        } else {
+          resolveResult = await window.API.resolveWorktreeConflicts(task.specId, { useAI: true });
+        }
+        if (!resolveResult.success || !resolveResult.data) {
+          setWorkspaceError(resolveResult.error || 'Failed to resolve git conflicts');
+          return { success: false };
+        }
+      }
+
+      // Step 3: Perform the actual merge
+      setMergeStep('merging');
+      const mergeResult = await window.API.mergeWorktree(task.specId, { noCommit: stageOnlyParam });
+      if (mergeResult.success && mergeResult.data?.success) {
+        return { success: true, data: mergeResult.data, stageOnly: stageOnlyParam };
+      } else {
+        const errorMsg = mergeResult.data?.message || mergeResult.error || 'Failed to merge changes';
+        if (errorMsg.includes('local changes') && errorMsg.includes('would be overwritten')) {
+          setWorkspaceError(
+            'Your main project has uncommitted changes that conflict with this build. ' +
+            'Please commit or stash your local changes before merging.'
+          );
+        } else {
+          setWorkspaceError(errorMsg);
+        }
+        return { success: false };
+      }
+    } catch (err) {
+      setWorkspaceError(err instanceof Error ? err.message : 'Unknown error during merge');
+      return { success: false };
+    } finally {
+      setMergeStep('idle');
+      // Always refresh state
+      hasLoadedPreviewRef.current = null;
+      await Promise.all([
+        loadMergePreview(),
+        loadWorktreeStatus()
+      ]);
+    }
+  }, [task.specId, mergePreview?.uncommittedChanges?.hasConflicts, loadMergePreview, loadWorktreeStatus]);
+
   // Auto-load merge preview when worktree is ready (eliminates need to click "Check Conflicts")
   // NOTE: This must be placed AFTER loadMergePreview definition since it depends on that callback
   useEffect(() => {
@@ -582,9 +657,8 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
     mergePreview,
     isLoadingPreview,
     showConflictDialog,
-    isResolvingConflicts,
-    isResolvingUncommitted,
     isAbortingMerge,
+    mergeStep,
 
     // Setters
     setFeedback,
@@ -616,8 +690,6 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
     setMergePreview,
     setIsLoadingPreview,
     setShowConflictDialog,
-    setIsResolvingConflicts,
-    setIsResolvingUncommitted,
     setIsAbortingMerge,
 
     // Handlers
@@ -625,8 +697,7 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
     togglePhase,
     loadMergePreview,
     loadWorktreeStatus,
-    resolveConflictsWithAI,
-    resolveUncommittedConflicts,
     abortMerge,
+    unifiedMerge,
   };
 }
