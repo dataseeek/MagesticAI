@@ -1123,6 +1123,20 @@ class AgentService:
                 except Exception as e:
                     logger.warning(f"[AgentService] Failed to sync {filename}: {e}")
 
+        # Sync any additional files created by the agent (e.g., plan .md files)
+        # that aren't in the hardcoded list
+        try:
+            known_files = set(files_to_sync)
+            for src_file in worktree_spec.iterdir():
+                if src_file.is_file() and src_file.name not in known_files:
+                    try:
+                        shutil.copy2(src_file, main_spec / src_file.name)
+                        synced_count += 1
+                    except Exception as e:
+                        logger.warning(f"[AgentService] Failed to sync extra file {src_file.name}: {e}")
+        except OSError as e:
+            logger.warning(f"[AgentService] Failed to scan worktree spec dir for extra files: {e}")
+
         # Sync directories
         for dirname in dirs_to_sync:
             src_dir = worktree_spec / dirname

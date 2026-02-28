@@ -1840,11 +1840,19 @@ async def get_worktree_merge_preview(task_id: str):
 @router.post("/{task_id}/worktree/resolve-conflicts")
 async def resolve_worktree_conflicts(task_id: str, options: ConflictResolveOptions = None):
     """
-    Attempt to resolve conflicts using auto-merge or AI.
+    Resolve merge conflicts between the worktree branch and the base branch using AI.
 
-    This endpoint uses the backend's semantic merge system to resolve
-    conflicts detected during merge preview.
+    This endpoint performs a real git merge and resolves any conflict markers
+    using AI. Process:
+    1. Gets the worktree branch name
+    2. Starts a git merge of the worktree branch into the current branch
+    3. If conflicts arise, uses AI to resolve each conflicted file
+    4. Stages resolved files and commits the merge
     """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
     if options is None:
         options = ConflictResolveOptions()
 
@@ -1883,48 +1891,232 @@ async def resolve_worktree_conflicts(task_id: str, options: ConflictResolveOptio
     if not worktree_path or not worktree_path.exists():
         return {"success": False, "error": "No worktree found for this task"}
 
-    # Get base branch
+    # Get worktree branch name
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            cwd=project_path,
+            cwd=worktree_path,
             capture_output=True,
             text=True,
             check=True
         )
-        base_branch = result.stdout.strip()
+        worktree_branch = result.stdout.strip()
     except subprocess.CalledProcessError:
-        base_branch = "develop"
+        return {"success": False, "error": "Could not determine worktree branch"}
 
-    # Use ConflictService to resolve conflicts
-    try:
-        from ..services.conflict_service import get_conflict_service
-
-        conflict_service = get_conflict_service(project_path)
-        result = await conflict_service.resolve_conflicts(
-            task_id=task_id,
-            worktree_path=worktree_path,
-            use_ai=options.useAI,
-            base_branch=base_branch,
+    # Check if a merge is already in progress
+    merge_head = project_path / ".git" / "MERGE_HEAD"
+    if merge_head.exists():
+        logger.info(f"Merge already in progress for {task_id}, resolving existing conflicts")
+    else:
+        # Start the git merge (allow conflicts)
+        logger.info(f"Starting git merge of {worktree_branch} into current branch for task {task_id}")
+        merge_result = subprocess.run(
+            ["git", "merge", worktree_branch, "--no-commit", "--no-ff"],
+            cwd=project_path,
+            capture_output=True,
+            text=True
         )
 
-        return {
-            "success": result.get("success", False),
-            "data": {
-                "resolved": result.get("resolved", []),
-                "remaining": result.get("remaining", []),
-                "stats": result.get("stats", {}),
-            },
-            "error": result.get("error"),
-        }
+        if merge_result.returncode == 0:
+            # Clean merge, no conflicts - commit it
+            logger.info(f"Clean merge for {task_id}, committing")
+            commit_result = subprocess.run(
+                ["git", "commit", "-m", f"Merge {worktree_branch} into current branch"],
+                cwd=project_path,
+                capture_output=True,
+                text=True
+            )
+            return {
+                "success": True,
+                "data": {
+                    "resolved": [],
+                    "remaining": [],
+                    "stats": {"message": "Clean merge - no conflicts"},
+                },
+            }
+        elif merge_result.returncode != 1 and "CONFLICT" not in merge_result.stdout:
+            # Unexpected error (not a conflict)
+            logger.error(f"Git merge failed unexpectedly: {merge_result.stderr}")
+            return {
+                "success": False,
+                "error": f"Git merge failed: {merge_result.stderr.strip()}",
+            }
+        else:
+            logger.info(f"Merge has conflicts for {task_id}, resolving with AI")
 
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).error(f"Conflict resolution failed: {e}")
+    if not options.useAI:
         return {
             "success": False,
-            "error": str(e),
+            "error": "Conflicts detected but AI resolution is disabled",
+            "data": {
+                "resolved": [],
+                "remaining": [],
+                "stats": {"message": "Merge started with conflicts, AI resolution disabled"},
+            },
         }
+
+    # Get list of conflicted files
+    conflicted_files = []
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--name-only", "--diff-filter=U"],
+            cwd=project_path,
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            conflicted_files = [f for f in result.stdout.strip().split('\n') if f]
+    except subprocess.CalledProcessError:
+        pass
+
+    # Fallback: check git status for unmerged files
+    if not conflicted_files:
+        try:
+            result = subprocess.run(
+                ["git", "status", "--porcelain"],
+                cwd=project_path,
+                capture_output=True,
+                text=True
+            )
+            if result.returncode == 0:
+                for line in result.stdout.strip().split('\n'):
+                    if line and line[:2] in ('UU', 'AA', 'DD', 'AU', 'UA', 'DU', 'UD'):
+                        file_path = line[3:].strip()
+                        if file_path:
+                            conflicted_files.append(file_path)
+        except subprocess.CalledProcessError:
+            pass
+
+    if not conflicted_files:
+        # No conflicts found - the merge may have already been resolved
+        # Try to commit
+        commit_result = subprocess.run(
+            ["git", "commit", "--no-edit"],
+            cwd=project_path,
+            capture_output=True,
+            text=True
+        )
+        return {
+            "success": True,
+            "data": {
+                "resolved": [],
+                "remaining": [],
+                "stats": {"message": "No conflicted files found"},
+            },
+        }
+
+    logger.info(f"Found {len(conflicted_files)} conflicted files: {conflicted_files}")
+
+    # Resolve each conflicted file using AI
+    resolved_files = []
+    failed_files = []
+
+    from ..services.conflict_service import get_conflict_service
+    conflict_service = get_conflict_service(project_path)
+
+    for file_path in conflicted_files:
+        try:
+            full_path = project_path / file_path
+            if not full_path.exists():
+                logger.warning(f"Conflicted file not found: {full_path}")
+                failed_files.append({"file": file_path, "error": "File not found"})
+                continue
+
+            content = full_path.read_text()
+
+            if "<<<<<<< " not in content:
+                logger.info(f"File {file_path} has no conflict markers, staging")
+                subprocess.run(
+                    ["git", "add", file_path],
+                    cwd=project_path,
+                    capture_output=True,
+                    text=True
+                )
+                resolved_files.append(file_path)
+                continue
+
+            # Use AI to resolve conflict markers
+            merge_result = await conflict_service.resolve_conflict_markers(
+                file_path=file_path,
+                content=content,
+            )
+
+            if merge_result.get("success"):
+                resolved_content = merge_result.get("content", "")
+
+                # Clean up any remaining markers
+                if "<<<<<<< " in resolved_content or "=======" in resolved_content or ">>>>>>> " in resolved_content:
+                    logger.warning(f"AI resolution for {file_path} still has markers, cleaning up")
+                    resolved_content = _clean_conflict_markers(resolved_content)
+
+                full_path.write_text(resolved_content)
+                logger.info(f"Wrote resolved content to {full_path}")
+
+                result = subprocess.run(
+                    ["git", "add", file_path],
+                    cwd=project_path,
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode == 0:
+                    resolved_files.append(file_path)
+                    logger.info(f"Staged resolved file: {file_path}")
+                else:
+                    failed_files.append({"file": file_path, "error": f"Failed to stage: {result.stderr}"})
+            else:
+                error_msg = merge_result.get("error", "AI resolution failed")
+                logger.error(f"AI resolution failed for {file_path}: {error_msg}")
+                failed_files.append({"file": file_path, "error": error_msg})
+
+        except Exception as e:
+            logger.error(f"Failed to resolve {file_path}: {e}")
+            failed_files.append({"file": file_path, "error": str(e)})
+
+    if failed_files:
+        return {
+            "success": len(resolved_files) > 0,
+            "data": {
+                "resolved": resolved_files,
+                "failed": failed_files,
+                "remaining": [f["file"] for f in failed_files],
+                "stats": {"message": f"Resolved {len(resolved_files)} files, {len(failed_files)} failed"},
+            },
+            "error": f"{len(failed_files)} files could not be resolved",
+        }
+
+    # All conflicts resolved - commit the merge
+    try:
+        commit_msg = f"Merge {worktree_branch} (AI-resolved conflicts)"
+        result = subprocess.run(
+            ["git", "commit", "-m", commit_msg],
+            cwd=project_path,
+            capture_output=True,
+            text=True
+        )
+        if result.returncode != 0:
+            logger.warning(f"Merge commit failed: {result.stderr}")
+            return {
+                "success": True,
+                "data": {
+                    "resolved": resolved_files,
+                    "remaining": [],
+                    "stats": {
+                        "message": f"Resolved {len(resolved_files)} files but commit failed: {result.stderr.strip()}"
+                    },
+                },
+            }
+    except Exception as e:
+        logger.warning(f"Merge commit failed: {e}")
+
+    return {
+        "success": True,
+        "data": {
+            "resolved": resolved_files,
+            "remaining": [],
+            "stats": {"message": f"Successfully resolved and merged {len(resolved_files)} conflicting files"},
+        },
+    }
 
 
 @router.post("/{task_id}/worktree/resolve-uncommitted")

@@ -4,7 +4,7 @@
     "tools": "Tools"
   },
   "items": {
-    "kanban": "Boards",
+    "kanban": "Tasks Board",
     "terminals": "Terminal",
     "editor": "Files",
     "chat": "Chat",
