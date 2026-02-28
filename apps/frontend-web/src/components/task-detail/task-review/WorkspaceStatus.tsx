@@ -286,10 +286,10 @@ export function WorkspaceStatus({
 
         {/* Branch info */}
         {worktreeStatus.branch && (
-          <div className="mt-2 text-xs text-muted-foreground">
-            <code className="bg-background/80 px-1.5 py-0.5 rounded text-[11px]">{worktreeStatus.branch}</code>
+          <div className="mt-2 text-sm text-muted-foreground">
+            <code className="bg-background/80 px-1.5 py-0.5 rounded text-xs">{worktreeStatus.branch}</code>
             <span className="mx-1.5">→</span>
-            <code className="bg-background/80 px-1.5 py-0.5 rounded text-[11px]">{worktreeStatus.baseBranch || 'main'}</code>
+            <code className="bg-background/80 px-1.5 py-0.5 rounded text-xs">{worktreeStatus.baseBranch || 'main'}</code>
           </div>
         )}
 
