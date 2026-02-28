@@ -118,6 +118,36 @@
   "metadata": {
     "severity": "severity"
   },
+  "skills": {
+    "title": "AI Skills",
+    "description": "Select skills to guide the AI agent with specialized knowledge",
+    "browseTab": "Browse",
+    "searchTab": "Search",
+    "suggestionsTab": "Suggestions",
+    "selectCategory": "Select a category to browse skills",
+    "categoryCount": "{{count}}",
+    "searchPlaceholder": "Search skills...",
+    "clearSearch": "Clear search",
+    "noResults": "No skills found",
+    "analyzing": "Analyzing…",
+    "loadingSuggestions": "Analyzing task description...",
+    "noSuggestions": "No suggestions for this description",
+    "selectedCount": "{{count}}/{{max}} skills selected",
+    "selected_one": "{{count}} skill selected",
+    "selected_other": "{{count}} skills selected",
+    "maximumReached": "Maximum reached",
+    "maxSkillsReached": "Maximum {{max}} skills selected",
+    "noSkillsSelected": "No skills selected",
+    "selectSkill": "{{name}}",
+    "removeSkill": "Remove skill",
+    "relevanceMatch": "{{score}}% match",
+    "categories": "Categories",
+    "allSkills": "All Skills",
+    "showPreview": "Show preview",
+    "hidePreview": "Hide preview",
+    "expandSection": "Show AI Skills",
+    "collapseSection": "Hide AI Skills"
+  },
   "notifications": {
     "profileSwitch": {
       "title": "Switched Claude profile",

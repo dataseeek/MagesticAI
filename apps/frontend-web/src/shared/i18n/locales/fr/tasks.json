@@ -113,6 +113,36 @@
   "metadata": {
     "severity": "sévérité"
   },
+  "skills": {
+    "title": "Compétences IA",
+    "description": "Sélectionnez des compétences pour guider l'agent IA avec des connaissances spécialisées",
+    "browseTab": "Parcourir",
+    "searchTab": "Rechercher",
+    "suggestionsTab": "Suggestions",
+    "selectCategory": "Sélectionnez une catégorie pour parcourir les compétences",
+    "categoryCount": "{{count}}",
+    "searchPlaceholder": "Rechercher des compétences...",
+    "clearSearch": "Effacer la recherche",
+    "noResults": "Aucune compétence trouvée",
+    "analyzing": "Analyse en cours…",
+    "loadingSuggestions": "Analyse de la description de la tâche...",
+    "noSuggestions": "Aucune suggestion pour cette description",
+    "selectedCount": "{{count}}/{{max}} compétences sélectionnées",
+    "selected_one": "{{count}} compétence sélectionnée",
+    "selected_other": "{{count}} compétences sélectionnées",
+    "maximumReached": "Maximum atteint",
+    "maxSkillsReached": "Maximum {{max}} compétences sélectionnées",
+    "noSkillsSelected": "Aucune compétence sélectionnée",
+    "selectSkill": "{{name}}",
+    "removeSkill": "Supprimer la compétence",
+    "relevanceMatch": "{{score}}% de correspondance",
+    "categories": "Catégories",
+    "allSkills": "Toutes les compétences",
+    "showPreview": "Afficher l'aperçu",
+    "hidePreview": "Masquer l'aperçu",
+    "expandSection": "Afficher les compétences IA",
+    "collapseSection": "Masquer les compétences IA"
+  },
   "notifications": {
     "profileSwitch": {
       "title": "Profil Claude changé",
