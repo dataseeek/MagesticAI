@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Claude Code Manager Web is a web-based AI task management and agent orchestration platform that builds software through coordinated AI agent sessions. It uses the Claude Agent SDK to run agents in isolated workspaces with security controls.
+MagesticAI is a web-based AI task management and agent orchestration platform that builds software through coordinated AI agent sessions. It uses the Claude Agent SDK to run agents in isolated workspaces with security controls.
 
-**Project:** Claude Code Manager Web
-**Repository:** https://github.com/dataseeek/Claude-Code-Manager-Web
+**Project:** MagesticAI
+**Repository:** https://github.com/dataseeek/MagesticAI
 **Author:** DataSeek Team
 **License:** AGPL-3.0
 
@@ -241,7 +241,7 @@ Each spec in `.auto-claude/specs/XXX-name/` contains:
 
 ### Branching & Worktree Strategy
 
-Claude Code Manager Web uses git worktrees for isolated builds. All branches stay LOCAL until user explicitly pushes:
+MagesticAI uses git worktrees for isolated builds. All branches stay LOCAL until user explicitly pushes:
 
 ```
 main (user's branch)
@@ -287,7 +287,7 @@ Security profile cached in `.auto-claude-security.json`.
 
 ### Claude Agent SDK Integration
 
-**CRITICAL: Claude Code Manager Web uses the Claude Agent SDK for ALL AI interactions. Never use the Anthropic API directly.**
+**CRITICAL: MagesticAI uses the Claude Agent SDK for ALL AI interactions. Never use the Anthropic API directly.**
 
 **Client Location:** `apps/backend/core/client.py`
 
@@ -335,7 +335,7 @@ response = client.create_agent_session(
 
 **Graphiti Memory (Mandatory)** - `integrations/graphiti/`
 
-Claude Code Manager Web uses Graphiti as its primary memory system with embedded LadybugDB (no Docker required):
+MagesticAI uses Graphiti as its primary memory system with embedded LadybugDB (no Docker required):
 
 - **Graph database with semantic search** - Knowledge graph for cross-session context
 - **Session insights** - Patterns, gotchas, discoveries automatically extracted
@@ -367,7 +367,7 @@ memory.add_session_insight("Pattern: use React hooks for state")
 
 **Status:** ✅ Complete (Branch: `bmad-method`, awaiting PR to `develop`)
 
-Claude Code Manager Web integrates BMad Method's scale-adaptive intelligence, specialized agents, and architecture-first workflows. All 6 milestones implemented.
+MagesticAI integrates BMad Method's scale-adaptive intelligence, specialized agents, and architecture-first workflows. All 6 milestones implemented.
 
 #### Key Features
 
@@ -526,7 +526,7 @@ guides/troubleshooting/specific-issue.md
 
 ## Web Interface
 
-Claude Code Manager Web is a browser-based web interface. This enables:
+MagesticAI is a browser-based web interface. This enables:
 - Remote access from any device with a browser
 - Server-based deployments
 - Headless operation with web UI control
