@@ -37,6 +37,7 @@ class ImplementationPlan:
     # planStatus: pending, in_progress, review, completed
     status: str | None = None
     planStatus: str | None = None
+    reviewReason: str | None = None
     recoveryNote: str | None = None
     qa_signoff: dict | None = None
 
@@ -57,6 +58,8 @@ class ImplementationPlan:
             result["status"] = self.status
         if self.planStatus:
             result["planStatus"] = self.planStatus
+        if self.reviewReason:
+            result["reviewReason"] = self.reviewReason
         if self.recoveryNote:
             result["recoveryNote"] = self.recoveryNote
         if self.qa_signoff:
@@ -94,6 +97,7 @@ class ImplementationPlan:
             spec_file=data.get("spec_file"),
             status=data.get("status"),
             planStatus=data.get("planStatus"),
+            reviewReason=data.get("reviewReason"),
             recoveryNote=data.get("recoveryNote"),
             qa_signoff=data.get("qa_signoff"),
         )
@@ -146,6 +150,7 @@ class ImplementationPlan:
             if self.qa_signoff and self.qa_signoff.get("status") == "approved":
                 self.status = "human_review"
                 self.planStatus = "review"
+                self.reviewReason = "completed"
             else:
                 # All subtasks done, waiting for QA
                 self.status = "ai_review"

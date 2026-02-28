@@ -38,13 +38,20 @@ export function ConflictDetailsDialog({
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-warning" />
-            Merge Conflicts Analysis
+            {mergePreview?.gitConflicts?.hasConflicts || (mergePreview?.conflicts?.length ?? 0) > 0
+              ? 'Merge Conflicts Analysis'
+              : 'Branch Divergence Details'}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {mergePreview?.gitConflicts?.hasConflicts ? (
               <>
                 Branch has diverged with {mergePreview.gitConflicts.commitsBehind} commit{mergePreview.gitConflicts.commitsBehind !== 1 ? 's' : ''} behind
                 and {mergePreview.gitConflicts.conflictingFiles.length} conflicting file{mergePreview.gitConflicts.conflictingFiles.length !== 1 ? 's' : ''}.
+              </>
+            ) : mergePreview?.gitConflicts?.needsRebase ? (
+              <>
+                Branch is {mergePreview.gitConflicts.commitsBehind} commit{mergePreview.gitConflicts.commitsBehind !== 1 ? 's' : ''} behind.
+                AI will rebase and resolve during merge.
               </>
             ) : (
               <>
@@ -111,6 +118,33 @@ export function ConflictDetailsDialog({
             </div>
           )}
 
+          {/* Branch behind (needs rebase, no file conflicts) */}
+          {!mergePreview?.gitConflicts?.hasConflicts && mergePreview?.gitConflicts?.needsRebase && (
+            <div className="mb-4 p-3 bg-warning/10 rounded-lg border border-warning/30">
+              <div className="flex items-center gap-2 mb-2 text-sm font-medium text-warning">
+                <GitMerge className="h-4 w-4" />
+                Branch Behind
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                The target branch has{' '}
+                <span className="font-medium text-foreground">
+                  {mergePreview.gitConflicts.commitsBehind}
+                </span>{' '}
+                new commit{mergePreview.gitConflicts.commitsBehind !== 1 ? 's' : ''} since this
+                build started. No file conflicts detected.
+              </p>
+              {(mergePreview.gitConflicts.totalRenames ?? 0) > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {mergePreview.gitConflicts.totalRenames} file rename{mergePreview.gitConflicts.totalRenames !== 1 ? 's' : ''} detected — AI will handle path mapping.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-2">
+                <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                AI will automatically rebase and merge when you click Merge.
+              </p>
+            </div>
+          )}
+
           {mergePreview?.conflicts && mergePreview.conflicts.length > 0 ? (
             <div className="space-y-3">
               {/* Auto-mergeable conflicts section */}
@@ -158,7 +192,7 @@ export function ConflictDetailsDialog({
                 </div>
               )}
             </div>
-          ) : !mergePreview?.gitConflicts?.hasConflicts ? (
+          ) : !mergePreview?.gitConflicts?.hasConflicts && !mergePreview?.gitConflicts?.needsRebase ? (
             <div className="text-center py-8 text-muted-foreground">
               No conflicts detected
             </div>
