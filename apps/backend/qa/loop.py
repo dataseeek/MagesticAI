@@ -11,7 +11,7 @@ from pathlib import Path
 
 from core.client import create_client
 from debug import debug, debug_error, debug_section, debug_success, debug_warning
-from phase_config import get_phase_model, get_phase_thinking_budget
+from phase_config import get_phase_model, get_phase_thinking_budget, get_qa_llm_provider_name
 from phase_event import ExecutionPhase, emit_phase
 from progress import count_subtasks, is_build_complete
 from task_logger import (
@@ -24,6 +24,7 @@ from .criteria import (
     get_qa_signoff_status,
     is_qa_approved,
 )
+from .providers import get_qa_llm_provider
 from .fixer import run_qa_fixer_session
 from .report import (
     create_manual_test_plan,
@@ -39,6 +40,62 @@ from .reviewer import run_qa_agent_session
 # Configuration
 MAX_QA_ITERATIONS = 10
 MAX_CONSECUTIVE_ERRORS = 3  # Stop after 3 consecutive errors without progress
+
+
+# =============================================================================
+# PROVIDER FACTORY HELPERS
+# =============================================================================
+
+
+def _create_qa_reviewer_provider(
+    provider_name: str,
+    project_dir: Path,
+    spec_dir: Path,
+    model: str,
+    max_thinking_tokens: int | None,
+):
+    """
+    Instantiate the correct QA LLM provider for the reviewer role.
+
+    Routes provider-specific kwargs based on the canonical provider name so
+    callers don't need to know about each provider's constructor signature.
+
+    Args:
+        provider_name: Provider identifier (e.g., "claude", "gemini", "codex",
+            "ollama").  Aliases accepted by the factory are also valid.
+        project_dir: Project root directory (passed to Claude and CLI providers
+            as the working directory).
+        spec_dir: Spec directory (required by ClaudeProvider for config lookup).
+        model: Resolved Claude model ID — used only when provider is "claude".
+            Non-Claude providers use their own default model unless a separate
+            qa_llm_model setting is configured (future work).
+        max_thinking_tokens: Extended-thinking token budget for ClaudeProvider;
+            ignored by alternative providers.
+
+    Returns:
+        A ``BaseLLMProvider`` instance ready to be used with ``async with``.
+    """
+    normalised = provider_name.strip().lower()
+
+    if normalised in {"claude", "claude-sdk", "anthropic"}:
+        return get_qa_llm_provider(
+            provider_name,
+            project_dir=project_dir,
+            spec_dir=spec_dir,
+            model=model,
+            agent_type="qa_reviewer",
+            max_thinking_tokens=max_thinking_tokens,
+        )
+
+    if normalised in {"codex", "codex-cli", "openai-codex"}:
+        return get_qa_llm_provider(provider_name, working_dir=project_dir)
+
+    if normalised in {"gemini", "gemini-cli", "google"}:
+        return get_qa_llm_provider(provider_name, working_dir=project_dir)
+
+    # ollama / local / unknown — use factory default kwargs; model defaults
+    # to the provider's built-in default (e.g., "llama3.2" for Ollama).
+    return get_qa_llm_provider(provider_name)
 
 
 # =============================================================================
@@ -196,24 +253,26 @@ async def run_qa_validation_loop(
         # Run QA reviewer with phase-specific model and thinking budget
         qa_model = get_phase_model(spec_dir, "qa", model)
         qa_thinking_budget = get_phase_thinking_budget(spec_dir, "qa")
+        qa_provider_name = get_qa_llm_provider_name(spec_dir)
         debug(
             "qa_loop",
-            "Creating client for QA reviewer session...",
+            "Creating provider for QA reviewer session...",
+            provider=qa_provider_name,
             model=qa_model,
             thinking_budget=qa_thinking_budget,
         )
-        client = create_client(
+        reviewer_provider = _create_qa_reviewer_provider(
+            qa_provider_name,
             project_dir,
             spec_dir,
             qa_model,
-            agent_type="qa_reviewer",
-            max_thinking_tokens=qa_thinking_budget,
+            qa_thinking_budget,
         )
 
-        async with client:
+        async with reviewer_provider:
             debug("qa_loop", "Running QA reviewer agent session...")
             status, response = await run_qa_agent_session(
-                client,
+                reviewer_provider,
                 project_dir,  # Pass project_dir for capability-based tool injection
                 spec_dir,
                 qa_iteration,

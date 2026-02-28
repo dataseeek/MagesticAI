@@ -486,6 +486,34 @@ def get_fast_mode(spec_dir: Path) -> bool:
     return False
 
 
+def get_qa_llm_provider_name(spec_dir: Path) -> str:
+    """
+    Get the QA LLM provider name configured for this task.
+
+    Priority:
+    1. task_metadata.json["qaLlmProvider"] (set by settings UI)
+    2. QA_LLM_PROVIDER environment variable
+    3. Default: "claude"
+
+    Args:
+        spec_dir: Path to the spec directory
+
+    Returns:
+        Provider name string (e.g., "claude", "gemini", "codex", "ollama")
+    """
+    metadata = load_task_metadata(spec_dir)
+    if metadata:
+        qa_provider = metadata.get("qaLlmProvider")
+        if qa_provider:
+            return str(qa_provider)
+
+    env_provider = os.environ.get("QA_LLM_PROVIDER", "").strip()
+    if env_provider:
+        return env_provider
+
+    return "claude"
+
+
 def get_spec_phase_thinking_budget(phase_name: str) -> int | None:
     """
     Get the thinking budget for a specific spec runner phase.
