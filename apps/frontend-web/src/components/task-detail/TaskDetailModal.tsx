@@ -127,11 +127,11 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
 
   // Memoize showTaskReview to ensure TaskReview section appears when:
   // 1. Task is in human_review status (needsReview)
-  // 2. reviewReason is set (not null/undefined)
-  // 3. reviewReason is not 'plan_review' (plan review uses PlanReviewSection instead)
-  // This ensures proper reactivity when task transitions to human_review state
+  // 2. reviewReason is not 'plan_review' (plan review uses PlanReviewSection instead)
+  // Note: reviewReason can be null when phase tracking fails but worktree has changes —
+  // we still show the review section so the merge button can evaluate filesChanged
   const showTaskReview = useMemo(() => {
-    const shouldShow = state.needsReview && task.reviewReason !== 'plan_review' && task.reviewReason !== null && task.reviewReason !== undefined;
+    const shouldShow = state.needsReview && task.reviewReason !== 'plan_review';
     return shouldShow;
   }, [state.needsReview, task.reviewReason]);
 
