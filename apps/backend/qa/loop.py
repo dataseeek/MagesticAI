@@ -11,7 +11,7 @@ from pathlib import Path
 
 from core.client import create_client
 from debug import debug, debug_error, debug_section, debug_success, debug_warning
-from phase_config import get_phase_model, get_phase_thinking_budget, get_qa_llm_provider_name
+from phase_config import get_phase_model, get_phase_thinking_budget, infer_qa_provider_from_model
 from phase_event import ExecutionPhase, emit_phase
 from progress import count_subtasks, is_build_complete
 from task_logger import (
@@ -88,10 +88,10 @@ def _create_qa_reviewer_provider(
         )
 
     if normalised in {"codex", "codex-cli", "openai-codex"}:
-        return get_qa_llm_provider(provider_name, working_dir=project_dir)
+        return get_qa_llm_provider(provider_name, model=model, working_dir=project_dir)
 
     if normalised in {"gemini", "gemini-cli", "google"}:
-        return get_qa_llm_provider(provider_name, working_dir=project_dir)
+        return get_qa_llm_provider(provider_name, model=model, working_dir=project_dir)
 
     # ollama / local / unknown — use factory default kwargs; model defaults
     # to the provider's built-in default (e.g., "llama3.2" for Ollama).
@@ -253,7 +253,7 @@ async def run_qa_validation_loop(
         # Run QA reviewer with phase-specific model and thinking budget
         qa_model = get_phase_model(spec_dir, "qa", model)
         qa_thinking_budget = get_phase_thinking_budget(spec_dir, "qa")
-        qa_provider_name = get_qa_llm_provider_name(spec_dir)
+        qa_provider_name = infer_qa_provider_from_model(qa_model)
         debug(
             "qa_loop",
             "Creating provider for QA reviewer session...",
