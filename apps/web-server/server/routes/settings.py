@@ -369,6 +369,41 @@ async def reset_app_settings():
     return default
 
 
+# --------------------------------------------------------------------------
+# QA LLM Provider
+# --------------------------------------------------------------------------
+
+
+class QaLlmProviderUpdate(BaseModel):
+    """Model for updating the QA LLM provider setting."""
+
+    qaLlmProvider: QaLlmProviderType = Field(
+        ...,
+        description="LLM provider used for QA reviewer (claude/codex/gemini/ollama)",
+    )
+
+
+@router.get("/qa-llm-provider")
+async def get_qa_llm_provider():
+    """Get the current QA LLM provider setting."""
+    settings = load_app_settings()
+    return {"success": True, "data": {"qaLlmProvider": settings.qaLlmProvider}}
+
+
+@router.put("/qa-llm-provider")
+async def update_qa_llm_provider(update: QaLlmProviderUpdate):
+    """Update the QA LLM provider setting.
+
+    Persists the selected provider to application settings so that the QA
+    reviewer agent uses the correct LLM backend on the next build run.
+    Accepted values: claude, codex, gemini, ollama.
+    """
+    current = load_app_settings()
+    current.qaLlmProvider = update.qaLlmProvider
+    save_app_settings(current)
+    return {"success": True, "data": {"qaLlmProvider": current.qaLlmProvider}}
+
+
 @router.get("/token")
 async def get_api_token():
     """Get the current API token (for display to user)."""
