@@ -1468,17 +1468,30 @@ class AgentService:
                             self._task_subtask_states.pop(task_id, None)
                             self._spec_dirs.pop(task_id, None)
 
-                            # Emit PLAN_REVIEW phase (maps to "human_review" status)
+                            # Determine emit phase based on what phase the task was actually in
+                            # If task was coding/QA, it finished implementation → show 100% progress
+                            # If task was still planning, it just finished planning → show 20% progress
+                            if actual_phase in (TaskPhase.CODING, TaskPhase.QA_REVIEW, TaskPhase.QA_FIXING, TaskPhase.COMPLETED):
+                                emit_phase = TaskPhase.COMPLETED
+                                emit_message = "Task completed - waiting for human review"
+                                emit_overall = 100
+                            else:
+                                emit_phase = TaskPhase.PLAN_REVIEW
+                                emit_message = "Plan created - waiting for human approval"
+                                emit_overall = None  # Let scale_progress handle it (20%)
+
                             await self._emit_progress(
                                 TaskProgress(
                                     task_id=task_id,
-                                    phase=TaskPhase.PLAN_REVIEW,
-                                    message="Plan created - waiting for human approval",
+                                    phase=emit_phase,
+                                    message=emit_message,
+                                    percentage=100,
+                                    overall_progress=emit_overall,
                                 ),
                                 previous_phase=actual_phase,  # Enable status event emission
                             )
 
-                            logger.info(f"[AgentService] Task {task_id} transitioned to PLAN_REVIEW phase")
+                            logger.info(f"[AgentService] Task {task_id} transitioned to {emit_phase.value} phase (was {actual_phase.value})")
                             return  # Exit early - not a failure
 
                     except (json.JSONDecodeError, OSError) as e:
@@ -1612,6 +1625,8 @@ class AgentService:
                         task_id=task_id,
                         phase=TaskPhase.COMPLETED,
                         message="Task completed successfully",
+                        percentage=100,
+                        overall_progress=100,
                     ),
                     previous_phase=actual_phase,  # Enable status event emission
                 )
