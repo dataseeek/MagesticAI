@@ -202,7 +202,12 @@ const githubAPI: API['github'] = {
   },
   getPRReview: async (projectId, prNumber) => {
     const result = await get(`/projects/${projectId}/github/prs/${prNumber}/review`);
-    return (result.success ? result.data ?? null : null) as never;
+    const data = result.success ? result.data ?? null : null;
+    // Normalize snake_case pr_number to camelCase prNumber for frontend consistency
+    if (data && typeof data === 'object' && 'pr_number' in data && !('prNumber' in data)) {
+      (data as Record<string, unknown>).prNumber = (data as Record<string, unknown>).pr_number;
+    }
+    return data as never;
   },
   deletePRReview: async (projectId, prNumber) => {
     const result = await del(`/projects/${projectId}/github/prs/${prNumber}/review`);
@@ -230,7 +235,12 @@ const githubAPI: API['github'] = {
       (payload: { projectId: string; prNumber: number; result: unknown }) => {
         const { projectId, prNumber, result } = payload;
         if (result && typeof result === 'object') {
-          callback(projectId, result as never);
+          // Normalize snake_case pr_number to camelCase prNumber
+          const normalized = result as Record<string, unknown>;
+          if ('pr_number' in normalized && !('prNumber' in normalized)) {
+            normalized.prNumber = normalized.pr_number;
+          }
+          callback(projectId, normalized as never);
         } else {
           // Backend returned null result (review file not found) — synthesize minimal result
           callback(projectId, { prNumber, success: true, findings: [], summary: '', overallStatus: 'comment', reviewedAt: new Date().toISOString() } as never);

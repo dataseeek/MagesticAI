@@ -943,7 +943,9 @@ class AgentService:
         """
         import logging
         logger = logging.getLogger(__name__)
-        current_phase = TaskPhase.SPEC_CREATION
+        # Use the tracked phase if available (e.g., PLANNING when started via start_task_execution),
+        # otherwise default to SPEC_CREATION for spec creation processes
+        current_phase = self._task_current_phases.get(task_id, TaskPhase.SPEC_CREATION)
 
         async for line_bytes in stream:
             line = line_bytes.decode("utf-8", errors="replace").rstrip()
@@ -1211,12 +1213,14 @@ class AgentService:
 
                 # Only emit task update if there were changes (to avoid flooding)
                 if has_changes or synced_count > 0:
+                    # Use the actual current execution phase from phase event tracking
+                    actual_phase = self._task_current_phases.get(task_id, TaskPhase.PLANNING).value if task_id else "coding"
                     # Emit task update
                     await emit_task_update(spec_id, {
                         "executionProgress": {
-                            "phase": "coding",  # Default to coding during execution
+                            "phase": actual_phase,
                             "phaseProgress": progress,
-                            "overallProgress": scale_progress("coding", progress),
+                            "overallProgress": scale_progress(actual_phase, progress),
                             "currentSubtask": current_subtask,
                             "message": f"{completed}/{total} subtasks completed",
                         },
@@ -1752,6 +1756,7 @@ class AgentService:
         description: str,
         complexity: str | None = None,
         auto_continue: bool = True,
+        user_id: str = "",
     ) -> asyncio.subprocess.Process:
         """Start spec creation for a task."""
         import logging
