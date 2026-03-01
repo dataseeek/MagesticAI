@@ -14,6 +14,7 @@ import { GitHubPRs } from './components/github-prs/GitHubPRs';
 import { Changelog } from './components/changelog/Changelog';
 import { Insights } from './components/Insights';
 import { AgentTools } from './components/AgentTools';
+import { SkillsPage } from './components/SkillsPage';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { AddProjectModal } from './components/AddProjectModal';
 import { AppSettingsDialog } from './components/settings';
@@ -335,6 +336,7 @@ function AuthenticatedApp() {
                     <Insights projectId={selectedProject?.id || ''} onNavigate={setActiveView} />
                   )}
                   {activeView === 'agent-tools' && <AgentTools />}
+                  {activeView === 'skills' && <SkillsPage />}
                 </>
               ) : (
                 <WelcomeScreen

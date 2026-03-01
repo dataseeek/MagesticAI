@@ -130,7 +130,7 @@ export async function fetchSkills(category: string, force = false): Promise<void
   store.clearError();
 
   try {
-    const params = new URLSearchParams({ category, limit: '200' });
+    const params = new URLSearchParams({ category, limit: '100' });
     const result = await get<{ items: SkillSummary[]; total: number; page: number; limit: number; has_next: boolean }>(
       `/skills/list?${params.toString()}`
     );

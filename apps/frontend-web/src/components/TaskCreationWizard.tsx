@@ -738,8 +738,8 @@ export function TaskCreationWizard({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
         className={cn(
-          "max-h-[90vh] p-0 overflow-hidden transition-all duration-300 ease-out bg-slate-800",
-          showFileExplorer ? "sm:max-w-[900px]" : "sm:max-w-[550px]"
+          "max-h-[90vh] p-0 overflow-hidden transition-all duration-300 ease-out bg-[hsl(204,80%,16%)]",
+          showFileExplorer ? "sm:max-w-[60vw]" : "sm:max-w-[50vw] sm:min-w-[550px]"
         )}
         hideCloseButton={showFileExplorer}
       >
@@ -987,6 +987,42 @@ export function TaskCreationWizard({
             </div>
           )}
 
+          {/* AI Skills Section */}
+          <div className="rounded-lg border border-border">
+            <button
+              type="button"
+              onClick={() => setShowSkillsBrowser(!showSkillsBrowser)}
+              className={cn(
+                'flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors',
+                'w-full justify-between py-2 px-3 rounded-lg hover:bg-muted/50'
+              )}
+              disabled={isCreating}
+            >
+              <span className="flex items-center gap-2 font-medium">
+                {t('skills.title')}
+                {selectedSkills.length > 0 && (
+                  <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                    {selectedSkills.length}
+                  </Badge>
+                )}
+              </span>
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 transition-transform duration-200',
+                  showSkillsBrowser && 'rotate-180'
+                )}
+              />
+            </button>
+            {showSkillsBrowser && (
+              <SkillsBrowser
+                selectedSkills={selectedSkills}
+                onSkillsChange={setSelectedSkills}
+                taskDescription={description}
+                maxSkills={5}
+              />
+            )}
+          </div>
+
           {/* Advanced Options Toggle */}
           <button
             type="button"
@@ -1188,42 +1224,6 @@ export function TaskCreationWizard({
               </div>
             </div>
           )}
-
-          {/* AI Skills Section */}
-          <div className="rounded-lg border border-border">
-            <button
-              type="button"
-              onClick={() => setShowSkillsBrowser(!showSkillsBrowser)}
-              className={cn(
-                'flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors',
-                'w-full justify-between py-2 px-3 rounded-lg hover:bg-muted/50'
-              )}
-              disabled={isCreating}
-            >
-              <span className="flex items-center gap-2 font-medium">
-                {t('skills.title')}
-                {selectedSkills.length > 0 && (
-                  <Badge variant="secondary" className="h-5 px-1.5 text-xs">
-                    {selectedSkills.length}
-                  </Badge>
-                )}
-              </span>
-              <ChevronDown
-                className={cn(
-                  'h-4 w-4 transition-transform duration-200',
-                  showSkillsBrowser && 'rotate-180'
-                )}
-              />
-            </button>
-            {showSkillsBrowser && (
-              <SkillsBrowser
-                selectedSkills={selectedSkills}
-                onSkillsChange={setSelectedSkills}
-                taskDescription={description}
-                maxSkills={5}
-              />
-            )}
-          </div>
 
           {/* Error */}
           {error && (
