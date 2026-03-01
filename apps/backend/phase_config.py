@@ -535,7 +535,7 @@ infer_qa_provider_from_model = infer_provider_from_model
 
 
 # Provider capabilities: which providers support agentic phases (file ops, code execution)
-PROVIDER_AGENTIC_SUPPORT = {"claude", "codex", "gemini"}
+PROVIDER_AGENTIC_SUPPORT = {"claude", "codex", "gemini", "ollama"}
 
 
 def validate_phase_provider(phase: Phase, model: str) -> tuple[bool, str]:
@@ -543,8 +543,8 @@ def validate_phase_provider(phase: Phase, model: str) -> tuple[bool, str]:
     Validate that the model/provider is compatible with the phase.
 
     Agentic phases (spec, planning, coding, qa_fixer) require providers that
-    support file operations and code execution.  Ollama only supports text-only
-    mode suitable for the QA review phase.
+    support file operations and code execution.  Providers in
+    PROVIDER_AGENTIC_SUPPORT can handle these phases.
 
     Args:
         phase: Execution phase (spec, planning, coding, qa, qa_fixer)
@@ -555,8 +555,11 @@ def validate_phase_provider(phase: Phase, model: str) -> tuple[bool, str]:
     """
     provider = infer_provider_from_model(model)
     agentic_phases: set[str] = {"spec", "planning", "coding", "qa_fixer"}
-    if provider == "ollama" and phase in agentic_phases:
-        return False, f"Ollama models don't support agentic mode needed for {phase} phase"
+    if phase in agentic_phases and provider not in PROVIDER_AGENTIC_SUPPORT:
+        return False, (
+            f"Provider '{provider}' doesn't support agentic mode needed for "
+            f"{phase} phase. Supported: {sorted(PROVIDER_AGENTIC_SUPPORT)}"
+        )
     return True, ""
 
 

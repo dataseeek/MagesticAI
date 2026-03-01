@@ -53,6 +53,7 @@ _AGENTIC_REGISTRY: dict[str, tuple[str, str]] = {
     "claude":  ("providers.claude",          "ClaudeProvider"),
     "codex":   ("providers.codex_agentic",   "CodexAgenticProvider"),
     "gemini":  ("providers.gemini_agentic",  "GeminiAgenticProvider"),
+    "ollama":  ("providers.ollama_agentic",  "OllamaAgenticProvider"),
 }
 
 _TEXT_REGISTRY: dict[str, tuple[str, str]] = {
