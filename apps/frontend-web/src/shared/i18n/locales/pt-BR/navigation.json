@@ -15,7 +15,8 @@
     "gitlabIssues": "Issues do GitLab",
     "gitlabMRs": "MRs do GitLab",
     "worktrees": "Worktrees",
-    "agentTools": "MCP"
+    "agentTools": "MCP",
+    "skills": "Habilidades"
   },
   "actions": {
     "settings": "Configurações",
