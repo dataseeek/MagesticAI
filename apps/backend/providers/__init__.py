@@ -39,7 +39,8 @@ Package layout
         codex_agentic.py    — CodexAgenticProvider (Codex CLI full-auto)
         gemini.py           — GeminiCLIProvider (Gemini CLI text-only)
         gemini_agentic.py   — GeminiAgenticProvider (Gemini CLI sandbox)
-        ollama.py           — OllamaProvider   (local Ollama adapter)
+        ollama.py           — OllamaProvider   (local Ollama text-only adapter)
+        ollama_agentic.py   — OllamaAgenticProvider (native tool calling)
         factory.py          — Unified get_provider() + legacy get_qa_llm_provider()
 
 Usage::

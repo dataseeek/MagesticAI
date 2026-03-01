@@ -22,6 +22,8 @@ MagesticAI is a browser-based platform for managing AI-powered coding tasks thro
 - **Monaco Code Editor** - VS Code-like editing experience
 - **Git Worktree Isolation** - Safe, isolated builds per task
 - **AI-Powered QA** - Automated code review and validation
+- **Local LLM Agentic Mode** - Ollama models with native tool calling (Read, Write, Edit, Bash, Glob, Grep) — no API fallback needed
+- **Multi-Provider Support** - Claude, Codex, Gemini, and Ollama with automatic agentic/text-only routing per phase
 - **Graphiti Memory** - Cross-session learning and knowledge retention
 - **Multi-Project Support** - Manage multiple repositories
 - **Internationalization** - English, French, Portuguese (Brazil)
@@ -119,6 +121,8 @@ See [ContainerAPP.md](ContainerAPP.md) for detailed Docker deployment instructio
 │                                                                  │
 │   Backend Agents (Python)                                        │
 │   ├── Claude Agent SDK Integration                               │
+│   ├── Multi-Provider Engine (Claude/Codex/Gemini/Ollama)         │
+│   ├── Local LLM Tool Calling (Read/Write/Edit/Bash/Glob/Grep)   │
 │   ├── Planner Agent (creates implementation plans)               │
 │   ├── Coder Agent (implements subtasks)                          │
 │   ├── QA Reviewer (validates code)                               │
@@ -164,6 +168,7 @@ See [ContainerAPP.md](ContainerAPP.md) for detailed Docker deployment instructio
 |------------|---------|---------|
 | Python | 3.12+ | Runtime |
 | Claude Agent SDK | Latest | AI Agent Framework |
+| Ollama | Local | Local LLM with native tool calling |
 | Graphiti | Latest | Knowledge Graph Memory |
 | LadybugDB | Embedded | Graph Database (no Docker) |
 
@@ -192,9 +197,11 @@ MagesticAI/
 │   │
 │   ├── backend/             # Python agent system
 │   │   ├── agents/          # Planner, Coder agents
+│   │   ├── providers/       # Multi-LLM adapters (Claude, Codex, Gemini, Ollama)
+│   │   ├── tools/           # Reusable tool executor (Read, Write, Edit, Bash, Glob, Grep)
 │   │   ├── qa/              # QA Reviewer, Fixer
 │   │   ├── spec/            # Spec creation pipeline
-│   │   ├── security/        # Command validation
+│   │   ├── security/        # Command validation & path boundary
 │   │   ├── integrations/    # Graphiti, Linear, GitHub
 │   │   └── prompts/         # Agent system prompts
 │   │
