@@ -24,6 +24,7 @@ import {
   AlertDialogTitle
 } from './ui/alert-dialog';
 import { cn } from '../lib/utils';
+import { StatusBadgeButton } from './ui/StatusBadgeButton';
 import type { ClaudeCodeVersionInfo } from '../shared/types/cli';
 
 interface ClaudeCodeStatusBadgeProps {
@@ -230,61 +231,33 @@ export function ClaudeCodeStatusBadge({ className, onOpenOnboarding, iconOnly = 
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            {iconOnly ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'h-8 w-8',
-                  overallHealth === 'bad' ? 'text-destructive' : '',
-                  overallHealth === 'partial' ? 'text-yellow-600 dark:text-yellow-500' : '',
-                  className
-                )}
-              >
-                <div className="relative inline-flex">
-                  <AnthropicIcon className="h-4 w-4" />
-                  <span className={cn(
-                    'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background',
-                    getStatusColor()
-                  )} />
-                </div>
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  'w-full justify-start gap-2 text-xs',
-                  overallHealth === 'bad' ? 'text-destructive' : '',
-                  overallHealth === 'partial' ? 'text-yellow-600 dark:text-yellow-500' : '',
-                  className
-                )}
-              >
-                <div className="relative">
-                  <AnthropicIcon className="h-4 w-4" />
-                  <span className={cn(
-                    'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full',
-                    getStatusColor()
-                  )} />
-                </div>
-                <span className="truncate">Claude Code</span>
-                {status === 'outdated' && (
-                  <span className="ml-auto text-[10px] bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded">
-                    {t('common:update', 'Update')}
-                  </span>
-                )}
-                {status === 'not-found' && (
-                  <span className="ml-auto text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded">
-                    {t('common:install', 'Install')}
-                  </span>
-                )}
-                {hasToken === false && status !== 'not-found' && (
-                  <span className="ml-auto text-[10px] bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded">
-                    {t('navigation:claudeCode.noAuth', 'No Auth')}
-                  </span>
-                )}
-              </Button>
-            )}
+            <StatusBadgeButton
+              iconOnly={iconOnly}
+              icon={<AnthropicIcon className="h-4 w-4" />}
+              label="Claude Code"
+              dotColor={getStatusColor()}
+              className={cn(
+                overallHealth === 'bad' ? 'text-destructive' : '',
+                overallHealth === 'partial' ? 'text-yellow-600 dark:text-yellow-500' : '',
+                className
+              )}
+            >
+              {status === 'outdated' && (
+                <span className="ml-auto text-[10px] bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded">
+                  {t('common:update', 'Update')}
+                </span>
+              )}
+              {status === 'not-found' && (
+                <span className="ml-auto text-[10px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded">
+                  {t('common:install', 'Install')}
+                </span>
+              )}
+              {hasToken === false && status !== 'not-found' && (
+                <span className="ml-auto text-[10px] bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded">
+                  {t('navigation:claudeCode.noAuth', 'No Auth')}
+                </span>
+              )}
+            </StatusBadgeButton>
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side={iconOnly ? 'bottom' : 'right'}>

@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from './ui/tooltip';
 import { cn } from '../lib/utils';
+import { StatusBadgeButton } from './ui/StatusBadgeButton';
 import { OllamaIcon } from './icons/OllamaIcon';
 import { apiRequest } from '../lib/api-client';
 
@@ -125,46 +126,17 @@ export function LocalLLMStatusBadge({ className, iconOnly = false }: LocalLLMSta
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            {iconOnly ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'h-8 w-8',
-                  statusType === 'not-installed' && 'opacity-50',
-                  statusType === 'installed' && 'text-yellow-600 dark:text-yellow-500',
-                  className,
-                )}
-              >
-                <div className="relative inline-flex">
-                  <OllamaIcon className="h-4 w-4" />
-                  <span className={cn(
-                    'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background',
-                    dotColor,
-                  )} />
-                </div>
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  'w-full justify-start gap-2 text-xs',
-                  statusType === 'not-installed' && 'opacity-50',
-                  statusType === 'installed' && 'text-yellow-600 dark:text-yellow-500',
-                  className,
-                )}
-              >
-                <div className="relative">
-                  <OllamaIcon className="h-4 w-4" />
-                  <span className={cn(
-                    'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full',
-                    dotColor,
-                  )} />
-                </div>
-                <span className="truncate">Ollama</span>
-              </Button>
-            )}
+            <StatusBadgeButton
+              iconOnly={iconOnly}
+              icon={<OllamaIcon className="h-4 w-4" />}
+              label="Ollama"
+              dotColor={dotColor}
+              className={cn(
+                statusType === 'not-installed' && 'opacity-50',
+                statusType === 'installed' && 'text-yellow-600 dark:text-yellow-500',
+                className,
+              )}
+            />
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side={iconOnly ? 'bottom' : 'right'}>

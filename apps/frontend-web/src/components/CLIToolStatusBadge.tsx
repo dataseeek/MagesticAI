@@ -22,6 +22,7 @@ import {
   TooltipTrigger,
 } from './ui/tooltip';
 import { cn } from '../lib/utils';
+import { StatusBadgeButton } from './ui/StatusBadgeButton';
 import { OpenAIIcon } from './icons/OpenAIIcon';
 import { GeminiIcon } from './icons/GeminiIcon';
 import type { CLIAccountStatus, CLIAccountsDetectionResult } from '../shared/types';
@@ -146,54 +147,27 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh, icon
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            {iconOnly ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'h-8 w-8',
-                  statusType === 'not-installed' && 'opacity-50',
-                  statusType === 'installed' && 'text-yellow-600 dark:text-yellow-500',
-                )}
-              >
-                <div className="relative inline-flex">
-                  <Icon className="h-4 w-4" />
-                  <span className={cn(
-                    'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background',
-                    dotColor,
-                  )} />
-                </div>
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  'w-full justify-start gap-2 text-xs',
-                  statusType === 'not-installed' && 'opacity-50',
-                  statusType === 'installed' && 'text-yellow-600 dark:text-yellow-500',
-                )}
-              >
-                <div className="relative">
-                  <Icon className="h-4 w-4" />
-                  <span className={cn(
-                    'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full',
-                    dotColor,
-                  )} />
-                </div>
-                <span className="truncate">{label}</span>
-                {hasUpdate && (
-                  <span className="ml-auto text-[10px] bg-blue-500/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded">
-                    {t('common:update', 'Update')}
-                  </span>
-                )}
-                {statusType === 'not-installed' && (
-                  <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                    {t('navigation:cliTools.notInstalled')}
-                  </span>
-                )}
-              </Button>
-            )}
+            <StatusBadgeButton
+              iconOnly={iconOnly}
+              icon={<Icon className="h-4 w-4" />}
+              label={label}
+              dotColor={dotColor}
+              className={cn(
+                statusType === 'not-installed' && 'opacity-50',
+                statusType === 'installed' && 'text-yellow-600 dark:text-yellow-500',
+              )}
+            >
+              {hasUpdate && (
+                <span className="ml-auto text-[10px] bg-blue-500/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded">
+                  {t('common:update', 'Update')}
+                </span>
+              )}
+              {statusType === 'not-installed' && (
+                <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                  {t('navigation:cliTools.notInstalled')}
+                </span>
+              )}
+            </StatusBadgeButton>
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side={iconOnly ? 'bottom' : 'right'}>
