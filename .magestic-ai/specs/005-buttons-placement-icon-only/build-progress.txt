@@ -4,4 +4,4 @@
   [x] 1.4: Investigate whether a local LLM icon exists or can be created following the same icon + status + popover pattern (481f716b)
   [x] 2.1: Remove or hide the Claude, Codex, and Gemini status icon buttons from the side-menu component (preserve the underlying state/logic if shared) (6f9c6a12)
   [x] 2.2: Add the 3 CLI status icons (Claude, Codex, Gemini) to the top header component in icon-only mode (no text labels), positioned before the theme switch icons (c17ce4d3)
-  [x] 2.3: Verify and adjust styling: icon size, spacing, alignment, and popover positioning within the header context
+  [x] 2.3: Verify and adjust styling: icon size, spacing, alignment, and popover positioning within the header context (64a04951)
