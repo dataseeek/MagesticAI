@@ -76,20 +76,20 @@ export function GitHubIntegration({
 
   // Auto-detect GitHub CLI auth when toggled on without a token
   useEffect(() => {
-    if (!envConfig?.githubEnabled || envConfig?.githubToken) return;
+    if (!envConfig?.githubEnabled || envConfig?.githubTokenSet) return;
 
     let cancelled = false;
     const autoDetect = async () => {
       debugLog('Auto-detecting GitHub CLI auth...');
       setIsAutoDetecting(true);
       try {
-        const result = await window.API.autoDetectGitHub();
+        const result = await window.API.autoDetectGitHub(projectId);
         if (cancelled) return;
         debugLog('autoDetectGitHub result:', result);
 
-        if (result.success && result.data?.authenticated && result.data.token) {
-          // gh CLI is authenticated — auto-populate token and username
-          updateEnvConfig({ githubToken: result.data.token, githubAuthMethod: 'oauth' });
+        if (result.success && result.data?.authenticated && result.data.tokenPersisted) {
+          // gh CLI is authenticated — token persisted server-side
+          updateEnvConfig({ githubAuthMethod: 'oauth' });
           setOauthUsername(result.data.username || null);
           setAuthMode('oauth-success');
 
@@ -222,12 +222,12 @@ export function GitHubIntegration({
     return null;
   }
 
-  const handleOAuthSuccess = (token: string, username?: string) => {
-    debugLog('handleOAuthSuccess called with token length:', token.length);
+  const handleOAuthSuccess = (username?: string) => {
+    debugLog('handleOAuthSuccess called');
     debugLog('OAuth username:', username);
 
-    // Update the token and auth method
-    updateEnvConfig({ githubToken: token, githubAuthMethod: 'oauth' });
+    // Token was persisted server-side, just update auth method
+    updateEnvConfig({ githubAuthMethod: 'oauth' });
 
     // Show success state with username
     setOauthUsername(username || null);
@@ -336,6 +336,7 @@ export function GitHubIntegration({
                 </Button>
               </div>
               <GitHubOAuthFlow
+                projectId={projectId}
                 onSuccess={handleOAuthSuccess}
                 onCancel={handleSwitchToManual}
               />
@@ -383,7 +384,7 @@ export function GitHubIntegration({
             </>
           )}
 
-          {envConfig.githubToken && envConfig.githubRepo && (
+          {(envConfig.githubTokenSet || envConfig.githubToken) && envConfig.githubRepo && (
             <ConnectionStatus
               isChecking={isCheckingGitHub}
               connectionStatus={gitHubConnectionStatus}

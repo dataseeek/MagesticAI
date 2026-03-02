@@ -341,7 +341,7 @@ export interface API {
   // GitHub OAuth operations (gh CLI)
   checkGitHubCli: () => Promise<IPCResult<{ installed: boolean; version?: string }>>;
   checkGitHubAuth: () => Promise<IPCResult<{ authenticated: boolean; username?: string }>>;
-  autoDetectGitHub: () => Promise<IPCResult<{ authenticated: boolean; username?: string; token?: string; reason?: string }>>;
+  autoDetectGitHub: (projectId?: string) => Promise<IPCResult<{ authenticated: boolean; username?: string; tokenPersisted?: boolean; reason?: string }>>;
   startGitHubAuth: () => Promise<IPCResult<{
     success: boolean;
     message?: string;
@@ -350,11 +350,12 @@ export interface API {
     browserOpened?: boolean;
     fallbackUrl?: string;
   }>>;
-  getGitHubToken: () => Promise<IPCResult<{ token: string }>>;
+  getGitHubToken: () => Promise<IPCResult<{ hasToken: boolean }>>;
+  persistGitHubToken: (projectId: string) => Promise<IPCResult<{ tokenPersisted: boolean }>>;
   getGitHubUser: () => Promise<IPCResult<{ username: string; name?: string }>>;
   listGitHubUserRepos: () => Promise<IPCResult<{ repos: Array<{ fullName: string; description: string | null; isPrivate: boolean }> }>>;
   detectGitHubRepo: (projectPath: string) => Promise<IPCResult<string>>;
-  getGitHubBranches: (repo: string, token: string) => Promise<IPCResult<string[]>>;
+  getGitHubBranches: (repo: string) => Promise<IPCResult<string[]>>;
   createGitHubRepo: (
     repoName: string,
     options: { description?: string; isPrivate?: boolean; projectPath: string; owner?: string }

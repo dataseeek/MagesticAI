@@ -51,6 +51,10 @@ class PostPRReviewRequest(BaseModel):
     selectedFindingIds: list[str] | None = None
 
 
+class PersistTokenRequest(BaseModel):
+    projectId: str
+
+
 class PostPRCommentRequest(BaseModel):
     body: str
 
@@ -93,6 +97,48 @@ def run_gh_command(args: list[str], cwd: str | None = None) -> dict:
         return {"success": False, "error": "Command timed out"}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+def _persist_cli_token_to_project(project_id: str) -> bool:
+    """Persist the gh CLI token to a project's .magestic-ai/.env file.
+
+    Reads the current token from `gh auth token`, then inserts/updates
+    GITHUB_TOKEN in the project env file with secure 0o600 permissions.
+    Returns True on success.
+    """
+    from .projects import load_projects
+
+    token_result = run_gh_command(["auth", "token"])
+    if not token_result["success"] or not token_result["output"]:
+        return False
+
+    token = token_result["output"]
+
+    projects = load_projects()
+    if project_id not in projects:
+        return False
+
+    project_path = FilePath(projects[project_id]["path"])
+    env_path = project_path / ".magestic-ai" / ".env"
+
+    try:
+        existing = {}
+        if env_path.exists():
+            for line in env_path.read_text().split("\n"):
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    existing[key.strip()] = value.strip()
+
+        existing["GITHUB_TOKEN"] = token
+
+        env_path.parent.mkdir(parents=True, exist_ok=True)
+        content = "\n".join(f"{k}={v}" for k, v in existing.items())
+        env_path.write_text(content)
+        env_path.chmod(0o600)
+        return True
+    except Exception:
+        return False
 
 
 # ============================================
@@ -306,8 +352,13 @@ async def check_github_auth():
 
 
 @router.get("/auto-detect")
-async def auto_detect_github():
-    """Auto-detect GitHub CLI authentication, token, and username in one call."""
+async def auto_detect_github(projectId: str | None = Query(None)):
+    """Auto-detect GitHub CLI authentication and username in one call.
+
+    If projectId is provided, the CLI token is persisted directly to the
+    project's .magestic-ai/.env file (server-side). The raw token is never
+    included in the response.
+    """
     # Check gh CLI is installed
     if not shutil.which("gh"):
         return {"success": True, "data": {"authenticated": False, "reason": "gh_not_installed"}}
@@ -324,18 +375,17 @@ async def auto_detect_github():
     if user_result["success"]:
         username = user_result["output"]
 
-    # Get token
-    token = ""
-    token_result = run_gh_command(["auth", "token"])
-    if token_result["success"]:
-        token = token_result["output"]
+    # Persist token server-side if projectId provided
+    token_persisted = False
+    if projectId:
+        token_persisted = _persist_cli_token_to_project(projectId)
 
     return {
         "success": True,
         "data": {
             "authenticated": True,
             "username": username,
-            "token": token,
+            "tokenPersisted": token_persisted,
         }
     }
 
@@ -451,11 +501,25 @@ async def start_github_auth():
 
 @router.get("/token")
 async def get_github_token():
-    """Get GitHub auth token from CLI."""
+    """Check if a GitHub auth token is available from CLI.
+
+    Returns only a boolean flag -- the raw token is never exposed.
+    """
     result = run_gh_command(["auth", "token"])
-    if result["success"]:
-        return {"success": True, "data": {"token": result["output"]}}
-    return {"success": True, "data": {"token": ""}}
+    has_token = result["success"] and bool(result.get("output"))
+    return {"success": True, "data": {"hasToken": has_token}}
+
+
+@router.post("/persist-token")
+async def persist_github_token(request: PersistTokenRequest):
+    """Persist the gh CLI token to a project's .magestic-ai/.env file.
+
+    The raw token never appears in the response.
+    """
+    persisted = _persist_cli_token_to_project(request.projectId)
+    if persisted:
+        return {"success": True, "data": {"tokenPersisted": True}}
+    return {"success": False, "error": "Failed to persist token"}
 
 
 @router.get("/user")
@@ -513,7 +577,6 @@ async def detect_github_repo(path: str = Query(...)):
 @router.get("/branches")
 async def get_github_branches(
     repo: str = Query(...),
-    token: str = Query(...)
 ):
     """Get branches for a GitHub repository."""
     result = run_gh_command([
