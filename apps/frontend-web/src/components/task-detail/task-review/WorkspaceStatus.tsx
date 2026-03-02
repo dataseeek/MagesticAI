@@ -5,6 +5,7 @@ import {
   Minus,
   Eye,
   GitMerge,
+  GitPullRequestCreateArrow,
   FolderX,
   Loader2,
   RotateCcw,
@@ -39,6 +40,8 @@ interface WorkspaceStatusProps {
   onLoadMergePreview: () => void;
   onStageOnlyChange: (value: boolean) => void;
   onMerge: () => void;
+  onCreatePR?: () => void;
+  isCreatingPR?: boolean;
   onAbortMerge?: () => void;
   onClose?: () => void;
   onSwitchToTerminals?: () => void;
@@ -136,6 +139,8 @@ export function WorkspaceStatus({
   onLoadMergePreview,
   onStageOnlyChange,
   onMerge,
+  onCreatePR,
+  isCreatingPR = false,
   onAbortMerge,
   onClose,
   onSwitchToTerminals,
@@ -589,12 +594,33 @@ export function WorkspaceStatus({
                 </>
               )}
             </Button>
+            {onCreatePR && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCreatePR}
+                disabled={isMerging || isDiscarding || isCreatingPR || mergeStep !== 'idle'}
+                className="flex-1"
+              >
+                {isCreatingPR ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating PR...
+                  </>
+                ) : (
+                  <>
+                    <GitPullRequestCreateArrow className="mr-2 h-4 w-4" />
+                    Create PR
+                  </>
+                )}
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
               size="icon"
               onClick={() => onShowDiscardDialog(true)}
-              disabled={isMerging || isDiscarding}
+              disabled={isMerging || isDiscarding || isCreatingPR}
               className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30"
               title="Discard build"
             >

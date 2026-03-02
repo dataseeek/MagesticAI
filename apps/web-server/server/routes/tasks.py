@@ -1579,6 +1579,13 @@ async def unwatch_task_logs(task_id: str):
 # Worktree Merge Routes
 # ============================================
 
+class CreatePRFromTaskOptions(BaseModel):
+    title: str | None = None
+    body: str | None = None
+    draft: bool = False
+    baseBranch: str | None = None
+
+
 class WorktreeMergeOptions(BaseModel):
     noCommit: bool | None = False
 
@@ -2826,6 +2833,162 @@ async def abort_worktree_merge(task_id: str):
                 "message": "No active merge found to abort"
             }
         }
+
+
+@router.post("/{task_id}/worktree/create-pr")
+async def create_pr_from_task(task_id: str, options: CreatePRFromTaskOptions = None):
+    """
+    Push the worktree branch and create a GitHub Pull Request.
+    Does NOT delete the worktree or branch after PR creation.
+    """
+    import subprocess
+
+    if options is None:
+        options = CreatePRFromTaskOptions()
+
+    # Find the task's project
+    projects_data_dir = get_data_dir()
+    projects_file = projects_data_dir / "projects.json"
+
+    if not projects_file.exists():
+        return {"success": False, "error": "No projects configured"}
+
+    projects_data = json.loads(projects_file.read_text())
+
+    # Find the task across all projects
+    project_path = None
+    if isinstance(projects_data, dict):
+        projects = list(projects_data.values())
+    else:
+        projects = projects_data
+
+    for project in projects:
+        if isinstance(project, str):
+            project_path = Path(project)
+        else:
+            project_path = Path(project.get("path", ""))
+
+        spec_dir = project_path / ".magestic-ai" / "specs" / task_id
+
+        if spec_dir.exists():
+            break
+    else:
+        return {"success": False, "error": f"Task {task_id} not found"}
+
+    # Find the worktree
+    worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / task_id
+
+    if not worktree_path.exists():
+        return {"success": False, "error": "No worktree found for this task"}
+
+    # Get the branch name from the worktree
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=worktree_path,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        worktree_branch = result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        return {"success": False, "error": f"Could not determine worktree branch: {e}"}
+
+    # Get the base branch (from options or detect from main project)
+    base_branch = options.baseBranch
+    if not base_branch:
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                cwd=project_path,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            base_branch = result.stdout.strip()
+        except subprocess.CalledProcessError:
+            base_branch = "main"
+
+    # Push the branch to remote
+    try:
+        result = subprocess.run(
+            ["git", "push", "-u", "origin", worktree_branch],
+            cwd=worktree_path,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        if result.returncode != 0:
+            return {"success": False, "error": f"Failed to push branch: {result.stderr.strip()}"}
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": "Push timed out"}
+    except Exception as e:
+        return {"success": False, "error": f"Failed to push branch: {e}"}
+
+    # Load task title/description for PR defaults
+    pr_title = options.title
+    pr_body = options.body
+
+    if not pr_title or not pr_body:
+        # Try requirements.json first
+        req_file = spec_dir / "requirements.json"
+        spec_file = spec_dir / "spec.md"
+
+        if req_file.exists():
+            try:
+                reqs = json.loads(req_file.read_text())
+                if not pr_title:
+                    pr_title = reqs.get("title") or reqs.get("taskTitle") or task_id
+                if not pr_body:
+                    pr_body = reqs.get("description") or reqs.get("taskDescription") or ""
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+        if not pr_title:
+            pr_title = task_id
+        if not pr_body and spec_file.exists():
+            try:
+                pr_body = spec_file.read_text()[:2000]
+            except Exception:
+                pr_body = ""
+
+    # Create the PR using gh CLI
+    from .github import run_gh_command
+
+    gh_args = [
+        "pr", "create",
+        "--head", worktree_branch,
+        "--base", base_branch,
+        "--title", pr_title,
+        "--body", pr_body or "",
+    ]
+    if options.draft:
+        gh_args.append("--draft")
+
+    gh_result = run_gh_command(gh_args, cwd=str(project_path))
+
+    if not gh_result["success"]:
+        return {"success": False, "error": f"Failed to create PR: {gh_result.get('error', 'unknown error')}"}
+
+    # Parse PR URL from output
+    pr_url = gh_result.get("output", "").strip()
+    pr_number = None
+    if pr_url:
+        # gh pr create outputs the PR URL, extract number from it
+        import re as _re
+        match = _re.search(r'/pull/(\d+)', pr_url)
+        if match:
+            pr_number = int(match.group(1))
+
+    return {
+        "success": True,
+        "data": {
+            "prUrl": pr_url,
+            "prNumber": pr_number,
+            "branch": worktree_branch,
+            "baseBranch": base_branch,
+        }
+    }
 
 
 @router.post("/{task_id}/worktree/merge")

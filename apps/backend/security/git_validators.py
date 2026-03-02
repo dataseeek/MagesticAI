@@ -11,57 +11,19 @@ from pathlib import Path
 from .validation_models import ValidationResult
 
 
-def validate_git_commit(command_string: str) -> ValidationResult:
-    """
-    Validate git commit commands - run secret scan before allowing commit.
-
-    This provides autonomous feedback to the AI agent if secrets are detected,
-    with actionable instructions on how to fix the issue.
-
-    Args:
-        command_string: The full git command string
-
-    Returns:
-        Tuple of (is_valid, error_message)
-    """
+def _format_secret_error(matches: list) -> ValidationResult:
+    """Format secret scan matches into an actionable error message."""
     try:
-        tokens = shlex.split(command_string)
-    except ValueError:
-        return False, "Could not parse git command"
-
-    if not tokens or tokens[0] != "git":
-        return True, ""
-
-    # Only intercept 'git commit' commands (not git add, git push, etc.)
-    if len(tokens) < 2 or tokens[1] != "commit":
-        return True, ""
-
-    # Import the secret scanner
-    try:
-        from scan_secrets import get_staged_files, mask_secret, scan_files
+        from scan_secrets import mask_secret
     except ImportError:
-        # Scanner not available, allow commit (don't break the build)
-        return True, ""
+        return False, "Secrets detected in staged files"
 
-    # Get staged files and scan them
-    staged_files = get_staged_files()
-    if not staged_files:
-        return True, ""  # No staged files, allow commit
-
-    matches = scan_files(staged_files, Path.cwd())
-
-    if not matches:
-        return True, ""  # No secrets found, allow commit
-
-    # Secrets found! Build detailed feedback for the AI agent
-    # Group by file for clearer output
     files_with_secrets: dict[str, list] = {}
     for match in matches:
         if match.file_path not in files_with_secrets:
             files_with_secrets[match.file_path] = []
         files_with_secrets[match.file_path].append(match)
 
-    # Build actionable error message
     error_lines = [
         "SECRETS DETECTED - COMMIT BLOCKED",
         "",
@@ -99,3 +61,63 @@ def validate_git_commit(command_string: str) -> ValidationResult:
     )
 
     return False, "\n".join(error_lines)
+
+
+def validate_git_commit(command_string: str) -> ValidationResult:
+    """
+    Validate git commit commands - run secret scan before allowing commit.
+
+    This provides autonomous feedback to the AI agent if secrets are detected,
+    with actionable instructions on how to fix the issue.
+
+    Args:
+        command_string: The full git command string
+
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    try:
+        tokens = shlex.split(command_string)
+    except ValueError:
+        # Heredoc/complex quoting — can't parse tokens, but if it starts with
+        # "git commit", allow it (secret scanning runs on staged files anyway)
+        stripped = command_string.strip()
+        if stripped.startswith("git commit") or stripped.startswith("git -c"):
+            # Still scan staged files for secrets
+            try:
+                from scan_secrets import get_staged_files, scan_files
+                staged_files = get_staged_files()
+                if staged_files:
+                    matches = scan_files(staged_files, Path.cwd())
+                    if matches:
+                        return _format_secret_error(matches)
+            except ImportError:
+                pass
+            return True, ""
+        return False, "Could not parse git command"
+
+    if not tokens or tokens[0] != "git":
+        return True, ""
+
+    # Only intercept 'git commit' commands (not git add, git push, etc.)
+    if len(tokens) < 2 or tokens[1] != "commit":
+        return True, ""
+
+    # Import the secret scanner
+    try:
+        from scan_secrets import get_staged_files, scan_files
+    except ImportError:
+        # Scanner not available, allow commit (don't break the build)
+        return True, ""
+
+    # Get staged files and scan them
+    staged_files = get_staged_files()
+    if not staged_files:
+        return True, ""  # No staged files, allow commit
+
+    matches = scan_files(staged_files, Path.cwd())
+
+    if not matches:
+        return True, ""  # No secrets found, allow commit
+
+    return _format_secret_error(matches)

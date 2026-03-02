@@ -338,6 +338,8 @@ export const webAPI: API & { _isWebMode: boolean } = {
   abortWorktreeMerge: (taskId: string) =>
     post(`/tasks/${taskId}/worktree/abort-merge`),
   discardWorktree: (taskId: string) => post(`/tasks/${taskId}/worktree/discard`),
+  createPRFromTask: (taskId: string, options?: { title?: string; body?: string; draft?: boolean; baseBranch?: string }) =>
+    post(`/tasks/${taskId}/worktree/create-pr`, options || {}),
   listWorktrees: (projectId: string) => get(`/projects/${projectId}/worktrees`),
   worktreeOpenInIDE: (worktreePath: string, ide: string, customPath?: string) =>
     post('/tasks/worktree/open-in-ide', { worktreePath, ide, customPath }),
