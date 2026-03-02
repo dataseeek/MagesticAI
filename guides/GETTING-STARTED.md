@@ -113,10 +113,10 @@ Follow the prompts to authenticate with your Anthropic account. Your token will 
 
 ```bash
 # Clone the project
-git clone https://github.com/dataseeek/Claude-Code-Manager-Web.git
+git clone https://github.com/dataseeek/MagesticAI.git
 
 # Navigate to the project directory
-cd Claude-Code-Manager-Web
+cd MagesticAI
 ```
 
 ### Step 2: Install All Dependencies
@@ -440,8 +440,8 @@ Congratulations! You've completed your first task with MagesticAI. Here's what t
 
 ### Get Help
 
-- **GitHub Issues:** [Report bugs or request features](https://github.com/dataseeek/Claude-Code-Manager-Web/issues)
-- **GitHub Discussions:** [Ask questions and share ideas](https://github.com/dataseeek/Claude-Code-Manager-Web/discussions)
+- **GitHub Issues:** [Report bugs or request features](https://github.com/dataseeek/MagesticAI/issues)
+- **GitHub Discussions:** [Ask questions and share ideas](https://github.com/dataseeek/MagesticAI/discussions)
 
 ---
 

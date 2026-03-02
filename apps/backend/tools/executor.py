@@ -49,6 +49,27 @@ _DEFAULT_BASH_TIMEOUT = 120  # seconds
 _MAX_BASH_TIMEOUT = 600  # seconds
 
 
+async def _read_with_limit(
+    path: Path, max_chars: int, encoding: str = "utf-8"
+) -> tuple[str, bool]:
+    """Read a text file with a character limit.
+
+    Uses ``f.read(n)`` which reads at most *n* characters, avoiding TOCTOU
+    races (no separate stat) and unbounded memory consumption.
+
+    Returns ``(content, was_truncated)``.
+    """
+    def _do_read() -> tuple[str, bool]:
+        with open(path, "r", encoding=encoding, errors="replace") as f:
+            data = f.read(max_chars + 1)
+            truncated = len(data) > max_chars
+            if truncated:
+                data = data[:max_chars]
+            return data, truncated
+
+    return await asyncio.to_thread(_do_read)
+
+
 class ToolExecutor:
     """Execute tool calls locally with security enforcement.
 
@@ -162,17 +183,7 @@ class ToolExecutor:
             )
 
         try:
-            size = resolved.stat().st_size
-            if size > _MAX_READ_BYTES:
-                return ToolResultBlock(
-                    content=(
-                        f"File too large ({size:,} bytes, max {_MAX_READ_BYTES:,}). "
-                        "Use offset and limit to read portions."
-                    ),
-                    is_error=True,
-                )
-
-            content = await asyncio.to_thread(resolved.read_text, "utf-8", "replace")
+            content, truncated = await _read_with_limit(resolved, _MAX_READ_BYTES)
         except PermissionError:
             return ToolResultBlock(
                 content=f"Permission denied: {file_path}", is_error=True
@@ -191,7 +202,13 @@ class ToolExecutor:
         for i, line in enumerate(lines[start:end], start=start + 1):
             numbered.append(f"{i:>6}\t{line}")
 
-        return ToolResultBlock(content="\n".join(numbered))
+        result_text = "\n".join(numbered)
+        if truncated:
+            result_text += (
+                f"\n\n[Truncated: file exceeded {_MAX_READ_BYTES:,} character limit. "
+                "Use offset and limit to read specific portions.]"
+            )
+        return ToolResultBlock(content=result_text)
 
     async def _exec_write(self, tool_input: dict) -> ToolResultBlock:
         """Write content to a file, creating parent dirs if needed."""
