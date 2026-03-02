@@ -7,6 +7,7 @@ import { SortableProjectTab } from './SortableProjectTab';
 import { ProjectSelector } from './settings/ProjectSelector';
 import { ClaudeCodeStatusBadge } from './ClaudeCodeStatusBadge';
 import { CLIToolStatusBadge } from './CLIToolStatusBadge';
+import { LocalLLMStatusBadge } from './LocalLLMStatusBadge';
 import { useProjectStore } from '../stores/project-store';
 import { useSettingsStore, saveSettings } from '../stores/settings-store';
 import type { Project } from '../shared/types';
@@ -158,6 +159,7 @@ export function ProjectTabBar({
         <Separator orientation="vertical" className="h-4 mx-0.5" />
         <ClaudeCodeStatusBadge iconOnly onOpenOnboarding={onOpenOnboarding} />
         <CLIToolStatusBadge iconOnly />
+        <LocalLLMStatusBadge iconOnly />
         <Separator orientation="vertical" className="h-4 mx-0.5" />
         <Button
           variant="ghost"
