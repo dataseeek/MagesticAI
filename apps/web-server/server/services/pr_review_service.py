@@ -506,10 +506,12 @@ class PRReviewService:
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"Failed to read review result: {e}")
 
+        from .pr_data_service import _convert_keys
+
         await broadcast_event("pr:review-complete", {
             "projectId": project_id,
             "prNumber": pr_number,
-            "result": result_data,
+            "result": _convert_keys(result_data) if result_data else None,
         })
 
     async def _emit_error(

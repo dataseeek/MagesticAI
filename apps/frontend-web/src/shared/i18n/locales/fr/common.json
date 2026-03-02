@@ -146,6 +146,7 @@
     "runFollowup": "Lancer le suivi",
     "aiReviewInProgress": "Révision IA en cours",
     "waitingForChanges": "En attente de modifications",
+    "checkForUpdates": "Vérifier les mises à jour",
     "reviewComplete": "Révision terminée",
     "reviewStatus": "Statut de révision",
     "files": "fichiers",

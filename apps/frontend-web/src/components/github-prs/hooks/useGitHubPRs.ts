@@ -126,11 +126,9 @@ export function useGitHubPRs(projectId?: string): UseGitHubPRsResult {
             const preloadResults = await Promise.all(preloadPromises);
 
             // Check for new commits on PRs that have been reviewed
-            // (either has reviewedCommitSha or the snake_case variant from older reviews)
             const prsWithReviews = preloadResults.filter(
               (r): r is { prNumber: number; reviewResult: PRReviewResult } =>
-                r !== null &&
-                (!!r.reviewResult?.reviewedCommitSha || !!(r.reviewResult as any)?.reviewed_commit_sha)
+                r !== null && !!r.reviewResult?.reviewedCommitSha
             );
 
             if (prsWithReviews.length > 0) {
@@ -187,8 +185,13 @@ export function useGitHubPRs(projectId?: string): UseGitHubPRsResult {
           }
         });
       }
+
+      // Always check for new commits when selecting a PR
+      window.API.github.checkNewCommits(projectId, prNumber).then(result => {
+        setNewCommitsCheckAction(projectId, prNumber, result);
+      }).catch(() => {});
     }
-  }, [projectId, getPRReviewState]);
+  }, [projectId, getPRReviewState, setNewCommitsCheckAction]);
 
   const refresh = useCallback(async () => {
     await fetchPRs();

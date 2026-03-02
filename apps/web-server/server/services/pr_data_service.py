@@ -20,6 +20,25 @@ logger = logging.getLogger(__name__)
 
 
 # ============================================================================
+# Key conversion helpers
+# ============================================================================
+
+def _snake_to_camel(key: str) -> str:
+    """Convert a snake_case string to camelCase."""
+    parts = key.split("_")
+    return parts[0] + "".join(p.capitalize() for p in parts[1:])
+
+
+def _convert_keys(obj: Any) -> Any:
+    """Recursively convert dict keys from snake_case to camelCase."""
+    if isinstance(obj, dict):
+        return {_snake_to_camel(k): _convert_keys(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_convert_keys(item) for item in obj]
+    return obj
+
+
+# ============================================================================
 # gh CLI helper (shared with routes/github.py)
 # ============================================================================
 
@@ -240,14 +259,14 @@ class PRDataService:
         if not result["success"]:
             return {"success": False, "error": result.get("error", "Failed to post review")}
 
-        # Update review metadata on disk
+        # Update review metadata on disk (snake_case — matches backend format)
         posted_ids = [f.get("id") for f in findings if f.get("id")]
-        review_data["hasPostedFindings"] = True
-        review_data.setdefault("postedFindingIds", [])
+        review_data["has_posted_findings"] = True
+        review_data.setdefault("posted_finding_ids", [])
         for fid in posted_ids:
-            if fid not in review_data["postedFindingIds"]:
-                review_data["postedFindingIds"].append(fid)
-        review_data["postedAt"] = datetime.now().isoformat()
+            if fid not in review_data["posted_finding_ids"]:
+                review_data["posted_finding_ids"].append(fid)
+        review_data["posted_at"] = datetime.now().isoformat()
 
         try:
             review_file.write_text(json.dumps(review_data, indent=2))
@@ -384,11 +403,13 @@ class PRDataService:
         """
         # Read stored review to get the reviewed commit SHA
         last_reviewed_commit = None
+        posted_at = None
         review_file = _review_file_path(project_path, pr_number)
         if review_file.exists():
             try:
                 review_data = json.loads(review_file.read_text())
                 last_reviewed_commit = review_data.get("reviewed_commit_sha")
+                posted_at = review_data.get("posted_at")
             except (json.JSONDecodeError, OSError):
                 pass
 
@@ -412,6 +433,7 @@ class PRDataService:
                     "newCommitCount": 0,
                     "lastReviewedCommit": None,
                     "currentHeadCommit": current_head_commit,
+                    "hasCommitsAfterPosting": False,
                 },
             }
 
@@ -444,6 +466,7 @@ class PRDataService:
                 "newCommitCount": new_commit_count,
                 "lastReviewedCommit": last_reviewed_commit,
                 "currentHeadCommit": current_head_commit,
+                "hasCommitsAfterPosting": has_new_commits,
             },
         }
 
@@ -468,7 +491,7 @@ class PRDataService:
 
         try:
             result_data = json.loads(review_file.read_text())
-            return {"success": True, "data": result_data}
+            return {"success": True, "data": _convert_keys(result_data)}
         except json.JSONDecodeError:
             return {"success": False, "error": "Failed to parse stored review data"}
         except OSError as e:
@@ -546,7 +569,7 @@ class PRDataService:
         """Build formatted markdown body from review findings."""
         parts: list[str] = []
         parts.append(f"## AI Code Review - PR #{pr_number}\n")
-        parts.append(f"**Overall Status:** {review_data.get('overallStatus', 'comment')}\n")
+        parts.append(f"**Overall Status:** {review_data.get('overall_status', 'comment')}\n")
 
         if review_data.get("summary"):
             parts.append(f"### Summary\n{review_data['summary']}\n")
@@ -558,7 +581,7 @@ class PRDataService:
             description = finding.get("description", "")
             file_path = finding.get("file", "")
             line = finding.get("line", 0)
-            suggested_fix = finding.get("suggestedFix", "")
+            suggested_fix = finding.get("suggested_fix", "")
 
             location = f"`{file_path}"
             if line:
