@@ -284,7 +284,11 @@ class ToolExecutor:
                     content=f"Security: {reason}", is_error=True
                 )
         except ImportError:
-            logger.warning("security.hooks not available — skipping bash validation")
+            logger.error("security.hooks not available — blocking all bash commands")
+            return ToolResultBlock(
+                content="Security: bash commands disabled (security module unavailable)",
+                is_error=True,
+            )
         except Exception as exc:
             logger.warning("Bash security check failed: %s", exc)
             return ToolResultBlock(
