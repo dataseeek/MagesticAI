@@ -16,9 +16,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
+import logging
+
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
+
+from ..auth import _try_decode_jwt
+from ..config import get_settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -358,11 +365,45 @@ async def read_file_direct(
     }
 
 
+def _validate_serve_token(request: Request, token: str) -> bool:
+    """Validate authentication for the /serve endpoint.
+
+    Checks (in order):
+    1. Authorization header (standard Bearer token flow)
+    2. ``token`` query param (for rewritten HTML asset URLs)
+
+    Returns True if the request is authenticated.
+    """
+    settings = get_settings()
+
+    if settings.DISABLE_AUTH:
+        return True
+
+    # 1. Try Authorization header
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        header_token = auth_header[7:]
+        if _try_decode_jwt(header_token) is not None:
+            return True
+        if header_token == settings.API_TOKEN:
+            return True
+
+    # 2. Try query-param token (used by rewritten HTML asset URLs)
+    if token:
+        if _try_decode_jwt(token) is not None:
+            return True
+        if token == settings.API_TOKEN:
+            return True
+
+    return False
+
+
 @router.get("/serve")
 async def serve_project_file(
     request: Request,
     path: str = Query(..., description="Absolute path to the file to serve"),
     root: str = Query(..., description="Project root directory (for resolving relative URLs)"),
+    token: str = Query(default="", description="Bearer token for authentication"),
 ):
     """Serve a project file with its correct MIME type.
 
@@ -370,6 +411,9 @@ async def serve_project_file(
     CSS/JS/images load through this same endpoint.  External URLs
     (http://, https://, //, data:, #, mailto:) are left untouched.
     """
+    # Authenticate: check token from query param or Authorization header
+    if not _validate_serve_token(request, token):
+        raise HTTPException(status_code=401, detail="Authentication required")
     file_path = Path(path).expanduser().resolve()
     root_path = Path(root).expanduser().resolve()
 
@@ -400,7 +444,6 @@ async def serve_project_file(
         html_content = file_path.read_text(encoding="latin-1")
 
     # Carry the token through to rewritten URLs
-    token = request.query_params.get("token", "")
     html_dir = file_path.parent
 
     def _rewrite_url(match: re.Match) -> str:

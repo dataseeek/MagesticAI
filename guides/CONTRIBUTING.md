@@ -74,8 +74,8 @@ winget install Python.Python.3.12
 
 ```bash
 # Clone the repository
-git clone https://github.com/dataseeek/Claude-Code-Manager-Web.git
-cd Claude-Code-Manager-Web
+git clone https://github.com/dataseeek/MagesticAI.git
+cd MagesticAI
 
 # Install all dependencies
 npm run install:all
@@ -407,7 +407,7 @@ Include:
 ### Overview
 
 ```
-Claude-Code-Manager-Web/
+MagesticAI/
 ├── apps/
 │   ├── frontend-web/     # React web frontend
 │   ├── web-server/       # FastAPI backend
@@ -423,7 +423,7 @@ For detailed architecture, see [DOCS.md](DOCS.md).
 
 ## Questions?
 
-- **Issues:** https://github.com/dataseeek/Claude-Code-Manager-Web/issues
-- **Discussions:** https://github.com/dataseeek/Claude-Code-Manager-Web/discussions
+- **Issues:** https://github.com/dataseeek/MagesticAI/issues
+- **Discussions:** https://github.com/dataseeek/MagesticAI/discussions
 
 Thank you for contributing to MagesticAI!
