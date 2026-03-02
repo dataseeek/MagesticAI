@@ -66,7 +66,9 @@
         {
           "id": "2.4",
           "description": "If feasible, add local LLM icon to header using the same icon + status + popover pattern",
-          "status": "pending"
+          "status": "completed",
+          "notes": "Created LocalLLMStatusBadge.tsx following the exact same icon + status dot + Tooltip + Popover pattern as CLIToolStatusBadge. Uses OllamaIcon, detects Ollama via /settings/local-llm/detect endpoint, shows status (running=green, installed-not-running=yellow, not-installed=gray). Added to ProjectTabBar after CLIToolStatusBadge. Added i18n keys in en/fr navigation.json. TypeScript type-check passes with no errors.",
+          "updated_at": "2026-03-02T18:34:02.473779+00:00"
         }
       ]
     },
@@ -77,7 +79,9 @@
         {
           "id": "3.1",
           "description": "Verify all 3 CLI status icons display correctly in the header (icon + status dot visible, text labels absent)",
-          "status": "pending"
+          "status": "completed",
+          "notes": "Verified all 3 CLI status icons (Claude via ClaudeCodeStatusBadge, Codex+Gemini via CLIToolStatusBadge) display correctly in the header with iconOnly=true. Confirmed: (1) Icon + status dot are visible in all 3 buttons; (2) Text labels absent in button triggers (iconOnly branch renders only SVG icon + h-2 w-2 status dot, no text spans); (3) Buttons are h-8 w-8 size=icon consistent with header conventions; (4) All 3 badges positioned after Add Project button and before theme toggle separator in ProjectTabBar.tsx lines 160-162; (5) Sidebar.tsx has no imports or rendering of these badges. TypeScript passes with 0 errors. LocalLLMStatusBadge (Ollama) also passes same icon-only verification.",
+          "updated_at": "2026-03-02T18:36:54.896416+00:00"
         },
         {
           "id": "3.2",
@@ -97,5 +101,5 @@
       ]
     }
   ],
-  "last_updated": "2026-03-02T18:28:35.514686+00:00"
+  "last_updated": "2026-03-02T18:36:54.896442+00:00"
 }
