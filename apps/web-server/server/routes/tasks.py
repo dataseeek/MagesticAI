@@ -1742,6 +1742,21 @@ async def get_worktree_merge_preview(task_id: str):
                     if file_path:
                         conflicting_files.append(file_path)
 
+    # Filter out gitignored files from conflict list (e.g. build artifacts)
+    if conflicting_files:
+        try:
+            result = subprocess.run(
+                ["git", "check-ignore"] + conflicting_files,
+                cwd=project_path,
+                capture_output=True, text=True
+            )
+            ignored = set(result.stdout.strip().splitlines())
+            conflicting_files = [f for f in conflicting_files if f not in ignored]
+            if not conflicting_files:
+                has_conflicts = False
+        except Exception:
+            pass  # If check-ignore fails, keep the original list
+
     # Check if there's an active merge in progress (MERGE_HEAD exists)
     # This is different from the merge-tree dry run above - this means a real merge
     # is in progress with unresolved conflict markers in files
@@ -1807,6 +1822,19 @@ async def get_worktree_merge_preview(task_id: str):
                 task_files = set(task_files_result.stdout.strip().split('\n'))
                 # Find files that overlap (uncommitted in main AND modified in task)
                 uncommitted_conflicting_files = list(set(uncommitted_files) & task_files)
+
+                # Filter out gitignored files (e.g. build artifacts)
+                if uncommitted_conflicting_files:
+                    try:
+                        ignored_result = subprocess.run(
+                            ["git", "check-ignore"] + uncommitted_conflicting_files,
+                            cwd=project_path,
+                            capture_output=True, text=True
+                        )
+                        ignored = set(ignored_result.stdout.strip().splitlines())
+                        uncommitted_conflicting_files = [f for f in uncommitted_conflicting_files if f not in ignored]
+                    except Exception:
+                        pass
     except subprocess.CalledProcessError:
         pass  # Non-fatal - continue without uncommitted detection
 
@@ -1915,39 +1943,43 @@ async def resolve_worktree_conflicts(task_id: str, options: ConflictResolveOptio
     if options is None:
         options = ConflictResolveOptions()
 
-    # Find the task's spec directory and worktree
-    projects_data_dir = get_data_dir()
-    projects_file = projects_data_dir / "projects.json"
+    # Parse task_id to get spec_id
+    # task_id could be "project_id:spec_id" or just "spec_id"
+    if ":" in task_id:
+        project_id, spec_id = task_id.split(":", 1)
+        # Look up project path
+        projects_file = get_data_file("projects.json")
+        if not projects_file.exists():
+            return {"success": False, "error": "Projects file not found"}
 
-    if not projects_file.exists():
-        return {"success": False, "error": "No projects configured"}
+        projects_data = json.loads(projects_file.read_text())
 
-    projects_data = json.loads(projects_file.read_text())
-
-    # Find the task across all projects
-    project_path = None
-    worktree_path = None
-
-    if isinstance(projects_data, dict):
-        projects = list(projects_data.values())
-    else:
-        projects = projects_data
-
-    for project in projects:
-        if isinstance(project, str):
-            project_path = Path(project)
+        # Handle dict format where keys are project IDs
+        if isinstance(projects_data, dict):
+            project = projects_data.get(project_id)
+            if not project:
+                return {"success": False, "error": f"Project not found: {project_id}"}
+            project_path = Path(project["path"])
         else:
-            project_path = Path(project.get("path", ""))
-
-        spec_dir = project_path / ".magestic-ai" / "specs" / task_id
-
-        if spec_dir.exists():
-            worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / task_id
-            break
+            # Handle list format where each item has an "id" field
+            project = None
+            for p in projects_data:
+                if isinstance(p, dict) and p.get("id") == project_id:
+                    project = p
+                    break
+            if not project:
+                return {"success": False, "error": f"Project not found: {project_id}"}
+            project_path = Path(project["path"])
     else:
+        return {"success": False, "error": "Task ID must include project ID (format: project_id:spec_id)"}
+
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
+    worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / spec_id
+
+    if not spec_dir.exists():
         return {"success": False, "error": f"Task {task_id} not found"}
 
-    if not worktree_path or not worktree_path.exists():
+    if not worktree_path.exists():
         return {"success": False, "error": "No worktree found for this task"}
 
     # Get worktree branch name
@@ -2726,37 +2758,41 @@ async def abort_worktree_merge(task_id: str):
     logger = logging.getLogger(__name__)
     logger.info(f"Aborting merge for task {task_id}")
 
-    # Find the task's project
-    projects_data_dir = get_data_dir()
-    projects_file = projects_data_dir / "projects.json"
+    # Parse task_id to get spec_id
+    # task_id could be "project_id:spec_id" or just "spec_id"
+    if ":" in task_id:
+        project_id, spec_id = task_id.split(":", 1)
+        # Look up project path
+        projects_file = get_data_file("projects.json")
+        if not projects_file.exists():
+            return {"success": False, "error": "Projects file not found"}
 
-    if not projects_file.exists():
-        return {"success": False, "error": "No projects configured"}
+        projects_data = json.loads(projects_file.read_text())
 
-    projects_data = json.loads(projects_file.read_text())
-
-    # Find the task across all projects
-    project_path = None
-    worktree_path = None
-
-    if isinstance(projects_data, dict):
-        projects = list(projects_data.values())
-    else:
-        projects = projects_data
-
-    for project in projects:
-        if isinstance(project, str):
-            project_path = Path(project)
+        # Handle dict format where keys are project IDs
+        if isinstance(projects_data, dict):
+            project = projects_data.get(project_id)
+            if not project:
+                return {"success": False, "error": f"Project not found: {project_id}"}
+            project_path = Path(project["path"])
         else:
-            project_path = Path(project.get("path", ""))
-
-        spec_dir = project_path / ".magestic-ai" / "specs" / task_id
-
-        if spec_dir.exists():
-            worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / task_id
-            break
+            # Handle list format where each item has an "id" field
+            project = None
+            for p in projects_data:
+                if isinstance(p, dict) and p.get("id") == project_id:
+                    project = p
+                    break
+            if not project:
+                return {"success": False, "error": f"Project not found: {project_id}"}
+            project_path = Path(project["path"])
     else:
+        return {"success": False, "error": "Task ID must include project ID (format: project_id:spec_id)"}
+
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
+    if not spec_dir.exists():
         return {"success": False, "error": f"Task {task_id} not found"}
+
+    worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / spec_id
 
     aborted_locations = []
     errors = []
@@ -2846,37 +2882,42 @@ async def create_pr_from_task(task_id: str, options: CreatePRFromTaskOptions = N
     if options is None:
         options = CreatePRFromTaskOptions()
 
-    # Find the task's project
-    projects_data_dir = get_data_dir()
-    projects_file = projects_data_dir / "projects.json"
+    # Parse task_id to get spec_id
+    # task_id could be "project_id:spec_id" or just "spec_id"
+    if ":" in task_id:
+        project_id, spec_id = task_id.split(":", 1)
+        # Look up project path
+        projects_file = get_data_file("projects.json")
+        if not projects_file.exists():
+            return {"success": False, "error": "Projects file not found"}
 
-    if not projects_file.exists():
-        return {"success": False, "error": "No projects configured"}
+        projects_data = json.loads(projects_file.read_text())
 
-    projects_data = json.loads(projects_file.read_text())
-
-    # Find the task across all projects
-    project_path = None
-    if isinstance(projects_data, dict):
-        projects = list(projects_data.values())
-    else:
-        projects = projects_data
-
-    for project in projects:
-        if isinstance(project, str):
-            project_path = Path(project)
+        # Handle dict format where keys are project IDs
+        if isinstance(projects_data, dict):
+            project = projects_data.get(project_id)
+            if not project:
+                return {"success": False, "error": f"Project not found: {project_id}"}
+            project_path = Path(project["path"])
         else:
-            project_path = Path(project.get("path", ""))
-
-        spec_dir = project_path / ".magestic-ai" / "specs" / task_id
-
-        if spec_dir.exists():
-            break
+            # Handle list format where each item has an "id" field
+            project = None
+            for p in projects_data:
+                if isinstance(p, dict) and p.get("id") == project_id:
+                    project = p
+                    break
+            if not project:
+                return {"success": False, "error": f"Project not found: {project_id}"}
+            project_path = Path(project["path"])
     else:
+        return {"success": False, "error": "Task ID must include project ID (format: project_id:spec_id)"}
+
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
+    if not spec_dir.exists():
         return {"success": False, "error": f"Task {task_id} not found"}
 
     # Find the worktree
-    worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / task_id
+    worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / spec_id
 
     if not worktree_path.exists():
         return {"success": False, "error": "No worktree found for this task"}
@@ -2909,10 +2950,70 @@ async def create_pr_from_task(task_id: str, options: CreatePRFromTaskOptions = N
         except subprocess.CalledProcessError:
             base_branch = "main"
 
-    # Push the branch to remote
+    # Fetch latest base branch from remote
+    try:
+        subprocess.run(
+            ["git", "fetch", "origin", base_branch],
+            cwd=worktree_path,
+            capture_output=True, text=True, timeout=30
+        )
+    except Exception:
+        pass  # Non-fatal — rebase will use whatever is available
+
+    # Stash any uncommitted changes before rebasing
+    stashed = False
+    try:
+        stash_result = subprocess.run(
+            ["git", "stash", "push", "-m", "magestic-ai-pre-rebase"],
+            cwd=worktree_path,
+            capture_output=True, text=True, timeout=10
+        )
+        # "No local changes to save" means nothing was stashed
+        stashed = stash_result.returncode == 0 and "No local changes" not in stash_result.stdout
+    except Exception:
+        pass
+
+    # Rebase onto latest base branch to minimize conflicts (best-effort)
+    rebase_failed = False
     try:
         result = subprocess.run(
-            ["git", "push", "-u", "origin", worktree_branch],
+            ["git", "rebase", f"origin/{base_branch}"],
+            cwd=worktree_path,
+            capture_output=True, text=True, timeout=120
+        )
+        if result.returncode != 0:
+            # Abort the failed rebase to leave worktree clean
+            subprocess.run(
+                ["git", "rebase", "--abort"],
+                cwd=worktree_path,
+                capture_output=True, text=True, timeout=10
+            )
+            rebase_failed = True
+    except subprocess.TimeoutExpired:
+        subprocess.run(
+            ["git", "rebase", "--abort"],
+            cwd=worktree_path, capture_output=True, text=True, timeout=10
+        )
+        rebase_failed = True
+    except Exception:
+        rebase_failed = True
+
+    # Restore stashed changes
+    if stashed:
+        subprocess.run(
+            ["git", "stash", "pop"],
+            cwd=worktree_path,
+            capture_output=True, text=True, timeout=10
+        )
+
+    # Push the branch to remote
+    # Use --force-with-lease after successful rebase (rebase rewrites history)
+    push_cmd = ["git", "push", "-u", "origin", worktree_branch]
+    if not rebase_failed:
+        push_cmd = ["git", "push", "--force-with-lease", "-u", "origin", worktree_branch]
+    try:
+        result = subprocess.run(
+            push_cmd,
             cwd=worktree_path,
             capture_output=True,
             text=True,
@@ -3001,39 +3102,42 @@ async def merge_worktree(task_id: str, options: WorktreeMergeOptions = None):
     if options is None:
         options = WorktreeMergeOptions()
 
-    # Find the task's project
-    projects_data_dir = get_data_dir()
-    projects_file = projects_data_dir / "projects.json"
+    # Parse task_id to get spec_id
+    # task_id could be "project_id:spec_id" or just "spec_id"
+    if ":" in task_id:
+        project_id, spec_id = task_id.split(":", 1)
+        # Look up project path
+        projects_file = get_data_file("projects.json")
+        if not projects_file.exists():
+            return {"success": False, "error": "Projects file not found"}
 
-    if not projects_file.exists():
-        return {"success": False, "error": "No projects configured"}
+        projects_data = json.loads(projects_file.read_text())
 
-    projects_data = json.loads(projects_file.read_text())
-
-    # Find the task across all projects
-    project_path = None
-
-    # Handle both dict format (id -> project) and list format
-    if isinstance(projects_data, dict):
-        projects = list(projects_data.values())
-    else:
-        projects = projects_data
-
-    for project in projects:
-        if isinstance(project, str):
-            project_path = Path(project)
+        # Handle dict format where keys are project IDs
+        if isinstance(projects_data, dict):
+            project = projects_data.get(project_id)
+            if not project:
+                return {"success": False, "error": f"Project not found: {project_id}"}
+            project_path = Path(project["path"])
         else:
-            project_path = Path(project.get("path", ""))
-
-        spec_dir = project_path / ".magestic-ai" / "specs" / task_id
-
-        if spec_dir.exists():
-            break
+            # Handle list format where each item has an "id" field
+            project = None
+            for p in projects_data:
+                if isinstance(p, dict) and p.get("id") == project_id:
+                    project = p
+                    break
+            if not project:
+                return {"success": False, "error": f"Project not found: {project_id}"}
+            project_path = Path(project["path"])
     else:
+        return {"success": False, "error": "Task ID must include project ID (format: project_id:spec_id)"}
+
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
+    if not spec_dir.exists():
         return {"success": False, "error": f"Task {task_id} not found"}
 
     # Find the worktree
-    worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / task_id
+    worktree_path = project_path / ".magestic-ai" / "worktrees" / "tasks" / spec_id
 
     if not worktree_path.exists():
         return {"success": False, "error": "No worktree found for this task"}
