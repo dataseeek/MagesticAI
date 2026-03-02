@@ -28,6 +28,7 @@ import type { CLIAccountStatus, CLIAccountsDetectionResult } from '../shared/typ
 
 interface CLIToolStatusBadgeProps {
   className?: string;
+  iconOnly?: boolean;
 }
 
 // Refresh every 5 minutes
@@ -40,9 +41,10 @@ interface CLIToolPopoverProps {
   label: string;
   lastChecked: Date | null;
   onRefresh: () => void;
+  iconOnly?: boolean;
 }
 
-function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CLIToolPopoverProps) {
+function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh, iconOnly = false }: CLIToolPopoverProps) {
   const { t } = useTranslation(['navigation', 'common']);
   const [isOpen, setIsOpen] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
@@ -144,42 +146,62 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                'w-full justify-start gap-2 text-xs',
-                statusType === 'not-installed' && 'opacity-50',
-                statusType === 'installed' && 'text-yellow-600 dark:text-yellow-500',
-              )}
-            >
-              <div className="relative">
-                <Icon className="h-4 w-4" />
-                <span className={cn(
-                  'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full',
-                  dotColor,
-                )} />
-              </div>
-              <span className="truncate">{label}</span>
-              {hasUpdate && (
-                <span className="ml-auto text-[10px] bg-blue-500/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded">
-                  {t('common:update', 'Update')}
-                </span>
-              )}
-              {statusType === 'not-installed' && (
-                <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                  {t('navigation:cliTools.notInstalled')}
-                </span>
-              )}
-            </Button>
+            {iconOnly ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-8 w-8',
+                  statusType === 'not-installed' && 'opacity-50',
+                  statusType === 'installed' && 'text-yellow-600 dark:text-yellow-500',
+                )}
+              >
+                <div className="relative">
+                  <Icon className="h-4 w-4" />
+                  <span className={cn(
+                    'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full',
+                    dotColor,
+                  )} />
+                </div>
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'w-full justify-start gap-2 text-xs',
+                  statusType === 'not-installed' && 'opacity-50',
+                  statusType === 'installed' && 'text-yellow-600 dark:text-yellow-500',
+                )}
+              >
+                <div className="relative">
+                  <Icon className="h-4 w-4" />
+                  <span className={cn(
+                    'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full',
+                    dotColor,
+                  )} />
+                </div>
+                <span className="truncate">{label}</span>
+                {hasUpdate && (
+                  <span className="ml-auto text-[10px] bg-blue-500/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded">
+                    {t('common:update', 'Update')}
+                  </span>
+                )}
+                {statusType === 'not-installed' && (
+                  <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                    {t('navigation:cliTools.notInstalled')}
+                  </span>
+                )}
+              </Button>
+            )}
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="right">
+        <TooltipContent side={iconOnly ? 'bottom' : 'right'}>
           {tooltipText}
         </TooltipContent>
       </Tooltip>
 
-      <PopoverContent side="right" align="end" className="w-72">
+      <PopoverContent side={iconOnly ? 'bottom' : 'right'} align="end" className="w-72">
         <div className="space-y-3">
           {/* Header */}
           <div className="flex items-center gap-2">
@@ -348,7 +370,7 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
  * Shows Codex CLI and Gemini CLI status with brand icons, colored indicators,
  * and rich popover modals with version info, auth status, and action buttons.
  */
-export function CLIToolStatusBadge({ className }: CLIToolStatusBadgeProps) {
+export function CLIToolStatusBadge({ className, iconOnly = false }: CLIToolStatusBadgeProps) {
   const [accounts, setAccounts] = useState<CLIAccountsDetectionResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
@@ -394,7 +416,7 @@ export function CLIToolStatusBadge({ className }: CLIToolStatusBadgeProps) {
   ];
 
   return (
-    <div className={cn('space-y-0.5', className)}>
+    <div className={cn(iconOnly ? 'flex items-center gap-1' : 'space-y-0.5', className)}>
       {clis.map(({ key, Icon, label }) => (
         <CLIToolPopover
           key={key}
@@ -404,6 +426,7 @@ export function CLIToolStatusBadge({ className }: CLIToolStatusBadgeProps) {
           label={label}
           lastChecked={lastChecked}
           onRefresh={detect}
+          iconOnly={iconOnly}
         />
       ))}
     </div>

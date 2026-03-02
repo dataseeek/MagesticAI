@@ -4,6 +4,8 @@ import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import { SortableProjectTab } from './SortableProjectTab';
 import { ProjectSelector } from './settings/ProjectSelector';
+import { ClaudeCodeStatusBadge } from './ClaudeCodeStatusBadge';
+import { CLIToolStatusBadge } from './CLIToolStatusBadge';
 import { useProjectStore } from '../stores/project-store';
 import { useSettingsStore, saveSettings } from '../stores/settings-store';
 import type { Project } from '../shared/types';
@@ -18,6 +20,7 @@ interface ProjectTabBarProps {
   className?: string;
   // Control props for active tab
   onSettingsClick?: () => void;
+  onOpenOnboarding?: () => void;
 }
 
 export function ProjectTabBar({
@@ -28,7 +31,8 @@ export function ProjectTabBar({
   onAddProject,
   onProjectAdded,
   className,
-  onSettingsClick
+  onSettingsClick,
+  onOpenOnboarding,
 }: ProjectTabBarProps) {
   const allProjects = useProjectStore((state) => state.projects);
   const selectedProjectId = useProjectStore((state) => state.selectedProjectId);
@@ -150,6 +154,8 @@ export function ProjectTabBar({
         >
           <Plus className="h-4 w-4" />
         </Button>
+        <ClaudeCodeStatusBadge iconOnly onOpenOnboarding={onOpenOnboarding} />
+        <CLIToolStatusBadge iconOnly />
         <Button
           variant="ghost"
           size="icon"
