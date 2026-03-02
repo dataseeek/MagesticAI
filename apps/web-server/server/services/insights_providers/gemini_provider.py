@@ -7,6 +7,9 @@ Runs `gemini --prompt "<message>"` as a subprocess.
 import asyncio
 import logging
 import os
+import shlex
+import shutil
+import time
 from pathlib import Path
 
 from ...websockets.events import broadcast_event
@@ -16,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 # Gemini models (static fallback list)
 GEMINI_MODELS = [
+    ProviderModel(id="gemini-3.1-pro-preview", label="Gemini 3.1 Pro (Preview)"),
+    ProviderModel(id="gemini-3-flash-preview", label="Gemini 3 Flash (Preview)"),
     ProviderModel(id="gemini-2.5-flash", label="Gemini 2.5 Flash"),
     ProviderModel(id="gemini-2.5-pro", label="Gemini 2.5 Pro"),
 ]
@@ -25,12 +30,13 @@ class GeminiProvider(ProviderStrategy):
     """Provider that shells out to the Gemini CLI."""
 
     async def detect(self) -> ProviderInfo:
-        from ...routes.cli_accounts import _detect_cli_version, _detect_gemini_credentials
+        from ...routes.cli_accounts import _detect_gemini_credentials
 
-        version = _detect_cli_version("gemini")
-        installed = version is not None
+        # Fast path: just check if gemini binary exists on PATH
+        # (running `gemini --version` takes ~3s due to Node.js startup)
+        installed = shutil.which("gemini") is not None
+
         authenticated, auth_method, _ = (False, None, None)
-
         if installed:
             authenticated, auth_method, _ = _detect_gemini_credentials()
 
@@ -51,7 +57,7 @@ class GeminiProvider(ProviderStrategy):
         model: str | None,
         model_config: dict | None,
         conversation_history: list[dict] | None,
-    ) -> None:
+    ) -> str:
         cmd = ["bash", "-l", "-c"]
 
         effective_model = model or (model_config or {}).get("model", "gemini-2.5-flash")
@@ -67,8 +73,7 @@ class GeminiProvider(ProviderStrategy):
             if context_parts:
                 full_prompt = "\n".join(context_parts) + f"\n[user]: {message}"
 
-        escaped_msg = full_prompt.replace("'", "'\\''")
-        gemini_cmd = f"gemini --model {effective_model} --prompt '{escaped_msg}'"
+        gemini_cmd = f"gemini --model {shlex.quote(effective_model)} --prompt {shlex.quote(full_prompt)}"
 
         cmd.append(gemini_cmd)
 
@@ -93,6 +98,7 @@ class GeminiProvider(ProviderStrategy):
             )
 
             accumulated = ""
+            stream_start = time.monotonic()
             async for line_bytes in proc.stdout:
                 line = line_bytes.decode("utf-8", errors="replace").rstrip()
                 if not line:
@@ -115,12 +121,24 @@ class GeminiProvider(ProviderStrategy):
                     "type": "error",
                     "error": error_msg,
                 })
-                return
+                return ""
+
+            elapsed = time.monotonic() - stream_start
+            estimated_tokens = max(1, len(accumulated) // 4)
+            tokens_per_sec = round(estimated_tokens / elapsed, 1) if elapsed > 0 else 0
 
             await broadcast_event("insights:chunk", {
                 "projectId": project_id,
                 "type": "done",
+                "metrics": {
+                    "outputTokens": estimated_tokens,
+                    "tokensPerSecond": tokens_per_sec,
+                    "elapsedSeconds": round(elapsed, 1),
+                    "estimated": True,
+                },
             })
+
+            return accumulated
 
         except Exception as e:
             logger.error(f"[GeminiProvider] Error: {e}", exc_info=True)
@@ -129,3 +147,4 @@ class GeminiProvider(ProviderStrategy):
                 "type": "error",
                 "error": str(e),
             })
+            return ""

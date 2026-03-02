@@ -96,6 +96,42 @@ def load_task_specs(project_path: Path, task_ids: list[str]) -> list[dict[str, A
     return tasks
 
 
+def _parse_commits(raw_output: str) -> list[dict[str, Any]]:
+    """
+    Parse git log output using record/field separators.
+
+    Expects format: %x00%H%x1f%h%x1f%s%x1f%b%x1f%an%x1f%ae%x1f%aI
+    where %x00 (NUL) separates records and %x1f (unit separator) separates fields.
+    This safely handles commit bodies with newlines and pipe characters.
+    """
+    commits = []
+    # Split by NUL record separator, filter empties
+    for record in raw_output.split("\x00"):
+        record = record.strip()
+        if not record:
+            continue
+
+        parts = record.split("\x1f")
+        if len(parts) >= 7:
+            body = parts[3].strip()[:200] if parts[3].strip() else ""
+            commits.append({
+                "hash": parts[0],
+                "short_hash": parts[1],
+                "subject": parts[2],
+                "body": body,
+                "author_name": parts[4],
+                "author_email": parts[5],
+                "date": parts[6].strip()
+            })
+
+    return commits
+
+
+# Git log format using NUL as record separator and unit separator for fields.
+# This prevents multi-line commit bodies and pipe characters from breaking parsing.
+_GIT_LOG_FORMAT = "%x00%H%x1f%h%x1f%s%x1f%b%x1f%an%x1f%ae%x1f%aI"
+
+
 def load_git_commits(
     project_path: Path,
     history_type: str,
@@ -121,7 +157,7 @@ def load_git_commits(
         List of commit dictionaries
     """
     # Build git log command
-    cmd = ["git", "log", "--format=%H|%h|%s|%b|%an|%ae|%aI"]
+    cmd = ["git", "log", f"--format={_GIT_LOG_FORMAT}"]
 
     if history_type == "recent":
         cmd.extend(["-n", str(count)])
@@ -147,24 +183,7 @@ def load_git_commits(
             check=True
         )
 
-        commits = []
-        for line in result.stdout.strip().split("\n"):
-            if not line:
-                continue
-
-            parts = line.split("|")
-            if len(parts) >= 7:
-                commits.append({
-                    "hash": parts[0],
-                    "short_hash": parts[1],
-                    "subject": parts[2],
-                    "body": parts[3][:200] if parts[3] else "",  # Limit body to 200 chars
-                    "author_name": parts[4],
-                    "author_email": parts[5],
-                    "date": parts[6]
-                })
-
-        return commits
+        return _parse_commits(result.stdout)
 
     except subprocess.CalledProcessError as e:
         logger.error(f"Git command failed: {e.stderr}")
@@ -190,7 +209,7 @@ def load_branch_diff_commits(
     cmd = [
         "git", "log",
         f"{base_branch}..{compare_branch}",
-        "--format=%H|%h|%s|%b|%an|%ae|%aI",
+        f"--format={_GIT_LOG_FORMAT}",
         "--no-merges"
     ]
 
@@ -203,24 +222,7 @@ def load_branch_diff_commits(
             check=True
         )
 
-        commits = []
-        for line in result.stdout.strip().split("\n"):
-            if not line:
-                continue
-
-            parts = line.split("|")
-            if len(parts) >= 7:
-                commits.append({
-                    "hash": parts[0],
-                    "short_hash": parts[1],
-                    "subject": parts[2],
-                    "body": parts[3][:200] if parts[3] else "",
-                    "author_name": parts[4],
-                    "author_email": parts[5],
-                    "date": parts[6]
-                })
-
-        return commits
+        return _parse_commits(result.stdout)
 
     except subprocess.CalledProcessError as e:
         logger.error(f"Git command failed: {e.stderr}")
@@ -319,6 +321,8 @@ def build_changelog_prompt(
             prompt += "Add emojis for headers + major changes\n\n"
         elif emoji_level == "high":
             prompt += "Add emojis throughout for all changes\n\n"
+    else:
+        prompt += "**Emoji Level:** none\nDo NOT use any emojis anywhere in the changelog output.\n\n"
 
     # Add custom instructions
     if custom_instructions:

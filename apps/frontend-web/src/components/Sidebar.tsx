@@ -16,6 +16,7 @@ import {
   Sparkles,
   GitBranch,
   Wrench,
+  Lightbulb,
   LogOut
 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -50,7 +51,7 @@ import { ClaudeCodeStatusBadge } from './ClaudeCodeStatusBadge';
 import { CLIToolStatusBadge } from './CLIToolStatusBadge';
 import type { Project, AutoBuildVersionInfo, GitStatus, ProjectEnvConfig } from '../shared/types';
 
-export type SidebarView = 'kanban' | 'terminals' | 'editor' | 'context' | 'github-issues' | 'github-prs' | 'changelog' | 'insights' | 'worktrees' | 'agent-tools';
+export type SidebarView = 'kanban' | 'terminals' | 'editor' | 'context' | 'github-issues' | 'github-prs' | 'changelog' | 'insights' | 'worktrees' | 'agent-tools' | 'skills';
 
 interface SidebarProps {
   onSettingsClick: () => void;
@@ -73,6 +74,7 @@ const baseNavItems: NavItem[] = [
   { id: 'insights', labelKey: 'navigation:items.chat', icon: Sparkles },
   { id: 'terminals', labelKey: 'navigation:items.terminals', icon: Terminal },
   { id: 'agent-tools', labelKey: 'navigation:items.agentTools', icon: Wrench },
+  { id: 'skills', labelKey: 'navigation:items.skills', icon: Lightbulb },
   { id: 'changelog', labelKey: 'navigation:items.changelog', icon: FileText },
   { id: 'worktrees', labelKey: 'navigation:items.worktrees', icon: GitBranch },
   { id: 'context', labelKey: 'navigation:items.context', icon: BookOpen }
@@ -119,6 +121,20 @@ export function Sidebar({
   // Use ref to access skippedGitSetup in effect without re-running
   const skippedGitSetupRef = useRef(skippedGitSetup);
   skippedGitSetupRef.current = skippedGitSetup;
+
+  // Persist skipped init in localStorage so it survives page refresh
+  const [skippedInit, setSkippedInit] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('skippedInit');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  // Use ref to access skippedInit in effect without re-running
+  const skippedInitRef = useRef(skippedInit);
+  skippedInitRef.current = skippedInit;
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
@@ -183,6 +199,17 @@ export function Sidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProjectId]);
 
+  // Check if selected project needs initialization
+  useEffect(() => {
+    const project = projects.find((p) => p.id === selectedProjectId);
+    if (project && !project.autoBuildPath && !skippedInitRef.current.has(project.id)) {
+      setPendingProject(project);
+      setShowInitDialog(true);
+    }
+    // Only re-run when selectedProjectId changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProjectId]);
+
   const handleAddProject = () => {
     setShowAddProjectModal(true);
   };
@@ -213,6 +240,13 @@ export function Sidebar({
   };
 
   const handleSkipInit = () => {
+    if (pendingProject) {
+      setSkippedInit(prev => {
+        const newSet = new Set(prev).add(pendingProject.id);
+        localStorage.setItem('skippedInit', JSON.stringify([...newSet]));
+        return newSet;
+      });
+    }
     setShowInitDialog(false);
     setPendingProject(null);
   };
@@ -276,7 +310,7 @@ export function Sidebar({
         {/* Header with drag area - extra top padding for macOS traffic lights */}
         <div className="electron-drag flex h-14 items-center gap-2.5 px-4 pt-6">
           <img src="/logo.png" alt="MagesticAI" className="electron-no-drag h-7 w-7 rounded" />
-          <span className="electron-no-drag text-lg font-bold" style={{ color: '#61CE70' }}>MagesticAI</span>
+          <span className="electron-no-drag text-lg font-bold" style={{ color: '#61CE70' }}>Magestic<span style={{ color: '#FFFFFF' }}>AI</span></span>
         </div>
 
         <Separator className="mt-2" />
@@ -308,10 +342,11 @@ export function Sidebar({
 
         {/* Bottom section with New Task */}
         <div className="p-4 space-y-3">
-          {/* Claude Code Status Badge */}
-          <ClaudeCodeStatusBadge onOpenOnboarding={onOpenOnboarding} />
-          {/* CLI Tool Status Badges (Codex, Gemini) */}
-          <CLIToolStatusBadge />
+          {/* CLI Status Badges (Claude Code, Codex, Gemini) */}
+          <div className="space-y-0.5">
+            <ClaudeCodeStatusBadge onOpenOnboarding={onOpenOnboarding} />
+            <CLIToolStatusBadge />
+          </div>
 
           {/* New Task button */}
           <Button
@@ -323,9 +358,18 @@ export function Sidebar({
             {t('actions.newTask')}
           </Button>
           {selectedProject && !selectedProject.autoBuildPath && (
-            <p className="mt-2 text-xs text-muted-foreground text-center">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mt-2"
+              onClick={() => {
+                setPendingProject(selectedProject);
+                setShowInitDialog(true);
+              }}
+            >
+              <Download className="mr-2 h-3.5 w-3.5" />
               {t('messages.initializeToCreateTasks')}
-            </p>
+            </Button>
           )}
 
           {/* Logout */}

@@ -31,6 +31,9 @@ MemoryEmbeddingProviderType = Literal[
     "openai", "voyage", "azure_openai", "ollama", "google", "openrouter"
 ]
 
+# QA LLM provider — which backend drives the QA reviewer agent
+QaLlmProviderType = Literal["claude", "codex", "gemini", "ollama"]
+
 from ..config import get_settings
 
 router = APIRouter()
@@ -117,6 +120,23 @@ class AppSettings(BaseModel):
         alias="auto_qa",
         description="Automatically run QA after implementation",
     )
+    qaLlmProvider: QaLlmProviderType = Field(
+        "claude",
+        alias="qa_llm_provider",
+        description="LLM provider used for QA reviewer (claude/codex/gemini/ollama)",
+    )
+
+    @field_validator("qaLlmProvider", mode="before")
+    @classmethod
+    def validate_qa_llm_provider(cls, v: Any) -> str:
+        """Validate QA LLM provider for backward compatibility."""
+        if v is None:
+            return "claude"
+        if isinstance(v, str):
+            v = v.lower().strip()
+            if v in ["claude", "codex", "gemini", "ollama"]:
+                return v
+        return "claude"  # Fallback to default
 
     # Terminal - using camelCase with snake_case aliases
     defaultShell: str = Field("/bin/bash", alias="default_shell", description="Default shell for terminals")
@@ -247,6 +267,7 @@ class SettingsUpdate(BaseModel):
     selectedAgentProfile: str | None = None
     autoContinue: bool | None = Field(None, alias="auto_continue")
     autoQa: bool | None = Field(None, alias="auto_qa")
+    qaLlmProvider: str | None = Field(None, alias="qa_llm_provider")
     defaultShell: str | None = Field(None, alias="default_shell")
     terminalFontSize: int | None = Field(None, alias="terminal_font_size")
     autoNameTerminals: bool | None = None
@@ -2135,13 +2156,20 @@ async def get_auth_status():
     profiles_file = get_data_file("claude-profiles.json")
     has_token = False
     profile_count = 0
+    email = None
 
     if profiles_file.exists():
         try:
             data = json.loads(profiles_file.read_text())
             profiles = data.get("profiles", [])
             profile_count = len(profiles)
-            has_token = any(p.get("oauthToken") for p in profiles)
+            active_id = data.get("activeProfileId")
+            for p in profiles:
+                if p.get("oauthToken"):
+                    has_token = True
+                    # Get email from active profile, or first profile with a token
+                    if email is None or p.get("id") == active_id:
+                        email = p.get("email")
         except (json.JSONDecodeError, KeyError):
             pass
 
@@ -2152,6 +2180,7 @@ async def get_auth_status():
         "hasToken": has_token or bool(env_token),
         "profileCount": profile_count,
         "source": "profile" if has_token else ("env" if env_token else None),
+        "email": email,
     }
 
 

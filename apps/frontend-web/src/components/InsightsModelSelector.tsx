@@ -100,7 +100,10 @@ export function InsightsModelSelector({
       const modelLabel = AVAILABLE_MODELS.find(m => m.value === currentConfig.model)?.label || currentConfig.model;
       return `${modelLabel} + ${currentConfig.thinkingLevel || 'none'}`;
     }
-    return profile?.name || 'Balanced';
+    // Claude preset — show "Claude (Opus 4.6 - Complex Tasks)"
+    const modelEntry = AVAILABLE_MODELS.find(m => m.value === profile?.model);
+    const modelVersion = modelEntry?.label?.replace('Claude ', '') || profile?.model;
+    return `Claude (${modelVersion} - ${profile?.name || 'Balanced'})`;
   };
 
   // Filter to only available non-Claude providers

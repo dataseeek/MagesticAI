@@ -122,7 +122,7 @@ AGENT_CONFIGS = {
         "tools": BASE_READ_TOOLS,
         "mcp_servers": [],  # Self-critique, no external tools
         "magestic_ai_tools": [],
-        "thinking_default": "max",
+        "thinking_default": "high",
     },
     "spec_discovery": {
         "tools": BASE_READ_TOOLS + WEB_TOOLS,

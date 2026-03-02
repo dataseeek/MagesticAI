@@ -60,6 +60,7 @@ export function GitHubPRs({ onOpenSettings, isActive = false }: GitHubPRsProps) 
   const {
     prs,
     isLoading,
+    isInitialLoading,
     error,
     selectedPRNumber,
     reviewResult,
@@ -157,6 +158,18 @@ export function GitHubPRs({ onOpenSettings, isActive = false }: GitHubPRsProps) 
     }
     return null;
   }, [selectedProjectId, selectedPRNumber]);
+
+  // Initial loading state - show while first connection check is in progress
+  if (isInitialLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="text-center">
+          <GitPullRequest className="h-8 w-8 mx-auto mb-3 text-muted-foreground animate-pulse" />
+          <p className="text-sm text-muted-foreground">{t('prReview.connectingToGitHub')}</p>
+        </div>
+      </div>
+    );
+  }
 
   // Not connected state
   if (!isConnected) {

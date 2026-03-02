@@ -54,7 +54,7 @@ import {
   DEFAULT_PHASE_THINKING,
   DEFAULT_FEATURE_MODELS,
   DEFAULT_FEATURE_THINKING,
-  AVAILABLE_MODELS,
+  ALL_AVAILABLE_MODELS,
   THINKING_LEVELS
 } from '../shared/constants/models';
 import type { ModelTypeShort, ThinkingLevel } from '../shared/types/settings';
@@ -71,7 +71,7 @@ interface AgentConfig {
   // Maps to settings source - either a phase or a feature
   settingsSource: {
     type: 'phase';
-    phase: 'spec' | 'planning' | 'coding' | 'qa';
+    phase: 'spec' | 'planning' | 'coding' | 'qa' | 'qa_fixer';
   } | {
     type: 'feature';
     feature: 'insights' | 'githubIssues' | 'githubPrs' | 'utility';
@@ -82,9 +82,9 @@ interface AgentConfig {
   };
 }
 
-// Helper to get model label from short name
-function getModelLabel(modelShort: ModelTypeShort): string {
-  const model = AVAILABLE_MODELS.find(m => m.value === modelShort);
+// Helper to get model label from short name or full model ID
+function getModelLabel(modelShort: string): string {
+  const model = ALL_AVAILABLE_MODELS.find(m => m.value === modelShort);
   return model?.label.replace('Claude ', '') || modelShort;
 }
 
@@ -188,7 +188,7 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
     tools: ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'Bash', 'WebFetch', 'WebSearch'],
     mcp_servers: ['context7', 'graphiti-memory', 'magestic-ai'],
     mcp_optional: ['puppeteer'],
-    settingsSource: { type: 'phase', phase: 'qa' },
+    settingsSource: { type: 'phase', phase: 'qa_fixer' },
   },
 
   // Utility Phases - use feature settings
@@ -940,7 +940,7 @@ export function AgentTools() {
 
   // Resolve model and thinking for an agent based on its settings source
   const resolveAgentSettings = useMemo(() => {
-    return (config: AgentConfig): { model: ModelTypeShort; thinking: ThinkingLevel } => {
+    return (config: AgentConfig): { model: string; thinking: ThinkingLevel } => {
       const source = config.settingsSource;
 
       if (source.type === 'phase') {
@@ -1314,6 +1314,7 @@ export function AgentTools() {
         onOpenChange={setShowCustomMcpDialog}
         server={editingCustomServer}
         existingIds={(envConfig?.customMcpServers || []).map(s => s.id)}
+        existingServers={envConfig?.customMcpServers || []}
         onSave={handleSaveCustomServer}
       />
     </div>

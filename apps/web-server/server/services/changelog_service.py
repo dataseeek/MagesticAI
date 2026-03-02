@@ -152,8 +152,11 @@ class ChangelogService:
         # Add branch diff options if present
         if request.get("branchDiff"):
             branch_diff = request["branchDiff"]
-            cmd.extend(["--base-branch", branch_diff.get("baseBranch", "main")])
-            cmd.extend(["--compare-branch", branch_diff.get("compareBranch", "HEAD")])
+            # Use ref (git-resolvable) if provided, fall back to display name
+            base = branch_diff.get("baseBranchRef") or branch_diff.get("baseBranch", "main")
+            compare = branch_diff.get("compareBranchRef") or branch_diff.get("compareBranch", "HEAD")
+            cmd.extend(["--base-branch", base])
+            cmd.extend(["--compare-branch", compare])
 
         # Add emoji level if present
         if request.get("emojiLevel") and request["emojiLevel"] != "none":

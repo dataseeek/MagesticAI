@@ -169,6 +169,30 @@ def project_to_response(project_id: str, project_data: dict) -> dict:
     # Convert has_magestic_ai to autoBuildPath (string path or empty string)
     auto_build_path = ".magestic-ai" if analysis["has_magestic_ai"] else ""
 
+    # Build settings: start with defaults, then overlay saved settings
+    default_settings = {
+        "model": "claude-sonnet-4-5-20250929",
+        "memoryBackend": "file",
+        "notifications": {
+            "onTaskComplete": True,
+            "onTaskFailed": True,
+            "onReviewNeeded": True,
+            "sound": True
+        },
+        "graphitiMcpEnabled": False,
+        "graphitiMcpUrl": None,
+        "mainBranch": None,
+        "useClaudeMd": True
+    }
+    # Merge saved settings from projects.json (written by update_project_settings)
+    saved_settings = project_data.get("settings", {})
+    if saved_settings:
+        # Merge notifications separately to preserve individual keys
+        if "notifications" in saved_settings:
+            default_settings["notifications"].update(saved_settings["notifications"])
+            saved_settings = {k: v for k, v in saved_settings.items() if k != "notifications"}
+        default_settings.update(saved_settings)
+
     return {
         "id": project_id,
         "path": project_data["path"],
@@ -176,20 +200,7 @@ def project_to_response(project_id: str, project_data: dict) -> dict:
         "createdAt": project_data.get("created_at", datetime.now().isoformat()),
         "updatedAt": project_data.get("updated_at", datetime.now().isoformat()),
         "autoBuildPath": auto_build_path,
-        "settings": {
-            "model": "claude-sonnet-4-5-20250929",
-            "memoryBackend": "file",
-            "notifications": {
-                "onTaskComplete": True,
-                "onTaskFailed": True,
-                "onReviewNeeded": True,
-                "sound": True
-            },
-            "graphitiMcpEnabled": False,
-            "graphitiMcpUrl": None,
-            "mainBranch": project_data.get("main_branch"),
-            "useClaudeMd": True
-        }
+        "settings": default_settings
     }
 
 
@@ -894,7 +905,8 @@ Created via Magestic AI Web UI
         task_metadata = {}
         # Copy model-related fields that phase_config.py expects
         # Also include 'mode' for Quick Mode prompt selection and 'requireReviewBeforeCoding' for approval gate
-        model_fields = ["model", "thinkingLevel", "isAutoProfile", "phaseModels", "phaseThinking", "mode", "requireReviewBeforeCoding"]
+        # Also include selectedSkills so agent_service.py can inject skill context
+        model_fields = ["model", "thinkingLevel", "isAutoProfile", "phaseModels", "phaseThinking", "mode", "requireReviewBeforeCoding", "selectedSkills"]
         for field in model_fields:
             if field in task_data.metadata:
                 task_metadata[field] = task_data.metadata[field]

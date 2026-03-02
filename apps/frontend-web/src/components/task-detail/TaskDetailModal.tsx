@@ -127,11 +127,11 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
 
   // Memoize showTaskReview to ensure TaskReview section appears when:
   // 1. Task is in human_review status (needsReview)
-  // 2. reviewReason is set (not null/undefined)
-  // 3. reviewReason is not 'plan_review' (plan review uses PlanReviewSection instead)
-  // This ensures proper reactivity when task transitions to human_review state
+  // 2. reviewReason is not 'plan_review' (plan review uses PlanReviewSection instead)
+  // Note: reviewReason can be null when phase tracking fails but worktree has changes —
+  // we still show the review section so the merge button can evaluate filesChanged
   const showTaskReview = useMemo(() => {
-    const shouldShow = state.needsReview && task.reviewReason !== 'plan_review' && task.reviewReason !== null && task.reviewReason !== undefined;
+    const shouldShow = state.needsReview && task.reviewReason !== 'plan_review';
     return shouldShow;
   }, [state.needsReview, task.reviewReason]);
 
@@ -239,33 +239,23 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
     state.setIsMerging(true);
     state.setWorkspaceError(null);
     try {
-      // Use specId (e.g., "004-kanban-border-color") not the UUID
-      const result = await window.API.mergeWorktree(task.specId, { noCommit: state.stageOnly });
-      if (result.success && result.data?.success) {
-        if (state.stageOnly && result.data.staged) {
+      const result = await state.unifiedMerge(state.stageOnly);
+      if (result.success && result.data) {
+        if (result.stageOnly && result.data.staged) {
           state.setWorkspaceError(null);
           state.setStagedSuccess(result.data.message || 'Changes staged in main project');
           state.setStagedProjectPath(result.data.projectPath);
           state.setSuggestedCommitMessage(result.data.suggestedCommitMessage);
         } else {
-          // Mark task as done after successful merge
-          await persistTaskStatus(task.id, 'done');
+          // Mark task as done after successful merge (force skips subtask validation)
+          const statusUpdated = await persistTaskStatus(task.id, 'done', { force: true });
+          if (!statusUpdated) {
+            console.warn('Merge succeeded but failed to persist done status for task:', task.id);
+          }
           onOpenChange(false);
         }
-      } else {
-        // Check for uncommitted local changes error and show user-friendly message
-        const errorMsg = result.data?.message || result.error || 'Failed to merge changes';
-        if (errorMsg.includes('local changes') && errorMsg.includes('would be overwritten')) {
-          state.setWorkspaceError(
-            'Your main project has uncommitted changes that conflict with this build. ' +
-            'Please commit or stash your local changes before merging.'
-          );
-        } else {
-          state.setWorkspaceError(errorMsg);
-        }
       }
-    } catch (error) {
-      state.setWorkspaceError(error instanceof Error ? error.message : 'Unknown error during merge');
+      // Errors are handled inside unifiedMerge via setWorkspaceError
     } finally {
       state.setIsMerging(false);
     }
@@ -567,9 +557,8 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
                             mergePreview={state.mergePreview}
                             isLoadingPreview={state.isLoadingPreview}
                             showConflictDialog={state.showConflictDialog}
-                            isResolvingConflicts={state.isResolvingConflicts}
-                            isResolvingUncommitted={state.isResolvingUncommitted}
                             isAbortingMerge={state.isAbortingMerge}
+                            mergeStep={state.mergeStep}
                             phaseLogs={state.phaseLogs ?? undefined}
                             onFeedbackChange={state.setFeedback}
                             onReject={handleReject}
@@ -580,8 +569,6 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
                             onStageOnlyChange={state.setStageOnly}
                             onShowConflictDialog={state.setShowConflictDialog}
                             onLoadMergePreview={state.loadMergePreview}
-                            onResolveWithAI={state.resolveConflictsWithAI}
-                            onResolveUncommitted={state.resolveUncommittedConflicts}
                             onAbortMerge={state.abortMerge}
                             onClose={handleClose}
                             onSwitchToTerminals={onSwitchToTerminals}
@@ -619,8 +606,8 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
                     <TaskFiles
                       task={task}
                       worktreeSpecsPath={
-                        state.worktreeStatus?.exists && state.worktreeStatus.worktreePath
-                          ? state.worktreeStatus.worktreePath
+                        state.worktreeStatus?.exists && state.worktreeStatus.worktreePath && task.specId
+                          ? `${state.worktreeStatus.worktreePath}/.magestic-ai/specs/${task.specId}`
                           : undefined
                       }
                     />

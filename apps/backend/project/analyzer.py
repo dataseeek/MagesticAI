@@ -57,14 +57,35 @@ class ProjectAnalyzer:
         self.parser = ConfigParser(project_dir)
 
     def get_profile_path(self) -> Path:
-        """Get the path where profile should be stored."""
+        """Get the path where profile should be stored.
+
+        Always writes into .magestic-ai/ (gitignored) to avoid merge conflicts
+        when worktree branches and the main branch both generate the file.
+        """
         if self.spec_dir:
             return self.spec_dir / self.PROFILE_FILENAME
-        return self.project_dir / self.PROFILE_FILENAME
+        return self.project_dir / ".magestic-ai" / self.PROFILE_FILENAME
 
     def load_profile(self) -> SecurityProfile | None:
-        """Load existing profile if it exists."""
+        """Load existing profile if it exists.
+
+        Also checks the legacy location (project root) and migrates it
+        to the new .magestic-ai/ directory if found.
+        """
         profile_path = self.get_profile_path()
+
+        # Check legacy location (project root) if new location doesn't exist
+        if not profile_path.exists() and not self.spec_dir:
+            legacy_path = self.project_dir / self.PROFILE_FILENAME
+            if legacy_path.exists():
+                try:
+                    # Migrate: move to new location
+                    profile_path.parent.mkdir(parents=True, exist_ok=True)
+                    legacy_path.rename(profile_path)
+                except OSError:
+                    # Fall back to reading from legacy location
+                    profile_path = legacy_path
+
         if not profile_path.exists():
             return None
 

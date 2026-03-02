@@ -67,6 +67,30 @@ def phase_to_review_reason(phase: TaskPhase) -> str | None:
     return mapping.get(phase)
 
 
+# Phase ranges for overall progress scaling (start%, end%)
+# Maps within-phase progress (0-100) to an overall range so progress is monotonically increasing.
+PHASE_RANGES: dict[str, tuple[float, float]] = {
+    "spec_creation": (0, 20),
+    "planning": (0, 20),
+    "plan_review": (20, 20),   # Fixed at 20%
+    "coding": (20, 80),
+    "qa_review": (80, 95),
+    "qa_fixing": (80, 95),
+    "completed": (95, 100),
+    "failed": (0, 0),          # Keep whatever was last
+}
+
+
+def scale_progress(phase: str, phase_progress: float) -> float:
+    """Scale within-phase progress (0-100) to overall progress range.
+
+    Example: coding phase at 50% → 20 + (50/100) × 60 = 50% overall.
+    """
+    start, end = PHASE_RANGES.get(phase, (0, 100))
+    width = end - start
+    return round(start + (phase_progress / 100) * width)
+
+
 @dataclass
 class TaskProgress:
     """Real-time task progress information."""
@@ -79,6 +103,7 @@ class TaskProgress:
     subtask_index: int | None = None
     subtask_total: int | None = None
     percentage: float | None = None
+    overall_progress: float | None = None  # Override scaled overall progress
     sequence_number: int = 0  # For frontend out-of-order detection
     started_at: str | None = None  # Task start time for UI display
     data: dict = field(default_factory=dict)
@@ -117,6 +142,7 @@ class TaskLogWriter:
     PHASE_MAP = {
         TaskPhase.SPEC_CREATION: "planning",
         TaskPhase.PLANNING: "planning",
+        TaskPhase.PLAN_REVIEW: "planning",
         TaskPhase.CODING: "coding",
         TaskPhase.QA_REVIEW: "validation",
         TaskPhase.QA_FIXING: "validation",
@@ -390,6 +416,8 @@ class AgentService:
         self._task_subtask_states: dict[str, dict[str, str]] = {}
         # Track spec directory per task for reading implementation plans
         self._spec_dirs: dict[str, Path] = {}
+        # Track tasks that were manually stopped (to prevent _monitor_process from re-handling)
+        self._task_stopped: set[str] = set()
 
     @property
     def backend_path(self) -> Path:
@@ -793,8 +821,13 @@ class AgentService:
         try:
             # Use task:update event which frontend handles correctly for progress
             # Frontend's onTaskUpdate handler expects: {taskId, executionProgress?, phase?, subtasks?, ...}
-            percentage = progress.percentage or 0
-            phase_value = progress.phase.value if progress.phase else None
+            phase_progress = progress.percentage or 0
+            phase_value = progress.phase.value if progress.phase else "coding"
+            # Scale within-phase progress to overall range, unless explicitly overridden
+            if progress.overall_progress is not None:
+                overall_progress = progress.overall_progress
+            else:
+                overall_progress = scale_progress(phase_value, phase_progress)
 
             # Get sequence number for out-of-order detection
             sequence_number = self._get_next_sequence_number(progress.task_id)
@@ -829,8 +862,8 @@ class AgentService:
             await emit_task_update(progress.task_id, {
                 "executionProgress": {
                     "phase": phase_value,
-                    "phaseProgress": percentage,
-                    "overallProgress": percentage,
+                    "phaseProgress": phase_progress,
+                    "overallProgress": overall_progress,
                     "currentSubtask": progress.subtask,
                     "message": progress.message,
                     "sequenceNumber": sequence_number,
@@ -913,7 +946,9 @@ class AgentService:
         """
         import logging
         logger = logging.getLogger(__name__)
-        current_phase = TaskPhase.SPEC_CREATION
+        # Use the tracked phase if available (e.g., PLANNING when started via start_task_execution),
+        # otherwise default to SPEC_CREATION for spec creation processes
+        current_phase = self._task_current_phases.get(task_id, TaskPhase.SPEC_CREATION)
 
         async for line_bytes in stream:
             line = line_bytes.decode("utf-8", errors="replace").rstrip()
@@ -969,8 +1004,8 @@ class AgentService:
                         if current_phase not in (TaskPhase.COMPLETED, TaskPhase.FAILED):
                             log_writer.set_phase_status(spec_id, current_phase, "active")
                         # Ensure validation phase is properly marked completed when task completes
-                        if current_phase == TaskPhase.COMPLETED and old_phase == TaskPhase.QA_REVIEW:
-                            log_writer.set_phase_status(spec_id, TaskPhase.QA_REVIEW, "completed")
+                        if current_phase == TaskPhase.COMPLETED and old_phase in (TaskPhase.QA_REVIEW, TaskPhase.QA_FIXING):
+                            log_writer.set_phase_status(spec_id, old_phase, "completed")
 
                 # Always emit progress for phase events (even if phase didn't change)
                 progress = TaskProgress(
@@ -1093,6 +1128,20 @@ class AgentService:
                 except Exception as e:
                     logger.warning(f"[AgentService] Failed to sync {filename}: {e}")
 
+        # Sync any additional files created by the agent (e.g., plan .md files)
+        # that aren't in the hardcoded list
+        try:
+            known_files = set(files_to_sync)
+            for src_file in worktree_spec.iterdir():
+                if src_file.is_file() and src_file.name not in known_files:
+                    try:
+                        shutil.copy2(src_file, main_spec / src_file.name)
+                        synced_count += 1
+                    except Exception as e:
+                        logger.warning(f"[AgentService] Failed to sync extra file {src_file.name}: {e}")
+        except OSError as e:
+            logger.warning(f"[AgentService] Failed to scan worktree spec dir for extra files: {e}")
+
         # Sync directories
         for dirname in dirs_to_sync:
             src_dir = worktree_spec / dirname
@@ -1167,12 +1216,14 @@ class AgentService:
 
                 # Only emit task update if there were changes (to avoid flooding)
                 if has_changes or synced_count > 0:
+                    # Use the actual current execution phase from phase event tracking
+                    actual_phase = self._task_current_phases.get(task_id, TaskPhase.PLANNING).value if task_id else "coding"
                     # Emit task update
                     await emit_task_update(spec_id, {
                         "executionProgress": {
-                            "phase": "coding",  # Default to coding during execution
+                            "phase": actual_phase,
                             "phaseProgress": progress,
-                            "overallProgress": progress,
+                            "overallProgress": scale_progress(actual_phase, progress),
                             "currentSubtask": current_subtask,
                             "message": f"{completed}/{total} subtasks completed",
                         },
@@ -1241,12 +1292,13 @@ class AgentService:
                                     # Update plan status to human_review
                                     await self._update_plan_status(project_path, detected_spec_id, "human_review", task_id)
 
-                                    # Emit PLAN_REVIEW phase (maps to "human_review" status)
+                                    # Emit PLAN_REVIEW phase (maps to "human_review" status) — plan_review always scales to 20%
                                     await self._emit_progress(
                                         TaskProgress(
                                             task_id=task_id,
                                             phase=TaskPhase.PLAN_REVIEW,
                                             message="Spec created - waiting for human approval",
+                                            percentage=100,
                                         ),
                                         previous_phase=TaskPhase.SPEC_CREATION,  # Enable status event emission
                                     )
@@ -1330,12 +1382,13 @@ class AgentService:
                                     self._task_profiles.pop(task_id, None)
                                     self._task_subtask_states.pop(task_id, None)
 
-                                    # Emit PLAN_REVIEW phase (maps to "human_review" status)
+                                    # Emit PLAN_REVIEW phase (maps to "human_review" status) — plan_review always scales to 20%
                                     await self._emit_progress(
                                         TaskProgress(
                                             task_id=task_id,
                                             phase=TaskPhase.PLAN_REVIEW,
                                             message="Spec created - waiting for human approval",
+                                            percentage=100,
                                         ),
                                         previous_phase=TaskPhase.SPEC_CREATION,  # Enable status event emission
                                     )
@@ -1360,12 +1413,15 @@ class AgentService:
                             self._task_rate_limits.pop(task_id, None)
                             self._task_subtask_states.pop(task_id, None)
 
-                            # Emit completion
+                            # Emit completion (20% overall = planning complete, override scaling
+                            # since COMPLETED phase would normally scale to 95-100%)
                             await self._emit_progress(
                                 TaskProgress(
                                     task_id=task_id,
                                     phase=TaskPhase.COMPLETED,
                                     message="Spec created successfully",
+                                    percentage=100,
+                                    overall_progress=20,
                                 ),
                                 previous_phase=TaskPhase.SPEC_CREATION,
                             )
@@ -1415,17 +1471,30 @@ class AgentService:
                             self._task_subtask_states.pop(task_id, None)
                             self._spec_dirs.pop(task_id, None)
 
-                            # Emit PLAN_REVIEW phase (maps to "human_review" status)
+                            # Determine emit phase based on what phase the task was actually in
+                            # If task was coding/QA, it finished implementation → show 100% progress
+                            # If task was still planning, it just finished planning → show 20% progress
+                            if actual_phase in (TaskPhase.CODING, TaskPhase.QA_REVIEW, TaskPhase.QA_FIXING, TaskPhase.COMPLETED):
+                                emit_phase = TaskPhase.COMPLETED
+                                emit_message = "Task completed - waiting for human review"
+                                emit_overall = 100
+                            else:
+                                emit_phase = TaskPhase.PLAN_REVIEW
+                                emit_message = "Plan created - waiting for human approval"
+                                emit_overall = None  # Let scale_progress handle it (20%)
+
                             await self._emit_progress(
                                 TaskProgress(
                                     task_id=task_id,
-                                    phase=TaskPhase.PLAN_REVIEW,
-                                    message="Plan created - waiting for human approval",
+                                    phase=emit_phase,
+                                    message=emit_message,
+                                    percentage=100,
+                                    overall_progress=emit_overall,
                                 ),
                                 previous_phase=actual_phase,  # Enable status event emission
                             )
 
-                            logger.info(f"[AgentService] Task {task_id} transitioned to PLAN_REVIEW phase")
+                            logger.info(f"[AgentService] Task {task_id} transitioned to {emit_phase.value} phase (was {actual_phase.value})")
                             return  # Exit early - not a failure
 
                     except (json.JSONDecodeError, OSError) as e:
@@ -1513,6 +1582,12 @@ class AgentService:
                     else:
                         logger.warning(f"[AgentService] No alternate profile available for task {task_id}, surfacing failure")
 
+            # If stop_task() already handled cleanup, skip duplicate processing
+            if task_id in self._task_stopped:
+                self._task_stopped.discard(task_id)
+                logger.info(f"[AgentService] Task {task_id} was stopped by user, skipping _monitor_process cleanup")
+                return
+
             # Get actual phase BEFORE cleanup (needed for proper status emission)
             actual_phase = self._get_current_phase(task_id)
             final_status = "completed" if return_code == 0 else "failed"
@@ -1559,6 +1634,8 @@ class AgentService:
                         task_id=task_id,
                         phase=TaskPhase.COMPLETED,
                         message="Task completed successfully",
+                        percentage=100,
+                        overall_progress=100,
                     ),
                     previous_phase=actual_phase,  # Enable status event emission
                 )
@@ -1638,6 +1715,11 @@ class AgentService:
         try:
             plan = json.loads(plan_file.read_text())
 
+            # Don't overwrite if user explicitly marked task as done via kanban
+            if plan.get("status") == "done":
+                logger.info(f"[AgentService._update_plan_status] Plan status is 'done' (user-set), skipping overwrite for {spec_id}")
+                return
+
             # Fix 2: Validate that the plan is not just a minimal status object
             # A valid plan should have phases and subtasks from spec creation
             if "phases" not in plan or not plan.get("phases"):
@@ -1690,6 +1772,108 @@ class AgentService:
         except Exception as e:
             logger.error(f"[AgentService] Failed to update plan status: {e}")
 
+    def _write_skill_context(self, spec_dir: Path) -> None:
+        """Write skill_context.md to spec_dir based on selectedSkills in task_metadata.json.
+
+        If selectedSkills is non-empty, loads up to 5 skill files and writes them
+        as a structured markdown file that the agent system will auto-include as
+        context (the agent reads all .md files in spec_dir).
+
+        If no skills are selected, removes any existing skill_context.md.
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        skill_context_file = spec_dir / "skill_context.md"
+        task_metadata_file = spec_dir / "task_metadata.json"
+
+        # Load task metadata to get selected skills
+        selected_skill_ids: list[str] = []
+        if task_metadata_file.exists():
+            try:
+                task_metadata = json.loads(task_metadata_file.read_text())
+                raw_skills = task_metadata.get("selectedSkills", [])
+                # selectedSkills is stored as list[dict] with {id, name, category, source}
+                # Also handle plain string IDs for backward compatibility
+                for item in raw_skills:
+                    if isinstance(item, dict):
+                        sid = item.get("id", "")
+                    else:
+                        sid = str(item)
+                    if sid:
+                        selected_skill_ids.append(sid)
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"[AgentService] Could not read task_metadata.json for skills: {e}")
+
+        # If no skills selected, remove any existing skill_context.md
+        if not selected_skill_ids:
+            if skill_context_file.exists():
+                try:
+                    skill_context_file.unlink()
+                    logger.info("[AgentService] Removed skill_context.md (no skills selected)")
+                except OSError as e:
+                    logger.warning(f"[AgentService] Could not remove skill_context.md: {e}")
+            return
+
+        # Load skill contents (max 5 skills to stay within token budget)
+        from .skills_service import get_skills_service
+        skills_service = get_skills_service()
+
+        sections: list[str] = []
+        loaded_count = 0
+
+        for skill_id in selected_skill_ids[:5]:
+            # Parse skill_id format: "{category}/{skill_name}"
+            if "/" not in skill_id:
+                logger.warning(f"[AgentService] Invalid skill_id format (missing '/'): {skill_id}")
+                continue
+
+            category, name = skill_id.split("/", 1)
+            skill_summary = skills_service.get_skill(category, name)
+            skill_content = skills_service.get_skill_content(category, name)
+
+            if skill_content is None:
+                logger.warning(f"[AgentService] Skill not found in index: {skill_id}")
+                continue
+
+            # Truncate each skill to 2500 chars to manage token budget
+            skill_content_truncated = skill_content[:2500]
+            if len(skill_content) > 2500:
+                skill_content_truncated += "\n\n*[Content truncated for token budget]*"
+
+            display_name = skill_summary.name if skill_summary else name
+            sections.append(
+                f"## {display_name} ({category})\n\n"
+                f"{skill_content_truncated}\n\n"
+                "---"
+            )
+            loaded_count += 1
+
+        if not sections:
+            # No skills could be loaded — clean up stale file if present
+            if skill_context_file.exists():
+                try:
+                    skill_context_file.unlink()
+                except OSError:
+                    pass
+            return
+
+        # Format as structured markdown
+        header = (
+            "# Selected Skills Context\n\n"
+            "The following skill documentation has been included to assist with this task.\n"
+            "Reference these skills when implementing the solution.\n\n"
+            "---"
+        )
+        skill_context_content = header + "\n\n" + "\n\n".join(sections) + "\n"
+
+        try:
+            spec_dir.mkdir(parents=True, exist_ok=True)
+            skill_context_file.write_text(skill_context_content, encoding="utf-8")
+            logger.info(f"[AgentService] Wrote skill_context.md with {loaded_count} skill(s)")
+        except OSError as e:
+            logger.error(f"[AgentService] Failed to write skill_context.md: {e}")
+
     async def start_spec_creation(
         self,
         task_id: str,
@@ -1698,6 +1882,7 @@ class AgentService:
         description: str,
         complexity: str | None = None,
         auto_continue: bool = True,
+        user_id: str = "",
     ) -> asyncio.subprocess.Process:
         """Start spec creation for a task."""
         import logging
@@ -1716,6 +1901,7 @@ class AgentService:
         # Fix 5: Check if task requires manual review before coding
         # If requireReviewBeforeCoding is true, DON'T auto-approve (let user review the plan)
         should_auto_approve = True  # Default for web mode
+        spec_phase_model = None  # Model for spec creation phase
         if spec_dir:
             task_metadata_file = spec_dir / "task_metadata.json"
             if task_metadata_file.exists():
@@ -1725,6 +1911,9 @@ class AgentService:
                     if metadata.get("requireReviewBeforeCoding", False):
                         should_auto_approve = False
                         logger.info(f"[AgentService] Task {task_id} requires manual review - NOT auto-approving spec")
+                    # Read spec phase model from auto profile config
+                    if metadata.get("isAutoProfile") and metadata.get("phaseModels"):
+                        spec_phase_model = metadata["phaseModels"].get("spec")
                 except (json.JSONDecodeError, OSError) as e:
                     logger.warning(f"[AgentService] Failed to read task_metadata.json: {e}")
 
@@ -1735,6 +1924,11 @@ class AgentService:
             "--task", f"{title}\n\n{description}",
             "--project-dir", str(project_path),
         ]
+
+        # Pass spec phase model if configured (multi-model support)
+        if spec_phase_model:
+            cmd.extend(["--model", spec_phase_model])
+            logger.info(f"[AgentService] Using spec phase model: {spec_phase_model}")
 
         # Fix 1: Only auto-approve if task doesn't require manual review
         if should_auto_approve:
@@ -1839,11 +2033,12 @@ class AgentService:
         # Store spec directory for reading implementation plans during progress updates
         self._spec_dirs[task_id] = spec_dir
 
-        # Emit initial progress
+        # Emit initial progress (50% within spec_creation phase → 10% overall)
         await self._emit_progress(TaskProgress(
             task_id=task_id,
             phase=TaskPhase.SPEC_CREATION,
             message="Starting spec creation...",
+            percentage=50,
         ))
 
         # Start output processing in background
@@ -1930,6 +2125,9 @@ class AgentService:
                     # Note: Quick Mode no longer forces review - respect requireReviewBeforeCoding setting
                 except (json.JSONDecodeError, OSError):
                     pass
+
+            # Write skill context file based on selectedSkills in task_metadata
+            self._write_skill_context(spec_dir)
 
             # Add --force flag if:
             # 1. Review is not required OR
@@ -2053,11 +2251,12 @@ class AgentService:
         # Store log writers for cleanup
         self._task_log_writers[task_id] = (log_writer, main_log_writer)
 
-        # Emit initial progress
+        # Emit initial progress (100% within planning phase → 20% overall)
         await self._emit_progress(TaskProgress(
             task_id=task_id,
             phase=TaskPhase.PLANNING,
             message="Starting task execution...",
+            percentage=100,
         ))
 
         # Initialize planning phase in logs
@@ -2084,6 +2283,9 @@ class AgentService:
             logger.info(f"[AgentService] Task {task_id} not in running_tasks (already stopped or never started)")
             return False
 
+        # Mark as stopped BEFORE termination so _monitor_process defers to us
+        self._task_stopped.add(task_id)
+
         proc = self.running_tasks[task_id]
         proc.terminate()
 
@@ -2093,6 +2295,29 @@ class AgentService:
             proc.kill()
             await proc.wait()
 
+        # Get actual phase and spec info BEFORE cleanup
+        actual_phase = self._get_current_phase(task_id)
+        spec_dir = self._spec_dirs.get(task_id)
+
+        # Finalize log writers — flush pending text, mark phase as failed
+        if task_id in self._task_log_writers:
+            log_writer, main_log_writer = self._task_log_writers[task_id]
+            # Parse spec_id from task_id (format: "project_id:spec_id")
+            spec_id = task_id.split(":", 1)[1] if ":" in task_id else task_id
+            log_writer.finalize(spec_id, actual_phase)
+            log_writer.set_phase_status(spec_id, actual_phase, "failed")
+            main_log_writer.finalize(spec_id, actual_phase)
+            main_log_writer.set_phase_status(spec_id, actual_phase, "failed")
+            del self._task_log_writers[task_id]
+            logger.debug(f"[AgentService] Finalized task logs for stopped task {task_id}")
+
+        # Persist failed status to implementation_plan.json
+        if spec_dir:
+            # Derive project_path: spec_dir is .magestic-ai/specs/XXX, project root is 3 levels up
+            project_path = spec_dir.parent.parent.parent
+            spec_id = task_id.split(":", 1)[1] if ":" in task_id else task_id
+            await self._update_plan_status(project_path, spec_id, "failed", task_id)
+
         # Use pop with default to handle race condition where _monitor_process
         # might have already removed the task
         self.running_tasks.pop(task_id, None)
@@ -2100,7 +2325,13 @@ class AgentService:
         self._task_start_times.pop(task_id, None)
         self._task_subtask_states.pop(task_id, None)
         self._spec_dirs.pop(task_id, None)
+        self._task_current_phases.pop(task_id, None)
+        self._task_profiles.pop(task_id, None)
+        self._task_rate_limits.pop(task_id, None)
+        self._task_user_ids.pop(task_id, None)
 
+        # Emit human_review with errors reason (not just FAILED phase)
+        await emit_task_status(task_id, "human_review", "errors")
         await self._emit_progress(TaskProgress(
             task_id=task_id,
             phase=TaskPhase.FAILED,

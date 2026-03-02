@@ -111,6 +111,14 @@ export interface TaskLogStreamChunk {
   subtask_id?: string;
 }
 
+// Skill selection types for task creation
+export interface SelectedSkill {
+  id: string;        // '{category}/{skill_name}'
+  name: string;
+  category: string;
+  source?: string;
+}
+
 // Image attachment types for task creation
 export interface ImageAttachment {
   id: string;           // Unique identifier (UUID)
@@ -150,6 +158,7 @@ export interface TaskDraft {
   images: ImageAttachment[];
   referencedFiles: ReferencedFile[];
   requireReviewBeforeCoding?: boolean;
+  selectedSkills?: SelectedSkill[];
   savedAt: Date;
 }
 
@@ -230,6 +239,9 @@ export interface TaskMetadata {
   // Archive status
   archivedAt?: string;  // ISO date when task was archived
   archivedInVersion?: string;  // Version in which task was archived (from changelog)
+
+  // Skills configuration
+  selectedSkills?: SelectedSkill[];  // Skills/capabilities selected for this task
 }
 
 export interface Task {

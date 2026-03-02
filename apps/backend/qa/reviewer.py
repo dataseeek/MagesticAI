@@ -14,8 +14,9 @@ from pathlib import Path
 
 # Memory integration for cross-session learning
 from agents.memory_manager import get_graphiti_context, save_session_memory
-from claude_agent_sdk import ClaudeSDKClient
 from debug import debug, debug_detailed, debug_error, debug_section, debug_success
+from qa.providers import BaseLLMProvider
+from providers.factory import get_tool_fallback_provider
 from prompts_pkg import get_qa_reviewer_prompt
 from security.tool_input_validator import get_safe_tool_input
 from task_logger import (
@@ -32,7 +33,7 @@ from .criteria import get_qa_signoff_status
 
 
 async def run_qa_agent_session(
-    client: ClaudeSDKClient,
+    client: BaseLLMProvider,
     project_dir: Path,
     spec_dir: Path,
     qa_session: int,
@@ -44,7 +45,7 @@ async def run_qa_agent_session(
     Run a QA reviewer agent session.
 
     Args:
-        client: Claude SDK client
+        client: LLM provider (BaseLLMProvider implementation)
         project_dir: Project root directory (for capability detection)
         spec_dir: Spec directory
         qa_session: QA iteration number
@@ -371,7 +372,25 @@ This is attempt {previous_error.get("consecutive_errors", 1) + 1}. If you fail t
             )
             return "rejected", response_text
         else:
-            # Agent didn't update the status properly - provide detailed error
+            # Agent didn't update the status properly.
+            # If we have text output but no tool calls, try a tool-capable
+            # fallback provider (Claude → Codex → Gemini) to write the
+            # qa_signoff based on the text analysis.
+            if tool_count == 0 and response_text:
+                debug(
+                    "qa_reviewer",
+                    "Text-only provider returned analysis without tools — "
+                    "attempting tool-capable fallback",
+                    response_length=len(response_text),
+                )
+                fallback_result = await _run_tool_fallback(
+                    response_text, spec_dir, project_dir, qa_session, task_logger
+                )
+                if fallback_result is not None:
+                    fb_status, fb_text = fallback_result
+                    return fb_status, fb_text
+
+            # No fallback available or fallback also failed
             debug_error(
                 "qa_reviewer",
                 "QA agent did not update implementation_plan.json",
@@ -405,3 +424,153 @@ This is attempt {previous_error.get("consecutive_errors", 1) + 1}. If you fail t
         if task_logger:
             task_logger.log_error(f"QA session error: {e}", LogPhase.VALIDATION)
         return "error", str(e)
+
+
+# =============================================================================
+# TOOL-USE FALLBACK FOR TEXT-ONLY PROVIDERS
+# =============================================================================
+
+
+async def _run_tool_fallback(
+    qa_analysis: str,
+    spec_dir: Path,
+    project_dir: Path,
+    qa_session: int,
+    task_logger,
+) -> tuple[str, str] | None:
+    """Use a tool-capable provider to write qa_signoff based on text analysis.
+
+    When a text-only provider (Ollama) returns QA analysis text but cannot
+    update implementation_plan.json (no tool use), this function delegates
+    the file update to the first available tool-capable provider
+    (Claude → Codex → Gemini).
+
+    Args:
+        qa_analysis: The QA analysis text from the text-only provider.
+        spec_dir: Spec directory containing implementation_plan.json.
+        project_dir: Project root directory.
+        qa_session: Current QA iteration number.
+        task_logger: Task logger for progress tracking.
+
+    Returns:
+        (status, response_text) if the fallback succeeded, or None if no
+        fallback provider is available or the fallback also failed.
+    """
+    fallback = get_tool_fallback_provider(
+        phase="qa",
+        exclude="ollama",
+        working_dir=project_dir,
+    )
+    if fallback is None:
+        debug_error(
+            "qa_reviewer",
+            "No tool-capable fallback provider available",
+        )
+        return None
+
+    provider_name = type(fallback).__name__
+    print(f"\n🔄 Delegating file update to {provider_name}...")
+    debug(
+        "qa_reviewer",
+        f"Tool fallback: using {provider_name} to write qa_signoff",
+    )
+
+    if task_logger:
+        task_logger.log(
+            f"Text-only provider completed analysis. Delegating file update to {provider_name}...",
+            LogEntryType.INFO,
+            LogPhase.VALIDATION,
+        )
+
+    # Build a focused prompt for the fallback: just update the JSON file
+    fallback_prompt = f"""You are a QA file updater. A separate QA reviewer agent has already analyzed the code and produced the following analysis. Your ONLY job is to:
+
+1. Read the analysis below
+2. Determine if the QA result is APPROVED or REJECTED
+3. Update the file `{spec_dir}/implementation_plan.json` with the appropriate `qa_signoff` object
+
+## QA Analysis from Reviewer
+
+{qa_analysis[:8000]}
+
+## Instructions
+
+Read `{spec_dir}/implementation_plan.json`, then update it by adding/updating the `qa_signoff` field:
+
+If the analysis indicates ALL criteria pass (APPROVED):
+```json
+{{
+  "qa_signoff": {{
+    "status": "approved",
+    "timestamp": "[current ISO timestamp]",
+    "qa_session": {qa_session},
+    "verified_by": "qa_agent"
+  }}
+}}
+```
+
+If the analysis indicates issues (REJECTED):
+```json
+{{
+  "qa_signoff": {{
+    "status": "rejected",
+    "timestamp": "[current ISO timestamp]",
+    "qa_session": {qa_session},
+    "issues_found": [
+      {{"type": "critical|major|minor", "title": "[issue]", "location": "[file:line]", "fix_required": "[description]"}}
+    ]
+  }}
+}}
+```
+
+IMPORTANT: You MUST read and then write the implementation_plan.json file. Do NOT just output text.
+"""
+
+    try:
+        async with fallback:
+            await fallback.query(fallback_prompt)
+            fb_response = ""
+            fb_tool_count = 0
+            async for msg in fallback.receive_response():
+                msg_type = type(msg).__name__
+                if msg_type == "AssistantMessage" and hasattr(msg, "content"):
+                    for block in msg.content:
+                        block_type = type(block).__name__
+                        if block_type == "TextBlock" and hasattr(block, "text"):
+                            fb_response += block.text
+                        elif block_type == "ToolUseBlock":
+                            fb_tool_count += 1
+
+        # Check if the fallback actually wrote qa_signoff
+        status = get_qa_signoff_status(spec_dir)
+        if status and status.get("status") in ("approved", "rejected"):
+            result_status = status["status"]
+            debug_success(
+                "qa_reviewer",
+                f"Tool fallback succeeded: QA {result_status}",
+                fallback_provider=provider_name,
+                tool_count=fb_tool_count,
+            )
+            print(f"✅ {provider_name} successfully wrote qa_signoff: {result_status}")
+            if task_logger:
+                task_logger.log(
+                    f"Tool fallback ({provider_name}) wrote qa_signoff: {result_status}",
+                    LogEntryType.SUCCESS,
+                    LogPhase.VALIDATION,
+                )
+            return result_status, qa_analysis
+
+        debug_error(
+            "qa_reviewer",
+            f"Tool fallback ({provider_name}) did not write qa_signoff",
+            tool_count=fb_tool_count,
+        )
+        return None
+
+    except Exception as exc:
+        debug_error(
+            "qa_reviewer",
+            f"Tool fallback ({provider_name}) failed: {exc}",
+        )
+        print(f"⚠️  Fallback {provider_name} failed: {exc}")
+        return None

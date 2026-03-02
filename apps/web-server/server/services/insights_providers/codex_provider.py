@@ -1,13 +1,15 @@
 """
 Codex CLI (OpenAI) provider for insights chat.
 
-Runs `codex --quiet --model <model> "<message>"` as a subprocess.
+Runs `codex exec --model <model> "<message>"` as a subprocess.
 """
 
 import asyncio
 import logging
 import os
+import shlex
 import subprocess
+import time
 from pathlib import Path
 
 from ...websockets.events import broadcast_event
@@ -17,10 +19,9 @@ logger = logging.getLogger(__name__)
 
 # Codex models (static fallback list)
 CODEX_MODELS = [
-    ProviderModel(id="o4-mini", label="o4-mini"),
-    ProviderModel(id="o3", label="o3"),
-    ProviderModel(id="gpt-4.1", label="GPT-4.1"),
-    ProviderModel(id="gpt-4.1-mini", label="GPT-4.1 Mini"),
+    ProviderModel(id="gpt-5.3-codex", label="GPT-5.3 Codex"),
+    ProviderModel(id="gpt-5.1-codex-max", label="GPT-5.1 Codex Max"),
+    ProviderModel(id="gpt-5-codex-mini", label="GPT-5 Codex Mini"),
 ]
 
 
@@ -55,12 +56,10 @@ class CodexProvider(ProviderStrategy):
         model: str | None,
         model_config: dict | None,
         conversation_history: list[dict] | None,
-    ) -> None:
+    ) -> str:
         cmd = ["bash", "-l", "-c"]
 
-        codex_cmd = "codex --quiet"
-        effective_model = model or (model_config or {}).get("model", "o4-mini")
-        codex_cmd += f" --model {effective_model}"
+        effective_model = model or (model_config or {}).get("model", "gpt-5.3-codex")
 
         # Build prompt with conversation context for stateless CLI
         full_prompt = message
@@ -73,16 +72,14 @@ class CodexProvider(ProviderStrategy):
             if context_parts:
                 full_prompt = "\n".join(context_parts) + f"\n[user]: {message}"
 
-        # Shell-escape the message
-        escaped_msg = full_prompt.replace("'", "'\\''")
-        codex_cmd += f" '{escaped_msg}'"
+        codex_cmd = f"codex exec --model {shlex.quote(effective_model)} {shlex.quote(full_prompt)}"
 
         cmd.append(codex_cmd)
 
         env = os.environ.copy()
         env["PYTHONUNBUFFERED"] = "1"
 
-        logger.info(f"[CodexProvider] Starting: codex --quiet --model {effective_model}")
+        logger.info(f"[CodexProvider] Starting: codex exec --model {effective_model}")
 
         try:
             await broadcast_event("insights:chunk", {
@@ -100,6 +97,7 @@ class CodexProvider(ProviderStrategy):
             )
 
             accumulated = ""
+            stream_start = time.monotonic()
             async for line_bytes in proc.stdout:
                 line = line_bytes.decode("utf-8", errors="replace").rstrip()
                 if not line:
@@ -122,12 +120,24 @@ class CodexProvider(ProviderStrategy):
                     "type": "error",
                     "error": error_msg,
                 })
-                return
+                return ""
+
+            elapsed = time.monotonic() - stream_start
+            estimated_tokens = max(1, len(accumulated) // 4)
+            tokens_per_sec = round(estimated_tokens / elapsed, 1) if elapsed > 0 else 0
 
             await broadcast_event("insights:chunk", {
                 "projectId": project_id,
                 "type": "done",
+                "metrics": {
+                    "outputTokens": estimated_tokens,
+                    "tokensPerSecond": tokens_per_sec,
+                    "elapsedSeconds": round(elapsed, 1),
+                    "estimated": True,
+                },
             })
+
+            return accumulated
 
         except Exception as e:
             logger.error(f"[CodexProvider] Error: {e}", exc_info=True)
@@ -136,3 +146,4 @@ class CodexProvider(ProviderStrategy):
                 "type": "error",
                 "error": str(e),
             })
+            return ""

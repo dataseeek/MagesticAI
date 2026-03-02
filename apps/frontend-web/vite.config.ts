@@ -1,9 +1,17 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import fs from 'fs';
+import os from 'os';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '');
+
+  // Resolve SSL certs from the shared data directory
+  const sslDir = path.join(os.homedir(), '.magestic-ai', 'ssl');
+  const certFile = path.join(sslDir, 'cert.pem');
+  const keyFile = path.join(sslDir, 'key.pem');
+  const hasSSL = fs.existsSync(certFile) && fs.existsSync(keyFile);
 
   return {
     plugins: [react()],
@@ -21,6 +29,12 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       host: true, // Listen on all network interfaces for remote access
       allowedHosts: ['dev.example.com'],
+      ...(hasSSL && {
+        https: {
+          cert: fs.readFileSync(certFile),
+          key: fs.readFileSync(keyFile),
+        },
+      }),
       proxy: {
         '/api': {
           target: env.VITE_API_URL || 'http://localhost:8000',

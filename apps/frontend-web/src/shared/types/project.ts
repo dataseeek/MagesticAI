@@ -286,6 +286,7 @@ export interface ProjectEnvConfig {
 
   // GitHub Integration
   githubEnabled: boolean;
+  githubTokenSet?: boolean;
   githubToken?: string;
   githubRepo?: string; // Format: owner/repo
   githubAutoSync?: boolean; // Auto-sync issues on project load
@@ -367,6 +368,26 @@ export interface CustomMcpServer {
   headers?: Record<string, string>;
   /** Optional description shown in UI */
   description?: string;
+}
+
+/**
+ * A pre-installed service or CLI detected on the system, offered as a quick-add MCP template.
+ */
+export interface DetectedMcpService {
+  id: string;
+  name: string;
+  description: string;
+  category: 'core' | 'vcs' | 'database' | 'browser' | 'search' | 'devops' | 'communication';
+  type: 'command' | 'http';
+  command?: string;
+  args?: string[];
+  url?: string;
+  /** True if the required binary/service is present on the system */
+  available: boolean;
+  /** True if the npm package is already installed globally */
+  installed: boolean;
+  /** Human-readable reason for availability status */
+  reason: string;
 }
 
 /**

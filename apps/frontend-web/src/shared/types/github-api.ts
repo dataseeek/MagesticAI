@@ -211,7 +211,7 @@ export interface NewCommitsCheck {
  * Review progress status
  */
 export interface PRReviewProgress {
-  phase: 'fetching' | 'analyzing' | 'generating' | 'posting' | 'complete';
+  phase: 'starting' | 'fetching' | 'analyzing' | 'generating' | 'posting' | 'complete';
   prNumber: number;
   progress: number;
   message: string;
@@ -276,7 +276,7 @@ export interface GitHubAPI {
   getGitHubIssue: (projectId: string, issueNumber: number) => Promise<IPCResult<GitHubIssue>>;
   getIssueComments: (projectId: string, issueNumber: number) => Promise<IPCResult<unknown[]>>;
   checkGitHubConnection: (projectId: string) => Promise<IPCResult<GitHubSyncStatus>>;
-  investigateGitHubIssue: (projectId: string, issueNumber: number, selectedCommentIds?: number[]) => void;
+  investigateGitHubIssue: (projectId: string, issueNumber: number, selectedCommentIds?: number[]) => Promise<IPCResult> | void;
   importGitHubIssues: (projectId: string, issueNumbers: number[]) => Promise<IPCResult<GitHubImportResult>>;
   createGitHubRelease: (
     projectId: string,
@@ -287,13 +287,15 @@ export interface GitHubAPI {
   suggestReleaseVersion: (projectId: string) => Promise<IPCResult<{ suggestedVersion: string; currentVersion: string; bumpType: 'major' | 'minor' | 'patch'; commitCount: number; reason: string }>>;
   checkGitHubCli: () => Promise<IPCResult<{ installed: boolean; version?: string }>>;
   checkGitHubAuth: () => Promise<IPCResult<{ authenticated: boolean; username?: string }>>;
+  autoDetectGitHub: (projectId?: string) => Promise<IPCResult<{ authenticated: boolean; username?: string; tokenPersisted?: boolean; reason?: string }>>;
   startGitHubAuth: () => Promise<IPCResult<{ success: boolean; message?: string }>>;
-  getGitHubToken: () => Promise<IPCResult<{ token: string }>>;
+  getGitHubToken: () => Promise<IPCResult<{ hasToken: boolean }>>;
+  persistGitHubToken: (projectId: string) => Promise<IPCResult<{ tokenPersisted: boolean }>>;
   getGitHubUser: () => Promise<IPCResult<{ username: string; name?: string }>>;
   listGitHubUserRepos: () => Promise<IPCResult<{ repos: Array<{ fullName: string; description: string | null; isPrivate: boolean }> }>>;
   onGitHubAuthDeviceCode: (callback: (data: { deviceCode: string; authUrl: string; browserOpened: boolean }) => void) => IpcListenerCleanup;
   detectGitHubRepo: (projectPath: string) => Promise<IPCResult<string>>;
-  getGitHubBranches: (repo: string, token: string) => Promise<IPCResult<string[]>>;
+  getGitHubBranches: (repo: string) => Promise<IPCResult<string[]>>;
   createGitHubRepo: (repoName: string, options: { description?: string; isPrivate?: boolean; projectPath: string; owner?: string }) => Promise<IPCResult<{ fullName: string; url: string }>>;
   addGitRemote: (projectPath: string, repoFullName: string) => Promise<IPCResult<{ remoteUrl: string }>>;
   listGitHubOrgs: () => Promise<IPCResult<{ orgs: Array<{ login: string; avatarUrl?: string }> }>>;
@@ -319,6 +321,7 @@ export interface GitHubAPI {
   onAnalyzePreviewProgress: (callback: (projectId: string, progress: AnalyzePreviewProgress) => void) => IpcListenerCleanup;
   onAnalyzePreviewComplete: (callback: (projectId: string, result: AnalyzePreviewResult) => void) => IpcListenerCleanup;
   onAnalyzePreviewError: (callback: (projectId: string, error: { error: string }) => void) => IpcListenerCleanup;
+  closeGitHubIssue: (projectId: string, issueNumber: number) => Promise<IPCResult>;
   listPRs: (projectId: string) => Promise<PRData[]>;
   runPRReview: (projectId: string, prNumber: number) => void;
   cancelPRReview: (projectId: string, prNumber: number) => Promise<boolean>;

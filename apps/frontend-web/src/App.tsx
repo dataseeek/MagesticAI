@@ -10,9 +10,11 @@ import { TerminalGrid } from './components/TerminalGrid';
 import { Worktrees } from './components/Worktrees';
 import { Context } from './components/context/Context';
 import { GitHubIssues } from './components/GitHubIssues';
+import { GitHubPRs } from './components/github-prs/GitHubPRs';
 import { Changelog } from './components/changelog/Changelog';
 import { Insights } from './components/Insights';
 import { AgentTools } from './components/AgentTools';
+import { SkillsPage } from './components/SkillsPage';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { AddProjectModal } from './components/AddProjectModal';
 import { AppSettingsDialog } from './components/settings';
@@ -294,15 +296,17 @@ function AuthenticatedApp() {
                       tasks={tasks}
                       onTaskClick={handleTaskClick}
                       onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
+                      isInitialized={!!selectedProject?.autoBuildPath}
                     />
                   )}
-                  {activeView === 'terminals' && (
+                  {/* TerminalGrid stays mounted but hidden to preserve xterm instances and PTY connections */}
+                  <div className={activeView === 'terminals' ? 'h-full' : 'hidden'}>
                     <TerminalGrid
                       projectPath={selectedProject?.path}
                       onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
-                      isActive={true}
+                      isActive={activeView === 'terminals'}
                     />
-                  )}
+                  </div>
                   {activeView === 'editor' && (
                     <EditorPage projectPath={selectedProject?.path} />
                   )}
@@ -315,19 +319,24 @@ function AuthenticatedApp() {
                   {activeView === 'github-issues' && (
                     <GitHubIssues
                       onOpenSettings={() => setIsSettingsDialogOpen(true)}
-                      onNavigateToTask={(taskId) => setSelectedTaskId(taskId)}
+                      onNavigateToTask={(taskId) => {
+                        setSelectedTaskId(taskId);
+                        setActiveView('kanban');
+                      }}
                     />
                   )}
                   {activeView === 'github-prs' && (
-                    <div className="flex h-full items-center justify-center text-muted-foreground">
-                      <p>Pull Requests view coming soon</p>
-                    </div>
+                    <GitHubPRs
+                      onOpenSettings={() => setIsSettingsDialogOpen(true)}
+                      isActive={true}
+                    />
                   )}
                   {activeView === 'changelog' && <Changelog />}
                   {activeView === 'insights' && (
-                    <Insights projectId={selectedProject?.id || ''} />
+                    <Insights projectId={selectedProject?.id || ''} onNavigate={setActiveView} />
                   )}
                   {activeView === 'agent-tools' && <AgentTools />}
+                  {activeView === 'skills' && <SkillsPage />}
                 </>
               ) : (
                 <WelcomeScreen

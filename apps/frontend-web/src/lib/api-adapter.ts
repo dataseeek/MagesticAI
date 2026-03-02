@@ -141,12 +141,15 @@ const githubAPI: API['github'] = {
   checkGitHubConnection: async () => ({ success: true, data: { connected: false, repoFullName: undefined, error: undefined } }),
   investigateGitHubIssue: () => { console.warn('[WebAPI] investigateGitHubIssue not implemented'); },
   importGitHubIssues: async () => ({ success: true, data: { success: true, imported: 0, failed: 0, issues: [] } }),
+  closeGitHubIssue: async () => ({ success: false, error: 'Not implemented' }),
   createGitHubRelease: async () => ({ success: true, data: { url: '' } }),
   suggestReleaseVersion: async () => ({ success: true, data: { suggestedVersion: '1.0.0', currentVersion: '0.0.0', bumpType: 'minor' as const, commitCount: 0, reason: 'Initial' } }),
   checkGitHubCli: async () => ({ success: true, data: { installed: false } }),
   checkGitHubAuth: async () => ({ success: true, data: { authenticated: false } }),
+  autoDetectGitHub: async () => ({ success: true, data: { authenticated: false } }),
   startGitHubAuth: async () => ({ success: true, data: { success: false } }),
-  getGitHubToken: async () => ({ success: true, data: { token: '' } }),
+  getGitHubToken: async () => ({ success: true, data: { hasToken: false } }),
+  persistGitHubToken: async () => ({ success: true, data: { tokenPersisted: false } }),
   getGitHubUser: async () => ({ success: true, data: { username: '' } }),
   listGitHubUserRepos: async () => ({ success: true, data: { repos: [] } }),
   detectGitHubRepo: async () => ({ success: true, data: '' }),
@@ -167,21 +170,80 @@ const githubAPI: API['github'] = {
   onAutoFixProgress: () => () => {},
   onAutoFixComplete: () => () => {},
   onAutoFixError: () => () => {},
-  listPRs: async () => [],
-  runPRReview: () => {},
-  cancelPRReview: async () => true,
-  postPRReview: async () => true,
-  postPRComment: async () => true,
-  mergePR: async () => true,
-  assignPR: async () => true,
-  getPRReview: async () => null,
-  deletePRReview: async () => true,
-  checkNewCommits: async () => ({ hasNewCommits: false, newCommitCount: 0 }),
-  runFollowupReview: () => {},
-  getPRLogs: async () => null,
-  onPRReviewProgress: () => () => {},
-  onPRReviewComplete: () => () => {},
-  onPRReviewError: () => () => {},
+  listPRs: async (projectId) => {
+    const result = await get(`/projects/${projectId}/github/prs`);
+    return (result.success ? result.data : []) as never;
+  },
+  runPRReview: (projectId, prNumber) => {
+    post(`/projects/${projectId}/github/prs/${prNumber}/review`, {});
+  },
+  cancelPRReview: async (projectId, prNumber) => {
+    const result = await post(`/projects/${projectId}/github/prs/${prNumber}/cancel`, {});
+    return result.success;
+  },
+  postPRReview: async (projectId, prNumber, selectedFindingIds) => {
+    const result = await post(`/projects/${projectId}/github/prs/${prNumber}/post-review`, {
+      selectedFindingIds: selectedFindingIds ?? null,
+    });
+    return result.success;
+  },
+  postPRComment: async (projectId, prNumber, body) => {
+    const result = await post(`/projects/${projectId}/github/prs/${prNumber}/comment`, { body });
+    return result.success;
+  },
+  mergePR: async (projectId, prNumber, mergeMethod) => {
+    const result = await post(`/projects/${projectId}/github/prs/${prNumber}/merge`, {
+      mergeMethod: mergeMethod ?? 'squash',
+    });
+    return result.success;
+  },
+  assignPR: async (projectId, prNumber, username) => {
+    const result = await post(`/projects/${projectId}/github/prs/${prNumber}/assign`, { username });
+    return result.success;
+  },
+  getPRReview: async (projectId, prNumber) => {
+    const result = await get(`/projects/${projectId}/github/prs/${prNumber}/review`);
+    const data = result.success ? result.data ?? null : null;
+    return data as never;
+  },
+  deletePRReview: async (projectId, prNumber) => {
+    const result = await del(`/projects/${projectId}/github/prs/${prNumber}/review`);
+    return result.success;
+  },
+  checkNewCommits: async (projectId, prNumber) => {
+    const result = await get(`/projects/${projectId}/github/prs/${prNumber}/new-commits`);
+    return (result.success && result.data ? result.data : { hasNewCommits: false, newCommitCount: 0 }) as never;
+  },
+  runFollowupReview: (projectId, prNumber) => {
+    post(`/projects/${projectId}/github/prs/${prNumber}/review`, { followup: true });
+  },
+  getPRLogs: async (projectId, prNumber) => {
+    const result = await get(`/projects/${projectId}/github/prs/${prNumber}/logs`);
+    return (result.success ? result.data ?? null : null) as never;
+  },
+  onPRReviewProgress: (callback) =>
+    registerCallback('pr:review-progress',
+      (payload: { projectId: string; prNumber: number; phase: string; progress: number; message: string }) => {
+        const { projectId, ...progressData } = payload;
+        callback(projectId, progressData as never);
+      }),
+  onPRReviewComplete: (callback) =>
+    registerCallback('pr:review-complete',
+      (payload: { projectId: string; prNumber: number; result: unknown }) => {
+        const { projectId, prNumber, result } = payload;
+        if (result && typeof result === 'object') {
+          callback(projectId, result as never);
+        } else {
+          // Backend returned null result (review file not found) — synthesize minimal result
+          callback(projectId, { prNumber, success: true, findings: [], summary: '', overallStatus: 'comment', reviewedAt: new Date().toISOString() } as never);
+        }
+      }),
+  onPRReviewError: (callback) =>
+    registerCallback('pr:review-error',
+      (payload: { projectId: string; prNumber: number; error: string }) => {
+        const { projectId, prNumber, error } = payload;
+        callback(projectId, { prNumber, error } as never);
+      }),
   batchAutoFix: () => {},
   getBatches: async () => [],
   onBatchProgress: () => () => {},
@@ -250,8 +312,8 @@ export const webAPI: API & { _isWebMode: boolean } = {
   },
   submitReview: (taskId: string, approved: boolean, feedback?: string) =>
     post(`/tasks/${taskId}/review`, { approved, feedback }),
-  updateTaskStatus: (taskId: string, status: TaskStatus) =>
-    patch(`/tasks/${taskId}/status`, { status }),
+  updateTaskStatus: (taskId: string, status: TaskStatus, options?: { force?: boolean }) =>
+    patch(`/tasks/${taskId}/status`, { status, ...(options?.force && { force: true }) }),
   recoverStuckTask: (taskId: string, options?: TaskRecoveryOptions) =>
     post(`/tasks/${taskId}/recover`, options),
   checkTaskRunning: async (taskId: string) => {
@@ -570,20 +632,26 @@ export const webAPI: API & { _isWebMode: boolean } = {
     get(`/projects/${projectId}/github/issues/${issueNumber}/comments`),
   importGitHubIssues: (projectId: string, issueNumbers: number[]) =>
     post(`/projects/${projectId}/github/import`, { issueNumbers }),
+  closeGitHubIssue: (projectId: string, issueNumber: number) =>
+    post(`/projects/${projectId}/github/issues/${issueNumber}/close`),
   createGitHubRelease: (projectId: string, version: string, releaseNotes: string, options) =>
     post(`/projects/${projectId}/github/releases`, { version, releaseNotes, ...options }),
 
   // GitHub OAuth
   checkGitHubCli: () => get('/github/cli/check'),
   checkGitHubAuth: () => get('/github/auth/check'),
+  autoDetectGitHub: (projectId?: string) =>
+    get(`/github/auto-detect${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`),
   startGitHubAuth: () => post('/github/auth/start'),
   getGitHubToken: () => get('/github/token'),
+  persistGitHubToken: (projectId: string) =>
+    post('/github/persist-token', { projectId }),
   getGitHubUser: () => get('/github/user'),
   listGitHubUserRepos: () => get('/github/repos'),
   detectGitHubRepo: (projectPath: string) =>
     get(`/github/detect-repo?path=${encodeURIComponent(projectPath)}`),
-  getGitHubBranches: (repo: string, token: string) =>
-    get(`/github/branches?repo=${encodeURIComponent(repo)}&token=${encodeURIComponent(token)}`),
+  getGitHubBranches: (repo: string) =>
+    get(`/github/branches?repo=${encodeURIComponent(repo)}`),
   createGitHubRepo: (repoName: string, options) =>
     post('/github/repos', { repoName, ...options }),
   addGitRemote: (projectPath: string, repoFullName: string) =>
@@ -677,9 +745,13 @@ export const webAPI: API & { _isWebMode: boolean } = {
   sendInsightsMessage: (projectId: string, message: string, modelConfig?: InsightsModelConfig) => {
     post(`/projects/${projectId}/insights/message`, { message, modelConfig });
   },
+  stopInsightsMessage: (projectId: string) =>
+    post(`/projects/${projectId}/insights/stop`),
   clearInsightsSession: (projectId: string) => del(`/projects/${projectId}/insights`),
   createTaskFromInsights: (projectId: string, title: string, description: string, metadata?: TaskMetadata) =>
     post(`/projects/${projectId}/insights/create-task`, { title, description, metadata }),
+  generateTaskFromChat: (projectId: string, modelConfig?: InsightsModelConfig) =>
+    post(`/projects/${projectId}/insights/generate-task`, { modelConfig }),
   listInsightsSessions: (projectId: string) => get(`/projects/${projectId}/insights/sessions`),
   newInsightsSession: (projectId: string) => post(`/projects/${projectId}/insights/sessions`),
   switchInsightsSession: (projectId: string, sessionId: string) =>
@@ -792,9 +864,10 @@ export const webAPI: API & { _isWebMode: boolean } = {
   getRecentErrors: async () => [],
   listLogFiles: async () => [],
 
-  // MCP Health Check
+  // MCP Health Check & Detection
   checkMcpHealth: (server: CustomMcpServer) => post('/mcp/health', server),
   testMcpConnection: (server: CustomMcpServer) => post('/mcp/test-connection', server),
+  detectMcpServices: () => get('/mcp/detect'),
 };
 
 /**

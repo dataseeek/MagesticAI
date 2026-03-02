@@ -167,7 +167,7 @@ export function useProjectSettings(
   // Also updates the global GitHub store so other components (like GitHub Issues) see the change
   useEffect(() => {
     const checkGitHubConnection = async () => {
-      if (!envConfig?.githubEnabled || !envConfig.githubToken || !envConfig.githubRepo) {
+      if (!envConfig?.githubEnabled || (!envConfig.githubTokenSet && !envConfig.githubToken) || !envConfig.githubRepo) {
         setGitHubConnectionStatus(null);
         return;
       }
@@ -187,10 +187,10 @@ export function useProjectSettings(
       }
     };
 
-    if (envConfig?.githubEnabled && envConfig.githubToken && envConfig.githubRepo) {
+    if (envConfig?.githubEnabled && (envConfig.githubTokenSet || envConfig.githubToken) && envConfig.githubRepo) {
       checkGitHubConnection();
     }
-  }, [envConfig?.githubEnabled, envConfig?.githubToken, envConfig?.githubRepo, project.id]);
+  }, [envConfig?.githubEnabled, envConfig?.githubTokenSet, envConfig?.githubToken, envConfig?.githubRepo, project.id]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));

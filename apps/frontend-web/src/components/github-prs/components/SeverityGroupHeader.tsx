@@ -15,7 +15,7 @@ interface SeverityGroupHeaderProps {
   selectedCount: number;
   expanded: boolean;
   onToggle: () => void;
-  onSelectAll: (e: React.MouseEvent) => void;
+  onSelectAll?: (e: React.MouseEvent) => void;
 }
 
 export function SeverityGroupHeader({
@@ -39,19 +39,21 @@ export function SeverityGroupHeader({
       className="w-full flex items-center justify-between p-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-t-lg transition-colors"
     >
       <div className="flex items-center gap-3">
-        {/* Group Checkbox */}
-        <div
-          onClick={onSelectAll}
-          className="cursor-pointer"
-        >
-          {isFullySelected ? (
-            <CheckSquare className={cn("h-4 w-4", config.color)} />
-          ) : isPartiallySelected ? (
-            <MinusSquare className={cn("h-4 w-4", config.color)} />
-          ) : (
-            <Square className="h-4 w-4 text-muted-foreground" />
-          )}
-        </div>
+        {/* Group Checkbox - only when selection is available */}
+        {onSelectAll && (
+          <div
+            onClick={onSelectAll}
+            className="cursor-pointer"
+          >
+            {isFullySelected ? (
+              <CheckSquare className={cn("h-4 w-4", config.color)} />
+            ) : isPartiallySelected ? (
+              <MinusSquare className={cn("h-4 w-4", config.color)} />
+            ) : (
+              <Square className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+        )}
 
         <Icon className={cn("h-4 w-4", config.color)} />
         <span className={cn("font-medium text-sm", config.color)}>

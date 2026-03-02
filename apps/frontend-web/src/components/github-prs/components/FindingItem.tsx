@@ -14,7 +14,7 @@ interface FindingItemProps {
   finding: PRReviewFinding;
   selected: boolean;
   posted?: boolean;
-  onToggle: () => void;
+  onToggle?: () => void;
 }
 
 // Helper to translate category names

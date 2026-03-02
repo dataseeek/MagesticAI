@@ -115,6 +115,14 @@ export function GitHubIssues({ onOpenSettings, onNavigateToTask }: GitHubIssuesP
     resetInvestigationStatus();
   }, [resetInvestigationStatus]);
 
+  const handleCloseIssue = useCallback(async (issueNumber: number) => {
+    if (!selectedProject?.id) return;
+    const result = await window.API.closeGitHubIssue(selectedProject.id, issueNumber);
+    if (result.success) {
+      handleRefresh();
+    }
+  }, [selectedProject?.id, handleRefresh]);
+
   const selectedIssue = issues.find(i => i.number === selectedIssueNumber);
 
   // Not connected state
@@ -177,6 +185,7 @@ export function GitHubIssues({ onOpenSettings, onNavigateToTask }: GitHubIssuesP
               projectId={selectedProject?.id}
               autoFixConfig={autoFixConfig}
               autoFixQueueItem={getAutoFixQueueItem(selectedIssue.number)}
+              onCloseIssue={handleCloseIssue}
             />
           ) : (
             <EmptyState message="Select an issue to view details" />
