@@ -234,7 +234,8 @@
     "findingsFoundSelectPost_plural": "{{count}} findings found. Select and post to GitHub.",
     "reviewLogs": "Review Logs",
     "followup": "Follow-up",
-    "initial": "Initial"
+    "initial": "Initial",
+    "connectingToGitHub": "Connecting to GitHub..."
   },
   "insights": {
     "modelSelector": {

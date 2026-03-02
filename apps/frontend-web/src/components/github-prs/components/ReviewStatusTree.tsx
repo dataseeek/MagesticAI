@@ -167,8 +167,8 @@ export function ReviewStatusTree({
       });
     }
 
-    // Step 4a: Check for Updates (show when waiting for changes and no new commits detected yet)
-    if (!isReviewing && status === 'waiting_for_changes' && !newCommitsCheck?.hasCommitsAfterPosting && onCheckNewCommits) {
+    // Step 4a: Check for Updates (show when waiting for changes or follow-up has blocking issues, and no new commits detected yet)
+    if (!isReviewing && (status === 'waiting_for_changes' || status === 'followup_issues_remain') && !newCommitsCheck?.hasCommitsAfterPosting && onCheckNewCommits) {
       const handleCheckUpdates = async () => {
         setIsCheckingUpdates(true);
         try {

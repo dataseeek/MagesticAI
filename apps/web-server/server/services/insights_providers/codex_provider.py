@@ -7,6 +7,7 @@ Runs `codex exec --model <model> "<message>"` as a subprocess.
 import asyncio
 import logging
 import os
+import shlex
 import subprocess
 import time
 from pathlib import Path
@@ -59,7 +60,6 @@ class CodexProvider(ProviderStrategy):
         cmd = ["bash", "-l", "-c"]
 
         effective_model = model or (model_config or {}).get("model", "gpt-5.3-codex")
-        codex_cmd = f"codex exec --model {effective_model}"
 
         # Build prompt with conversation context for stateless CLI
         full_prompt = message
@@ -72,9 +72,7 @@ class CodexProvider(ProviderStrategy):
             if context_parts:
                 full_prompt = "\n".join(context_parts) + f"\n[user]: {message}"
 
-        # Shell-escape the message
-        escaped_msg = full_prompt.replace("'", "'\\''")
-        codex_cmd += f" '{escaped_msg}'"
+        codex_cmd = f"codex exec --model {shlex.quote(effective_model)} {shlex.quote(full_prompt)}"
 
         cmd.append(codex_cmd)
 

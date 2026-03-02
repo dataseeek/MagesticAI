@@ -230,7 +230,8 @@
     "findingsFoundSelectPost_plural": "{{count}} descobertas encontradas. Selecione e poste no GitHub.",
     "reviewLogs": "Logs da Revisão",
     "followup": "Acompanhamento",
-    "initial": "Inicial"
+    "initial": "Inicial",
+    "connectingToGitHub": "Conectando ao GitHub..."
   },
   "insights": {
     "modelSelector": {

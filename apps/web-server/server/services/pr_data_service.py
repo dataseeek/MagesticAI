@@ -414,11 +414,14 @@ class PRDataService:
                 pass
 
         # Get the current HEAD commit SHA of the PR
+        # Use headRefOid instead of commits[-1].oid because the commits list
+        # is paginated at 100 by the GitHub GraphQL API, which returns a stale
+        # SHA for PRs with more than 100 commits.
         result = _run_gh(
             [
                 "pr", "view", str(pr_number),
-                "--json", "commits",
-                "--jq", ".commits[-1].oid",
+                "--json", "headRefOid",
+                "--jq", ".headRefOid",
             ],
             cwd=str(project_path),
         )

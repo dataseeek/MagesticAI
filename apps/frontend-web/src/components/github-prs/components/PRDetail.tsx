@@ -139,7 +139,8 @@ export function PRDetail({
     if (checkNewCommitsAbortRef.current) {
       checkNewCommitsAbortRef.current.abort();
     }
-    checkNewCommitsAbortRef.current = new AbortController();
+    const controller = new AbortController();
+    checkNewCommitsAbortRef.current = controller;
 
     // Check for new commits if we have ANY successful review with a commit SHA
     // This includes follow-up reviews that resolved all issues (no new findings)
@@ -149,13 +150,12 @@ export function PRDetail({
       try {
         const result = await onCheckNewCommits();
         // Only update state if not aborted
-        if (!checkNewCommitsAbortRef.current?.signal.aborted) {
+        if (!controller.signal.aborted) {
           setNewCommitsCheck(result);
         }
       } finally {
-        if (!checkNewCommitsAbortRef.current?.signal.aborted) {
-          isCheckingNewCommitsRef.current = false;
-        }
+        // Always reset the guard so future checks aren't permanently blocked
+        isCheckingNewCommitsRef.current = false;
       }
     }
   }, [reviewResult, onCheckNewCommits]);
