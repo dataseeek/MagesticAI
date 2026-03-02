@@ -795,9 +795,11 @@ The SDK will run invoked agents in parallel automatically.
             else:
                 overall_status = "approve"
 
-            # Extract HEAD SHA from commits for follow-up review tracking
-            head_sha = None
-            if context.commits:
+            # Extract HEAD SHA for follow-up review tracking
+            # Prefer headRefOid (from gh pr view) over commits[-1] which is
+            # paginated at 100 by the GitHub GraphQL API
+            head_sha = context.head_sha or None
+            if not head_sha and context.commits:
                 latest_commit = context.commits[-1]
                 head_sha = latest_commit.get("oid") or latest_commit.get("sha")
 

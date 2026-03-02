@@ -14,6 +14,7 @@ export type { PRReviewFinding } from '../../../shared/types/github-api';
 interface UseGitHubPRsResult {
   prs: PRData[];
   isLoading: boolean;
+  isInitialLoading: boolean;
   error: string | null;
   selectedPR: PRData | null;
   selectedPRNumber: number | null;
@@ -39,6 +40,7 @@ interface UseGitHubPRsResult {
 export function useGitHubPRs(projectId?: string): UseGitHubPRsResult {
   const [prs, setPrs] = useState<PRData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPRNumber, setSelectedPRNumber] = useState<number | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -158,6 +160,7 @@ export function useGitHubPRs(projectId?: string): UseGitHubPRsResult {
       setIsConnected(false);
     } finally {
       setIsLoading(false);
+      setIsInitialLoading(false);
     }
   }, [projectId, getPRReviewState, setNewCommitsCheckAction]);
 
@@ -310,6 +313,7 @@ export function useGitHubPRs(projectId?: string): UseGitHubPRsResult {
   return {
     prs,
     isLoading,
+    isInitialLoading,
     error,
     selectedPR,
     selectedPRNumber,

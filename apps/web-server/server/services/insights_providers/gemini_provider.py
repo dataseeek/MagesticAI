@@ -7,6 +7,7 @@ Runs `gemini --prompt "<message>"` as a subprocess.
 import asyncio
 import logging
 import os
+import shlex
 import shutil
 import time
 from pathlib import Path
@@ -72,8 +73,7 @@ class GeminiProvider(ProviderStrategy):
             if context_parts:
                 full_prompt = "\n".join(context_parts) + f"\n[user]: {message}"
 
-        escaped_msg = full_prompt.replace("'", "'\\''")
-        gemini_cmd = f"gemini --model {effective_model} --prompt '{escaped_msg}'"
+        gemini_cmd = f"gemini --model {shlex.quote(effective_model)} --prompt {shlex.quote(full_prompt)}"
 
         cmd.append(gemini_cmd)
 
