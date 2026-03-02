@@ -80,6 +80,7 @@ _DEFAULT_TOOL_NAMES: list[str] = ["Read", "Write", "Edit", "Bash", "Glob", "Grep
 
 _PATH_CHAT: str = "/api/chat"
 _PATH_TAGS: str = "/api/tags"
+_MAX_TOOL_ARGS_LEN: int = 50_000  # 50 KB safety limit for tool argument strings
 
 
 class OllamaAgenticProvider(BaseLLMProvider):
@@ -211,10 +212,18 @@ class OllamaAgenticProvider(BaseLLMProvider):
                     tool_args = fn.get("arguments", {})
                     # Ensure arguments is a dict (some models send a string)
                     if isinstance(tool_args, str):
-                        try:
-                            tool_args = json.loads(tool_args)
-                        except json.JSONDecodeError:
+                        if len(tool_args) > _MAX_TOOL_ARGS_LEN:
+                            logger.warning(
+                                "Tool arguments exceed size limit (%d > %d), discarding",
+                                len(tool_args),
+                                _MAX_TOOL_ARGS_LEN,
+                            )
                             tool_args = {}
+                        else:
+                            try:
+                                tool_args = json.loads(tool_args)
+                            except json.JSONDecodeError:
+                                tool_args = {}
 
                     assistant_blocks.append(
                         ToolUseBlock(name=tool_name, input=tool_args)
@@ -232,10 +241,18 @@ class OllamaAgenticProvider(BaseLLMProvider):
                     tool_name = fn.get("name", "")
                     tool_args = fn.get("arguments", {})
                     if isinstance(tool_args, str):
-                        try:
-                            tool_args = json.loads(tool_args)
-                        except json.JSONDecodeError:
+                        if len(tool_args) > _MAX_TOOL_ARGS_LEN:
+                            logger.warning(
+                                "Tool arguments exceed size limit (%d > %d), discarding",
+                                len(tool_args),
+                                _MAX_TOOL_ARGS_LEN,
+                            )
                             tool_args = {}
+                        else:
+                            try:
+                                tool_args = json.loads(tool_args)
+                            except json.JSONDecodeError:
+                                tool_args = {}
 
                     logger.debug(
                         "Executing tool: %s(%s)",
