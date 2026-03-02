@@ -44,8 +44,8 @@ interface ChangelogFiltersProps {
   // Branch diff options
   baseBranch: string;
   compareBranch: string;
-  onBaseBranchChange: (branch: string) => void;
-  onCompareBranchChange: (branch: string) => void;
+  onBaseBranchChange: (branch: string, ref?: string) => void;
+  onCompareBranchChange: (branch: string, ref?: string) => void;
   // Actions
   onLoadCommitsPreview: () => void;
 }
@@ -79,8 +79,6 @@ export function ChangelogFilters({
   onCompareBranchChange,
   onLoadCommitsPreview
 }: ChangelogFiltersProps) {
-  const localBranches = branches.filter((b) => !b.isRemote);
-
   return (
     <div className="w-80 shrink-0 border-r border-border overflow-y-auto">
       <div className="p-6 space-y-6">
@@ -392,17 +390,23 @@ export function ChangelogFilters({
               <>
               <div className="space-y-2">
                 <Label className="text-xs">Base Branch</Label>
-                <Select value={baseBranch} onValueChange={onBaseBranchChange}>
+                <Select value={baseBranch} onValueChange={(name) => {
+                  const branch = branches.find((b) => b.name === name);
+                  onBaseBranchChange(name, branch?.ref);
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select base branch..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {localBranches.map((branch) => (
-                      <SelectItem key={branch.name} value={branch.name}>
+                    {branches.map((branch) => (
+                      <SelectItem key={branch.ref} value={branch.name}>
                         <div className="flex items-center gap-2">
                           {branch.name}
                           {branch.name === defaultBranch && (
                             <Badge variant="outline" className="text-xs">default</Badge>
+                          )}
+                          {branch.isRemote && (
+                            <Badge variant="secondary" className="text-[10px] px-1 py-0">remote</Badge>
                           )}
                         </div>
                       </SelectItem>
@@ -416,17 +420,23 @@ export function ChangelogFilters({
 
               <div className="space-y-2">
                 <Label className="text-xs">Compare Branch</Label>
-                <Select value={compareBranch} onValueChange={onCompareBranchChange}>
+                <Select value={compareBranch} onValueChange={(name) => {
+                  const branch = branches.find((b) => b.name === name);
+                  onCompareBranchChange(name, branch?.ref);
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select compare branch..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {localBranches.map((branch) => (
-                      <SelectItem key={branch.name} value={branch.name}>
+                    {branches.map((branch) => (
+                      <SelectItem key={branch.ref} value={branch.name}>
                         <div className="flex items-center gap-2">
                           {branch.name}
                           {branch.isCurrent && (
                             <Badge variant="secondary" className="text-xs">current</Badge>
+                          )}
+                          {branch.isRemote && !branch.isCurrent && (
+                            <Badge variant="secondary" className="text-[10px] px-1 py-0">remote</Badge>
                           )}
                         </div>
                       </SelectItem>
