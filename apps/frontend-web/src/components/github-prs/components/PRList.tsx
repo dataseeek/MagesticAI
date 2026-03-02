@@ -240,14 +240,14 @@ export function PRList({ prs, selectedPRNumber, isLoading, error, getReviewState
               onClick={() => onSelectPR(pr.number)}
               className={cn(
                 'w-full p-4 text-left transition-colors hover:bg-accent/50',
-                selectedPRNumber === pr.number && 'bg-accent'
+                selectedPRNumber === pr.number && 'bg-accent/50'
               )}
             >
               <div className="flex items-start gap-3">
                 <GitPullRequest className="h-5 w-5 mt-0.5 text-success shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="text-sm text-muted-foreground">#{pr.number}</span>
+                    <span className={cn("text-sm", selectedPRNumber === pr.number ? "text-accent-foreground/70" : "text-muted-foreground")}>#{pr.number}</span>
                     <Badge variant="outline" className="text-xs">
                       {pr.headRefName}
                     </Badge>
@@ -276,7 +276,7 @@ export function PRList({ prs, selectedPRNumber, isLoading, error, getReviewState
                     />
                   </div>
                   <h3 className="font-medium text-sm truncate">{pr.title}</h3>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                  <div className={cn("flex items-center gap-3 mt-2 text-xs", selectedPRNumber === pr.number ? "text-accent-foreground/70" : "text-muted-foreground")}>
                     <span className="flex items-center gap-1">
                       <User className="h-3 w-3" />
                       {pr.author.login}
