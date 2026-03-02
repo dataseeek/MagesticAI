@@ -1,0 +1,95 @@
+{
+  "feature": "Buttons Placement (Icon Only)",
+  "workflow_type": "refactor",
+  "status": "in_progress",
+  "phase": "spec_creation",
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Discovery",
+      "subtasks": [
+        {
+          "id": "1.1",
+          "description": "Locate the side-menu component file that contains the Claude, Codex, and Gemini CLI status icon buttons (including their SVG icons, status indicators, and popover logic)",
+          "status": "completed",
+          "notes": "Located all relevant files: Sidebar.tsx (lines 342-346) renders ClaudeCodeStatusBadge and CLIToolStatusBadge. ClaudeCodeStatusBadge.tsx handles Claude with AnthropicIcon. CLIToolStatusBadge.tsx handles both Codex (OpenAIIcon) and Gemini (GeminiIcon) with CLIToolPopover sub-component. Icons are in apps/frontend-web/src/components/icons/. Popover uses Radix UI. Refreshes every 5 minutes.",
+          "updated_at": "2026-03-02T17:55:19.830007+00:00"
+        },
+        {
+          "id": "1.2",
+          "description": "Locate the top header component file and identify where the theme switch icons are placed (to use as a positioning reference)",
+          "status": "completed",
+          "notes": "Located top header component: apps/frontend-web/src/components/ProjectTabBar.tsx. Theme switch icon (Sun/Moon toggle) is at lines 153-161 inside a right-side flex container (div.flex.items-center.gap-2.px-2.py-1). Button order: ProjectSelector \u2192 Add Project \u2192 Theme Toggle \u2192 Settings \u2192 Help. CLI status icons should be inserted between the Add Project button (line 152) and the Theme Toggle button (line 153). The flex container uses gap-2 so added icons will be automatically spaced.",
+          "updated_at": "2026-03-02T17:58:18.821753+00:00"
+        },
+        {
+          "id": "1.3",
+          "description": "Identify existing CLI status icon/popover sub-components and assess whether they can be reused directly in the header or need adaptation",
+          "status": "completed",
+          "notes": "Assessed both ClaudeCodeStatusBadge and CLIToolStatusBadge. Neither can be reused directly (both are sidebar-optimized: w-full buttons, justify-start, size=sm, text labels, side=right popovers). Both can be adapted with an iconOnly prop: change button to size=icon h-8 w-8, remove text/badge spans, change popover+tooltip side to bottom. CLIToolStatusBadge wrapper must change from space-y-0.5 to flex items-center gap-1 for horizontal layout. The icon+status-dot pattern (relative div + absolute span) is identical to header requirements and needs no changes. CLIToolPopover is an internal (non-exported) sub-component \u2014 the parent component must be modified in place.",
+          "updated_at": "2026-03-02T18:01:16.027063+00:00"
+        },
+        {
+          "id": "1.4",
+          "description": "Investigate whether a local LLM icon exists or can be created following the same icon + status + popover pattern",
+          "status": "completed",
+          "notes": "OllamaIcon already exists at apps/frontend-web/src/components/icons/OllamaIcon.tsx (same {className?} interface as other icons). Backend detection endpoint already exists at GET /settings/local-llm/detect (settings.py:489) returning {installed, running, version, modelCount, models}. LocalLLMSettings.tsx already uses OllamaIcon + apiRequest pattern. Implementation is FULLY FEASIBLE: create LocalLLMStatusBadge.tsx using OllamaIcon + status dot (green=running, yellow=installed-not-running, gray=not-installed) + Tooltip + Popover following the same pattern as CLIToolStatusBadge. Key difference: no auth concept, status is purely running+modelCount. Needs a local OllamaStatus interface (not CLIAccountStatus which is typed for codex/gemini only). Popover shows version, model list, and link to ollama.ai if not installed.",
+          "updated_at": "2026-03-02T18:15:00.000000+00:00"
+        }
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "Implementation",
+      "subtasks": [
+        {
+          "id": "2.1",
+          "description": "Remove or hide the Claude, Codex, and Gemini status icon buttons from the side-menu component (preserve the underlying state/logic if shared)",
+          "status": "pending"
+        },
+        {
+          "id": "2.2",
+          "description": "Add the 3 CLI status icons (Claude, Codex, Gemini) to the top header component in icon-only mode (no text labels), positioned before the theme switch icons",
+          "status": "pending"
+        },
+        {
+          "id": "2.3",
+          "description": "Verify and adjust styling: icon size, spacing, alignment, and popover positioning within the header context",
+          "status": "pending"
+        },
+        {
+          "id": "2.4",
+          "description": "If feasible, add local LLM icon to header using the same icon + status + popover pattern",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Validation",
+      "subtasks": [
+        {
+          "id": "3.1",
+          "description": "Verify all 3 CLI status icons display correctly in the header (icon + status dot visible, text labels absent)",
+          "status": "pending"
+        },
+        {
+          "id": "3.2",
+          "description": "Verify popover interactions work correctly for each icon in the new header location",
+          "status": "pending"
+        },
+        {
+          "id": "3.3",
+          "description": "Verify the header layout is not broken and is responsive; confirm theme switch remains accessible",
+          "status": "pending"
+        },
+        {
+          "id": "3.4",
+          "description": "Run the existing test suite and confirm all tests pass",
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "last_updated": "2026-03-02T18:15:00.000000+00:00"
+}
