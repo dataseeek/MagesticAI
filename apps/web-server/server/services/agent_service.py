@@ -1106,19 +1106,40 @@ class AgentService:
                         try:
                             main_plan = json.loads(dst.read_text())
                             worktree_plan = json.loads(src.read_text())
-                            # Preserve status/reviewReason from main spec if present
+
+                            # Preserve top-level fields from main spec
                             preserved_status = main_plan.get("status")
                             preserved_reason = main_plan.get("reviewReason")
-                            # Copy worktree plan (has updated subtask statuses)
-                            shutil.copy2(src, dst)
-                            # Restore preserved fields if they exist
-                            if preserved_status or preserved_reason:
-                                merged_plan = json.loads(dst.read_text())
-                                if preserved_status:
-                                    merged_plan["status"] = preserved_status
-                                if preserved_reason:
-                                    merged_plan["reviewReason"] = preserved_reason
-                                dst.write_text(json.dumps(merged_plan, indent=2))
+
+                            # Build map of main spec subtask statuses
+                            STATUS_ORDER = {"pending": 0, "in_progress": 1, "completed": 2, "failed": 2}
+                            main_subtask_statuses = {}
+                            for phase in main_plan.get("phases", []):
+                                for subtask in phase.get("subtasks", []):
+                                    sid = subtask.get("id")
+                                    if sid:
+                                        main_subtask_statuses[sid] = subtask.get("status", "pending")
+
+                            # Start from worktree plan (has latest structure)
+                            merged_plan = worktree_plan
+
+                            # Restore preserved top-level fields
+                            if preserved_status:
+                                merged_plan["status"] = preserved_status
+                            if preserved_reason:
+                                merged_plan["reviewReason"] = preserved_reason
+
+                            # Prevent subtask status regressions
+                            for phase in merged_plan.get("phases", []):
+                                for subtask in phase.get("subtasks", []):
+                                    sid = subtask.get("id")
+                                    if sid and sid in main_subtask_statuses:
+                                        main_rank = STATUS_ORDER.get(main_subtask_statuses[sid], 0)
+                                        wt_rank = STATUS_ORDER.get(subtask.get("status", "pending"), 0)
+                                        if main_rank > wt_rank:
+                                            subtask["status"] = main_subtask_statuses[sid]
+
+                            dst.write_text(json.dumps(merged_plan, indent=2))
                         except (json.JSONDecodeError, OSError) as merge_err:
                             logger.warning(f"[AgentService] Failed to merge implementation_plan.json, falling back to copy: {merge_err}")
                             shutil.copy2(src, dst)
@@ -1613,21 +1634,12 @@ class AgentService:
                 await self._update_plan_status(project_path, spec_id, status, task_id)
                 logger.info(f"[AgentService._monitor_process] _update_plan_status call completed")
 
-            # Clean up from running_tasks and tracking data
-            if task_id in self.running_tasks:
-                del self.running_tasks[task_id]
-            self._task_sequence_numbers.pop(task_id, None)
-            self._task_start_times.pop(task_id, None)
-            self._task_current_phases.pop(task_id, None)
-            self._task_profiles.pop(task_id, None)
-            self._task_rate_limits.pop(task_id, None)
-            self._task_subtask_states.pop(task_id, None)
-            self._spec_dirs.pop(task_id, None)
-
             # Send email/in-app notifications on task completion or failure
             _notif_user_id = self._task_user_ids.pop(task_id, "")
 
-            # Emit completion/failure progress with previous_phase to trigger status event (Bug 1 fix)
+            # Emit completion/failure progress with previous_phase to trigger status event
+            # NOTE: Cleanup is deferred until AFTER these emissions so _emit_progress
+            # can still read _spec_dirs (for plan file), _task_sequence_numbers, and _task_start_times
             if return_code == 0:
                 await self._emit_progress(
                     TaskProgress(
@@ -1677,6 +1689,19 @@ class AgentService:
                         )
                     except Exception:
                         logger.debug("Failed to send task failure notification", exc_info=True)
+
+            # Clean up tracking data AFTER all emissions are complete
+            # This must happen after _emit_progress so it can still read
+            # _spec_dirs, _task_sequence_numbers, and _task_start_times
+            if task_id in self.running_tasks:
+                del self.running_tasks[task_id]
+            self._task_sequence_numbers.pop(task_id, None)
+            self._task_start_times.pop(task_id, None)
+            self._task_current_phases.pop(task_id, None)
+            self._task_profiles.pop(task_id, None)
+            self._task_rate_limits.pop(task_id, None)
+            self._task_subtask_states.pop(task_id, None)
+            self._spec_dirs.pop(task_id, None)
         except asyncio.CancelledError:
             # Task was cancelled, cleanup already handled by stop_task
             pass
@@ -1686,10 +1711,12 @@ class AgentService:
                 del self.running_tasks[task_id]
             self._task_sequence_numbers.pop(task_id, None)
             self._task_start_times.pop(task_id, None)
+            self._task_current_phases.pop(task_id, None)
             self._task_user_ids.pop(task_id, None)
             self._task_profiles.pop(task_id, None)
             self._task_rate_limits.pop(task_id, None)
             self._task_subtask_states.pop(task_id, None)
+            self._spec_dirs.pop(task_id, None)
             await self._emit_progress(TaskProgress(
                 task_id=task_id,
                 phase=TaskPhase.FAILED,
@@ -1712,6 +1739,15 @@ class AgentService:
             logger.warning(f"[AgentService._update_plan_status] plan_file does not exist, returning early")
             return
 
+        # Map internal status to frontend-compatible status using the canonical helpers
+        # (defined before try so it's available in the except fallback)
+        phase_enum_map = {
+            "completed": TaskPhase.COMPLETED,
+            "failed": TaskPhase.FAILED,
+            "human_review": TaskPhase.PLAN_REVIEW,
+        }
+        phase_enum = phase_enum_map.get(status)
+
         try:
             plan = json.loads(plan_file.read_text())
 
@@ -1726,14 +1762,6 @@ class AgentService:
                 logger.error(f"[AgentService] Invalid or minimal implementation plan detected for {spec_id}")
                 await emit_task_status(task_id, "failed", "invalid_plan")
                 return
-
-            # Map internal status to frontend-compatible status using the canonical helpers
-            phase_enum_map = {
-                "completed": TaskPhase.COMPLETED,
-                "failed": TaskPhase.FAILED,
-                "human_review": TaskPhase.PLAN_REVIEW,
-            }
-            phase_enum = phase_enum_map.get(status)
             if phase_enum:
                 plan["status"] = phase_to_status(phase_enum)
                 review_reason = phase_to_review_reason(phase_enum)
@@ -1771,6 +1799,13 @@ class AgentService:
             })
         except Exception as e:
             logger.error(f"[AgentService] Failed to update plan status: {e}")
+            # Still emit status event so frontend updates even if plan file write failed
+            try:
+                fallback_status = phase_to_status(phase_enum) if phase_enum else status
+                fallback_reason = phase_to_review_reason(phase_enum) if phase_enum else None
+                await emit_task_status(task_id, fallback_status, fallback_reason)
+            except Exception:
+                logger.error(f"[AgentService] Failed to emit fallback task:status for {task_id}")
 
     def _write_skill_context(self, spec_dir: Path) -> None:
         """Write skill_context.md to spec_dir based on selectedSkills in task_metadata.json.
