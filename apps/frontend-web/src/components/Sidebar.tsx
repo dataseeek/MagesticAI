@@ -46,8 +46,6 @@ import { useAuthStore } from '../stores/auth-store';
 import { AddProjectModal } from './AddProjectModal';
 import { GitSetupModal } from './GitSetupModal';
 import { RateLimitIndicator } from './RateLimitIndicator';
-import { ClaudeCodeStatusBadge } from './ClaudeCodeStatusBadge';
-import { CLIToolStatusBadge } from './CLIToolStatusBadge';
 import type { Project, AutoBuildVersionInfo, GitStatus, ProjectEnvConfig } from '../shared/types';
 
 export type SidebarView = 'kanban' | 'terminals' | 'editor' | 'context' | 'github-issues' | 'github-prs' | 'changelog' | 'insights' | 'worktrees' | 'agent-tools';
@@ -340,11 +338,6 @@ export function Sidebar({
 
         {/* Bottom section with New Task */}
         <div className="p-4 space-y-3">
-          {/* Claude Code Status Badge */}
-          <ClaudeCodeStatusBadge onOpenOnboarding={onOpenOnboarding} />
-          {/* CLI Tool Status Badges (Codex, Gemini) */}
-          <CLIToolStatusBadge />
-
           {/* New Task button */}
           <Button
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
