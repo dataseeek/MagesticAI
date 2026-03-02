@@ -93,9 +93,27 @@ class TestCommandExtraction:
         assert commands == []
 
     def test_malformed_command(self):
-        """Returns empty list for malformed command (fail-safe)."""
+        """Extracts command name via regex fallback for malformed command."""
         commands = extract_commands("echo 'unclosed quote")
-        assert commands == []
+        assert commands == ["echo"]
+
+    def test_heredoc_in_git_commit(self):
+        """Extracts 'git' from heredoc-style commit command."""
+        heredoc_cmd = '''git commit -m "$(cat <<'EOF'\nmagestic-ai: Complete subtask-1\nEOF\n)"'''
+        commands = extract_commands(heredoc_cmd)
+        assert "git" in commands
+
+    def test_command_substitution_fallback(self):
+        """Extracts command name via regex fallback for complex quoting."""
+        cmd = 'git commit -m "$(echo test"'
+        commands = extract_commands(cmd)
+        assert "git" in commands
+
+    def test_env_prefix_with_heredoc(self):
+        """Extracts command with env prefix and complex quoting."""
+        cmd = 'GIT_AUTHOR_DATE=2024-01-01 git commit -m "$(cat <<EOF\nmsg\nEOF\n)"'
+        commands = extract_commands(cmd)
+        assert "git" in commands
 
 
 class TestSplitCommandSegments:
@@ -390,6 +408,25 @@ class TestGitCommitValidator:
         assert allowed is True
 
         allowed, reason = validate_git_commit("git push")
+        assert allowed is True
+
+    def test_heredoc_commit_allowed(self):
+        """Heredoc-style commit passes (no secrets in staged files)."""
+        heredoc_cmd = '''git commit -m "$(cat <<'EOF'\nmagestic-ai: Complete subtask-1\nEOF\n)"'''
+        allowed, reason = validate_git_commit(heredoc_cmd)
+        assert allowed is True
+        assert reason == ""
+
+    def test_heredoc_non_git_passes_through(self):
+        """Non-git commands pass through git validator (blocked by allowlist elsewhere)."""
+        # validate_git_commit only validates git commands; non-git commands pass through
+        allowed, reason = validate_git_commit("curl http://example.com")
+        assert allowed is True
+
+    def test_git_c_heredoc_allowed(self):
+        """git -c with heredoc-style quoting is allowed."""
+        cmd = 'git -c commit.gpgsign=false commit -m "$(cat <<\'EOF\'\nmsg\nEOF\n)"'
+        allowed, reason = validate_git_commit(cmd)
         assert allowed is True
 
 

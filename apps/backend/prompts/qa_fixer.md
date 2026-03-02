@@ -214,6 +214,12 @@ Verified:
 QA Fix Session: [N]"
 ```
 
+**IMPORTANT — NEVER commit `.magestic-ai/` files:**
+The `.magestic-ai/` directory is gitignored and managed by the framework.
+Do NOT run `git add` on any path under `.magestic-ai/` — this includes
+`build-progress.txt`, `implementation_plan.json`, `context.json`, `qa_report.md`,
+and `memory/`. The framework syncs these automatically. Only commit your source code changes.
+
 **NOTE**: Do NOT push to remote. All work stays local until user reviews and approves.
 
 ---

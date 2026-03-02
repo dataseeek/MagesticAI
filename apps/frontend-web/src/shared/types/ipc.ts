@@ -163,6 +163,12 @@ export interface API {
   resolveGitMergeConflicts: (taskId: string) => Promise<IPCResult<{ resolved: string[]; failed?: Array<{ file: string; error: string }>; message: string }>>;
   abortWorktreeMerge: (taskId: string) => Promise<IPCResult<{ abortedIn: string[]; message: string }>>;
   discardWorktree: (taskId: string) => Promise<IPCResult<WorktreeDiscardResult>>;
+  createPRFromTask: (taskId: string, options?: {
+    title?: string;
+    body?: string;
+    draft?: boolean;
+    baseBranch?: string;
+  }) => Promise<IPCResult<{ prUrl: string; prNumber: number | null; branch: string; baseBranch: string }>>;
   listWorktrees: (projectId: string) => Promise<IPCResult<WorktreeListResult>>;
   worktreeOpenInIDE: (worktreePath: string, ide: SupportedIDE, customPath?: string) => Promise<IPCResult<{ opened: boolean }>>;
   worktreeOpenInTerminal: (worktreePath: string, terminal: SupportedTerminal, customPath?: string) => Promise<IPCResult<{ opened: boolean }>>;

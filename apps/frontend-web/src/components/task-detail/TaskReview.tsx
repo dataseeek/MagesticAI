@@ -36,6 +36,8 @@ interface TaskReviewProps {
   onFeedbackChange: (value: string) => void;
   onReject: () => void;
   onMerge: () => void;
+  onCreatePR?: () => void;
+  isCreatingPR?: boolean;
   onDiscard: () => void;
   onShowDiscardDialog: (show: boolean) => void;
   onShowDiffDialog: (show: boolean) => void;
@@ -82,6 +84,8 @@ export function TaskReview({
   onFeedbackChange,
   onReject,
   onMerge,
+  onCreatePR,
+  isCreatingPR,
   onDiscard,
   onShowDiscardDialog,
   onShowDiffDialog,
@@ -128,6 +132,8 @@ export function TaskReview({
           onLoadMergePreview={onLoadMergePreview}
           onStageOnlyChange={onStageOnlyChange}
           onMerge={onMerge}
+          onCreatePR={onCreatePR}
+          isCreatingPR={isCreatingPR}
           onAbortMerge={onAbortMerge}
           onClose={onClose}
           onSwitchToTerminals={onSwitchToTerminals}

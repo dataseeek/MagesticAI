@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from '../../hooks/use-toast';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
@@ -184,6 +184,7 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
       stopTask(task.id);
     } else {
       startTask(task.id);
+      onOpenChange(false);
     }
   };
 
@@ -258,6 +259,33 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
       // Errors are handled inside unifiedMerge via setWorkspaceError
     } finally {
       state.setIsMerging(false);
+    }
+  };
+
+  const [isCreatingPR, setIsCreatingPR] = useState(false);
+
+  const handleCreatePR = async () => {
+    setIsCreatingPR(true);
+    state.setWorkspaceError(null);
+    try {
+      const result = await window.API.createPRFromTask(task.id);
+      if (result.success && result.data) {
+        toast({
+          title: 'Pull Request Created',
+          description: result.data.prUrl
+            ? `PR #${result.data.prNumber} created successfully`
+            : 'PR created successfully',
+        });
+        if (result.data.prUrl) {
+          window.API.openExternal(result.data.prUrl);
+        }
+      } else {
+        state.setWorkspaceError(result.error || 'Failed to create PR');
+      }
+    } catch (err) {
+      state.setWorkspaceError(`Failed to create PR: ${err}`);
+    } finally {
+      setIsCreatingPR(false);
     }
   };
 
@@ -563,6 +591,8 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
                             onFeedbackChange={state.setFeedback}
                             onReject={handleReject}
                             onMerge={handleMerge}
+                            onCreatePR={handleCreatePR}
+                            isCreatingPR={isCreatingPR}
                             onDiscard={handleDiscard}
                             onShowDiscardDialog={state.setShowDiscardDialog}
                             onShowDiffDialog={state.setShowDiffDialog}
