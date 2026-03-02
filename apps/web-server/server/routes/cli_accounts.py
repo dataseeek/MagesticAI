@@ -10,6 +10,7 @@ import base64
 import json
 import logging
 import os
+import shlex
 import shutil
 import subprocess
 import threading
@@ -96,7 +97,7 @@ def _detect_cli_version(cli: str) -> str | None:
         # Fallback: try login shell in case PATH is set in .bashrc/.profile
         try:
             result = subprocess.run(
-                ["bash", "-l", "-c", f"which {binary}"],
+                ["bash", "-l", "-c", f"which {shlex.quote(binary)}"],
                 capture_output=True, text=True, timeout=5,
             )
             if result.returncode == 0 and result.stdout.strip():
@@ -600,9 +601,14 @@ def install_or_update_cli(cli: str):
     cfg = CLI_CONFIG[cli]
     package = cfg["npm_package"]
 
-    def _run(cmd: str, timeout: int = 60) -> subprocess.CompletedProcess:
+    def _run(args: list[str], timeout: int = 60) -> subprocess.CompletedProcess:
+        """Run a command inside a login shell.
+
+        Takes an argument list (not a raw string) to prevent shell injection.
+        """
+        safe_cmd = " ".join(shlex.quote(a) for a in args)
         return subprocess.run(
-            ["bash", "-l", "-c", cmd],
+            ["bash", "-l", "-c", safe_cmd],
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -614,7 +620,11 @@ def install_or_update_cli(cli: str):
 
     # Step 1: Check Node.js availability
     try:
-        node_check = _run("node --version && npm --version", timeout=10)
+        # Two commands — use hardcoded shell string (no user input)
+        node_check = subprocess.run(
+            ["bash", "-l", "-c", "node --version && npm --version"],
+            capture_output=True, text=True, timeout=10,
+        )
         if node_check.returncode != 0:
             return {
                 "success": False,
@@ -629,7 +639,7 @@ def install_or_update_cli(cli: str):
     # Step 2: Install/update via npm
     try:
         logger.info(f"[{cli}] Running npm install -g {package}...")
-        install_result = _run(f"npm install -g {package}", timeout=120)
+        install_result = _run(["npm", "install", "-g", package], timeout=120)
         if install_result.returncode != 0:
             error_msg = install_result.stderr.strip() or install_result.stdout.strip()
             return {
