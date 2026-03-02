@@ -321,6 +321,8 @@ def build_changelog_prompt(
             prompt += "Add emojis for headers + major changes\n\n"
         elif emoji_level == "high":
             prompt += "Add emojis throughout for all changes\n\n"
+    else:
+        prompt += "**Emoji Level:** none\nDo NOT use any emojis anywhere in the changelog output.\n\n"
 
     # Add custom instructions
     if custom_instructions:
