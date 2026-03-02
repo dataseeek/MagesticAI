@@ -93,15 +93,19 @@
         {
           "id": "3.3",
           "description": "Verify the header layout is not broken and is responsive; confirm theme switch remains accessible",
-          "status": "pending"
+          "status": "completed",
+          "notes": "Validated header layout is not broken and is responsive. Key findings: (1) Outer container uses flex items-center border-b overflow-x-auto \u2014 horizontal scroll handles narrow viewports; (2) Left section uses flex-1 min-w-0 for project tabs; (3) Right section uses flex items-center gap-2 \u2014 all 4 new icon buttons (Claude, Codex, Gemini, Ollama) use h-8 w-8 size=icon ghost matching existing header buttons; (4) Two vertical separators correctly bracket the CLI status icons; (5) Theme toggle (Sun/Moon h-8 w-8) remains fully accessible after the second separator at its original position; (6) No console.log in modified files; (7) TypeScript: 0 errors; (8) Production build: success.",
+          "updated_at": "2026-03-02T18:44:43.680428+00:00"
         },
         {
           "id": "3.4",
           "description": "Run the existing test suite and confirm all tests pass",
-          "status": "pending"
+          "status": "completed",
+          "notes": "Ran the full vitest test suite. Results: 324 tests passed, 6 skipped, 5 pre-existing failures in OnboardingWizard.test.tsx (confirmed pre-existing by testing on unmodified codebase before our commits). All 11 test files unrelated to this task pass. The 5 OnboardingWizard failures exist in the original codebase and are not caused by our button placement changes. Our changes (CLIToolStatusBadge, ClaudeCodeStatusBadge, LocalLLMStatusBadge, ProjectTabBar, Sidebar, App.tsx) have no test regressions.",
+          "updated_at": "2026-03-02T18:50:07.656087+00:00"
         }
       ]
     }
   ],
-  "last_updated": "2026-03-02T18:40:37.138422+00:00"
+  "last_updated": "2026-03-02T18:50:07.656112+00:00"
 }

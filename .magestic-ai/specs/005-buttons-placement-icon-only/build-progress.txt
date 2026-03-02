@@ -12,3 +12,7 @@
   [x] 3.1: Verify all 3 CLI status icons display correctly in the header (icon + status dot visible, text labels absent) (b9a9e0d2)
   [x] 3.2: Verify popover interactions work correctly for each icon in the new header location
   [x] 3.2: Verify popover interactions work correctly for each icon in the new header location (2891eef9)
+  [x] 3.3: Verify the header layout is not broken and is responsive; confirm theme switch remains accessible (f6ec7218)
+  [x] 3.4: Run the existing test suite and confirm all tests pass
+      Results: 324 passed, 6 skipped, 5 pre-existing failures in OnboardingWizard.test.tsx (unrelated to this task - confirmed by running tests on unmodified codebase)
+      Test files: 11 passed / 1 failed (pre-existing) - 12 total
