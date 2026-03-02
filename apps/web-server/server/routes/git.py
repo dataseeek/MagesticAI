@@ -3,6 +3,7 @@ Git, Ollama, MCP, and utility routes.
 """
 
 import json
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -379,10 +380,15 @@ async def install_claude_code():
 
     steps_completed: list[str] = []
 
-    def _run(cmd: str, timeout: int = 30) -> subprocess.CompletedProcess:
-        """Run a command inside a login shell."""
+    def _run(args: list[str], timeout: int = 30) -> subprocess.CompletedProcess:
+        """Run a command inside a login shell.
+
+        Takes an argument list (not a raw string) to prevent shell injection.
+        Arguments are joined with shlex.quote() for safe shell execution.
+        """
+        safe_cmd = " ".join(shlex.quote(a) for a in args)
         return subprocess.run(
-            ["bash", "-l", "-c", cmd],
+            ["bash", "-l", "-c", safe_cmd],
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -390,7 +396,7 @@ async def install_claude_code():
 
     # Step 1: Check if claude is already installed
     try:
-        result = _run("claude --version", timeout=10)
+        result = _run(["claude", "--version"], timeout=10)
         if result.returncode == 0:
             return {
                 "success": True,
@@ -406,7 +412,7 @@ async def install_claude_code():
     # Step 2: Check if Node.js is available
     node_available = False
     try:
-        result = _run("node --version", timeout=10)
+        result = _run(["node", "--version"], timeout=10)
         node_available = result.returncode == 0
         if node_available:
             steps_completed.append("node-present")
@@ -420,8 +426,12 @@ async def install_claude_code():
 
         # 3a: Install fnm
         try:
-            result = _run(
-                "curl -fsSL https://fnm.vercel.app/install | bash",
+            # Shell pipeline — cannot be split into an arg list.
+            # Hardcoded URL, no user input, safe to pass as raw shell command.
+            result = subprocess.run(
+                ["bash", "-l", "-c", "curl -fsSL https://fnm.vercel.app/install | bash"],
+                capture_output=True,
+                text=True,
                 timeout=60,
             )
             if result.returncode != 0:
@@ -438,7 +448,7 @@ async def install_claude_code():
 
         # 3b: Install Node.js LTS via fnm
         try:
-            result = _run("fnm install --lts", timeout=120)
+            result = _run(["fnm", "install", "--lts"], timeout=120)
             if result.returncode != 0:
                 return {
                     "success": False,
@@ -453,13 +463,13 @@ async def install_claude_code():
 
         # 3c: Set fnm default so login shells pick it up
         try:
-            _run("fnm default lts-latest", timeout=10)
+            _run(["fnm", "default", "lts-latest"], timeout=10)
         except Exception:
             pass  # Non-critical
 
         # Verify node is now available
         try:
-            result = _run("node --version", timeout=10)
+            result = _run(["node", "--version"], timeout=10)
             if result.returncode != 0:
                 return {
                     "success": False,
@@ -476,7 +486,7 @@ async def install_claude_code():
     try:
         log.info("Installing Claude Code CLI via npm...")
         result = _run(
-            "npm install -g @anthropic-ai/claude-code",
+            ["npm", "install", "-g", "@anthropic-ai/claude-code"],
             timeout=180,
         )
         if result.returncode != 0:
@@ -494,7 +504,7 @@ async def install_claude_code():
     # Step 5: Verify installation
     version_str = "unknown"
     try:
-        result = _run("claude --version", timeout=10)
+        result = _run(["claude", "--version"], timeout=10)
         if result.returncode == 0:
             version_str = result.stdout.strip()
         else:
