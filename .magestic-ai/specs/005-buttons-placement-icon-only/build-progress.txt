@@ -11,3 +11,4 @@
   [x] 3.1: Verify all 3 CLI status icons display correctly in the header (icon + status dot visible, text labels absent)
   [x] 3.1: Verify all 3 CLI status icons display correctly in the header (icon + status dot visible, text labels absent) (b9a9e0d2)
   [x] 3.2: Verify popover interactions work correctly for each icon in the new header location
+  [x] 3.2: Verify popover interactions work correctly for each icon in the new header location (2891eef9)
