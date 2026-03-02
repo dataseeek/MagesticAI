@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import shutil
 from pathlib import Path
 from typing import Any, AsyncGenerator, AsyncIterator
@@ -47,6 +48,7 @@ logger = logging.getLogger(__name__)
 _DEFAULT_CODEX_PATH: str = "codex"
 _DEFAULT_MODEL: str = "gpt-5.3-codex"
 _DEFAULT_TIMEOUT: int = 600  # 10 minutes for agentic tasks
+_MODEL_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._:/-]*$")
 
 
 class CodexAgenticProvider(BaseLLMProvider):
@@ -73,11 +75,18 @@ class CodexAgenticProvider(BaseLLMProvider):
         working_dir: Path | None = None,
         extra_args: list[str] | None = None,
     ) -> None:
+        if model and not _MODEL_NAME_RE.match(model):
+            raise ValueError(
+                f"Invalid model name '{model}': must be alphanumeric with . _ : / - separators"
+            )
         self._model = model
         self._codex_path = codex_path
         self._timeout = timeout
         self._working_dir = working_dir
         self._extra_args: list[str] = extra_args or []
+        for arg in self._extra_args:
+            if "\x00" in arg:
+                raise ValueError("extra_args must not contain null bytes")
         self._pending_prompt: str | None = None
 
         logger.debug(
