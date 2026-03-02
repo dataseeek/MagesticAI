@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Plus, Settings, HelpCircle, Sun, Moon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
+import { Separator } from './ui/separator';
 import { SortableProjectTab } from './SortableProjectTab';
 import { ProjectSelector } from './settings/ProjectSelector';
 import { ClaudeCodeStatusBadge } from './ClaudeCodeStatusBadge';
@@ -154,8 +155,10 @@ export function ProjectTabBar({
         >
           <Plus className="h-4 w-4" />
         </Button>
+        <Separator orientation="vertical" className="h-4 mx-0.5" />
         <ClaudeCodeStatusBadge iconOnly onOpenOnboarding={onOpenOnboarding} />
         <CLIToolStatusBadge iconOnly />
+        <Separator orientation="vertical" className="h-4 mx-0.5" />
         <Button
           variant="ghost"
           size="icon"

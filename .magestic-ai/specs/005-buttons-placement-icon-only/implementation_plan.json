@@ -33,8 +33,8 @@
           "id": "1.4",
           "description": "Investigate whether a local LLM icon exists or can be created following the same icon + status + popover pattern",
           "status": "completed",
-          "notes": "OllamaIcon already exists at apps/frontend-web/src/components/icons/OllamaIcon.tsx (same {className?} interface as other icons). Backend detection endpoint already exists at GET /settings/local-llm/detect (settings.py:489) returning {installed, running, version, modelCount, models}. LocalLLMSettings.tsx already uses OllamaIcon + apiRequest pattern. Implementation is FULLY FEASIBLE: create LocalLLMStatusBadge.tsx using OllamaIcon + status dot (green=running, yellow=installed-not-running, gray=not-installed) + Tooltip + Popover following the same pattern as CLIToolStatusBadge. Key difference: no auth concept, status is purely running+modelCount. Needs a local OllamaStatus interface (not CLIAccountStatus which is typed for codex/gemini only). Popover shows version, model list, and link to ollama.ai if not installed.",
-          "updated_at": "2026-03-02T18:15:00.000000+00:00"
+          "notes": "OllamaIcon already exists at apps/frontend-web/src/components/icons/OllamaIcon.tsx with the same {className?} interface. Backend detection endpoint already exists at GET /settings/local-llm/detect returning {installed, running, version, modelCount, models}. LocalLLMSettings.tsx already uses this icon and apiRequest pattern. Implementation is FULLY FEASIBLE: create LocalLLMStatusBadge.tsx using OllamaIcon + status dot (green=running, yellow=installed-not-running, gray=not-installed) + Tooltip + Popover. Key difference from Codex/Gemini: no auth concept. Popover shows version, model list, install link.",
+          "updated_at": "2026-03-02T18:03:59.181466+00:00"
         }
       ]
     },
@@ -45,17 +45,23 @@
         {
           "id": "2.1",
           "description": "Remove or hide the Claude, Codex, and Gemini status icon buttons from the side-menu component (preserve the underlying state/logic if shared)",
-          "status": "pending"
+          "status": "completed",
+          "notes": "Removed ClaudeCodeStatusBadge and CLIToolStatusBadge imports and JSX rendering from Sidebar.tsx (lines 49-50 and 343-346). The component files (ClaudeCodeStatusBadge.tsx and CLIToolStatusBadge.tsx) are preserved intact for reuse in the top header. The onOpenOnboarding prop is retained in the Sidebar interface since App.tsx still passes it optionally \u2014 it will be connected to the header's ClaudeCodeStatusBadge in subtask 2.2.",
+          "updated_at": "2026-03-02T18:05:51.207800+00:00"
         },
         {
           "id": "2.2",
           "description": "Add the 3 CLI status icons (Claude, Codex, Gemini) to the top header component in icon-only mode (no text labels), positioned before the theme switch icons",
-          "status": "pending"
+          "status": "completed",
+          "notes": "Added iconOnly prop to ClaudeCodeStatusBadge.tsx (icon-only button h-8 w-8, no text labels/badges, tooltip+popover side=bottom). Added iconOnly prop to CLIToolStatusBadge.tsx (same treatment per tool, horizontal flex wrapper). Updated ProjectTabBar.tsx to import and render ClaudeCodeStatusBadge and CLIToolStatusBadge in iconOnly mode, positioned after Add Project button and before theme toggle; added onOpenOnboarding prop. Updated App.tsx to pass onOpenOnboarding to ProjectTabBar. TypeScript check passed with no errors.",
+          "updated_at": "2026-03-02T18:10:32.679317+00:00"
         },
         {
           "id": "2.3",
           "description": "Verify and adjust styling: icon size, spacing, alignment, and popover positioning within the header context",
-          "status": "pending"
+          "status": "completed",
+          "notes": "Verified all styling for header icon-only mode: button size h-8 w-8 consistent with other header buttons; icon size h-4 w-4 matches Lucide icons; status dot h-2 w-2 at -bottom-0.5/-right-0.5 well within button bounds; popover side=bottom align=end correct for right-side header buttons; tooltip side=bottom correct; gap-2 outer spacing and gap-1 within CLIToolStatusBadge matches header conventions. Adjustments made: (1) changed div.relative to relative inline-flex in iconOnly button for both ClaudeCodeStatusBadge and CLIToolStatusBadge \u2014 makes icon container explicitly content-sized; (2) added border border-background to status dot in iconOnly mode for crisp visual separation from the icon. TypeScript passes, production build succeeds.",
+          "updated_at": "2026-03-02T18:28:35.514660+00:00"
         },
         {
           "id": "2.4",
@@ -91,5 +97,5 @@
       ]
     }
   ],
-  "last_updated": "2026-03-02T18:15:00.000000+00:00"
+  "last_updated": "2026-03-02T18:28:35.514686+00:00"
 }

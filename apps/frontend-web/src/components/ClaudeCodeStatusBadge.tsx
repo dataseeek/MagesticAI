@@ -239,10 +239,10 @@ export function ClaudeCodeStatusBadge({ className, onOpenOnboarding, iconOnly = 
                   className
                 )}
               >
-                <div className="relative">
+                <div className="relative inline-flex">
                   <AnthropicIcon className="h-4 w-4" />
                   <span className={cn(
-                    'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full',
+                    'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background',
                     getStatusColor()
                   )} />
                 </div>

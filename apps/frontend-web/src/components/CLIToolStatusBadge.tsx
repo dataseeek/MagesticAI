@@ -156,10 +156,10 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh, icon
                   statusType === 'installed' && 'text-yellow-600 dark:text-yellow-500',
                 )}
               >
-                <div className="relative">
+                <div className="relative inline-flex">
                   <Icon className="h-4 w-4" />
                   <span className={cn(
-                    'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full',
+                    'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background',
                     dotColor,
                   )} />
                 </div>
