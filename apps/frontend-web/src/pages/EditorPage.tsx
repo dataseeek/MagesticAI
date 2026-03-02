@@ -4,7 +4,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
-import { ChevronRight, ChevronDown, File, Folder, Save, X, Eye, Code, Columns } from 'lucide-react';
+import { ChevronRight, ChevronDown, File, Folder, Save, X, Eye, Code, Columns, ExternalLink } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -162,7 +163,28 @@ function FileTree({
 
 type ViewMode = 'editor' | 'preview' | 'split';
 
+function PreviewPane({ content, language }: { content: string; language: string }) {
+  if (language === 'html') {
+    return (
+      <iframe
+        srcDoc={content}
+        sandbox="allow-scripts"
+        title="HTML Preview"
+        className="w-full h-full border-0 bg-white"
+      />
+    );
+  }
+  return (
+    <div className="prose prose-sm dark:prose-invert max-w-none">
+      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
+}
+
 export function EditorPage({ projectPath }: EditorPageProps) {
+  const { t } = useTranslation(['common']);
   const [files, setFiles] = useState<FileNode[]>([]);
   const [tabs, setTabs] = useState<FileTab[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
@@ -312,13 +334,15 @@ export function EditorPage({ projectPath }: EditorPageProps) {
 
   const activeTabData = tabs.find((t) => t.path === activeTab);
   const isMarkdownFile = activeTabData?.language === 'markdown';
+  const isHtmlFile = activeTabData?.language === 'html';
+  const isPreviewable = isMarkdownFile || isHtmlFile;
 
-  // Reset view mode to editor when switching to non-markdown files
+  // Reset view mode to editor when switching to non-previewable files
   useEffect(() => {
-    if (activeTabData && !isMarkdownFile && viewMode !== 'editor') {
+    if (activeTabData && !isPreviewable && viewMode !== 'editor') {
       setViewMode('editor');
     }
-  }, [activeTabData, isMarkdownFile, viewMode]);
+  }, [activeTabData, isPreviewable, viewMode]);
 
   if (!projectPath) {
     return (
@@ -371,8 +395,8 @@ export function EditorPage({ projectPath }: EditorPageProps) {
           </div>
         )}
 
-        {/* View Mode Toolbar (only for markdown files) */}
-        {activeTabData && isMarkdownFile && (
+        {/* View Mode Toolbar (for previewable files: markdown, html) */}
+        {activeTabData && isPreviewable && (
           <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-card/50">
             <span className="text-xs text-muted-foreground mr-2">View:</span>
             <button
@@ -408,13 +432,26 @@ export function EditorPage({ projectPath }: EditorPageProps) {
               <Columns className="h-3 w-3" />
               Split
             </button>
+            {isHtmlFile && activeTabData && projectPath && (
+              <button
+                className="flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors bg-muted text-muted-foreground hover:bg-accent ml-2"
+                onClick={() => {
+                  const params = new URLSearchParams({ path: activeTabData.path, root: projectPath });
+                  window.open(`/api/files/serve?${params.toString()}`, '_blank');
+                }}
+                title={t('common:buttons.openInBrowser')}
+              >
+                <ExternalLink className="h-3 w-3" />
+                {t('common:buttons.openInBrowser')}
+              </button>
+            )}
           </div>
         )}
 
         {/* Editor */}
         <div className="flex-1 overflow-hidden">
           {activeTabData ? (
-            viewMode === 'editor' || !isMarkdownFile ? (
+            viewMode === 'editor' || !isPreviewable ? (
               // Editor only mode
               <Editor
                 height="100%"
@@ -437,19 +474,12 @@ export function EditorPage({ projectPath }: EditorPageProps) {
                 }
               />
             ) : viewMode === 'preview' ? (
-              // Preview only mode (markdown)
+              // Preview only mode (markdown / html)
               <div className="h-full overflow-auto p-6">
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeHighlight]}
-                  >
-                    {activeTabData.content}
-                  </ReactMarkdown>
-                </div>
+                <PreviewPane content={activeTabData.content} language={activeTabData.language} />
               </div>
             ) : (
-              // Split view mode (markdown)
+              // Split view mode (markdown / html)
               <div className="flex h-full">
                 <div className="flex-1 border-r border-border">
                   <Editor
@@ -474,14 +504,7 @@ export function EditorPage({ projectPath }: EditorPageProps) {
                   />
                 </div>
                 <div className="flex-1 overflow-auto p-6">
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeHighlight]}
-                    >
-                      {activeTabData.content}
-                    </ReactMarkdown>
-                  </div>
+                  <PreviewPane content={activeTabData.content} language={activeTabData.language} />
                 </div>
               </div>
             )

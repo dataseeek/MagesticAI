@@ -286,7 +286,7 @@ def open_in_browser(html_path: Path) -> bool:
         if sys.platform == "darwin":  # macOS
             subprocess.run(["open", str(html_path)], check=True)
         elif sys.platform == "win32":  # Windows
-            subprocess.run(["start", str(html_path)], shell=True, check=True)
+            subprocess.run(["cmd", "/c", "start", "", str(html_path)], check=True)
         else:  # Linux
             subprocess.run(["xdg-open", str(html_path)], check=True)
         return True

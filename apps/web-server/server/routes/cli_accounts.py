@@ -10,6 +10,8 @@ import base64
 import json
 import logging
 import os
+import shlex
+import shutil
 import subprocess
 import threading
 import time
@@ -80,24 +82,72 @@ def _validate_cli(cli: str) -> None:
 
 
 def _detect_cli_version(cli: str) -> str | None:
-    """Detect if a CLI is installed and return its version string."""
+    """Detect if a CLI is installed and return its version string.
+
+    Uses shutil.which for fast PATH lookup. For Node.js CLIs with slow
+    startup (e.g. Gemini ~4s), reads version from package.json instead.
+    Falls back to bash -l -c only when the binary isn't on the non-login PATH.
+    """
     cfg = CLI_CONFIG[cli]
+    binary = cfg["binary"]
+
+    # Fast path: check if binary is on PATH without spawning a shell
+    bin_path = shutil.which(binary)
+    if not bin_path:
+        # Fallback: try login shell in case PATH is set in .bashrc/.profile
+        try:
+            result = subprocess.run(
+                ["bash", "-l", "-c", f"which {shlex.quote(binary)}"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                bin_path = result.stdout.strip()
+            else:
+                return None
+        except Exception:
+            return None
+
+    # For npm-installed CLIs, try reading version from package.json
+    # (avoids slow Node.js startup, e.g. gemini --version takes ~4s)
+    pkg_version = _read_npm_package_version(bin_path)
+    if pkg_version:
+        return pkg_version
+
+    # Run version command directly (no login shell overhead)
     try:
         result = subprocess.run(
-            ["bash", "-l", "-c", cfg["version_cmd"]],
+            cfg["version_cmd"].split(),
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=5,
         )
         if result.returncode == 0:
             raw = result.stdout.strip()
-            # Some CLIs prefix with a name (e.g. "codex-cli 0.105.0")
-            # Extract just the semver-like version number
             parts = raw.split()
             for part in reversed(parts):
                 if part and part[0].isdigit():
                     return part
             return raw
+    except Exception:
+        pass
+    return None
+
+
+def _read_npm_package_version(bin_path: str) -> str | None:
+    """Try to read version from the npm package.json for a globally-installed CLI."""
+    try:
+        real_path = Path(bin_path).resolve()
+        # npm global layout: .../lib/node_modules/<pkg>/dist/index.js
+        # bin symlink points to the dist entry point
+        # Walk up to find package.json
+        for parent in real_path.parents:
+            pkg_json = parent / "package.json"
+            if pkg_json.exists():
+                data = json.loads(pkg_json.read_text())
+                version = data.get("version")
+                if version:
+                    return version
+                break
     except Exception:
         pass
     return None
@@ -148,12 +198,15 @@ def _get_gemini_email() -> str | None:
 def _check_latest_version(cli: str) -> str | None:
     """Check npm registry for the latest version of a CLI package."""
     package = CLI_CONFIG[cli]["npm_package"]
+    npm_bin = shutil.which("npm")
+    if not npm_bin:
+        return None
     try:
         result = subprocess.run(
-            ["bash", "-l", "-c", f"npm show {package} version"],
+            [npm_bin, "show", package, "version"],
             capture_output=True,
             text=True,
-            timeout=15,
+            timeout=8,
         )
         if result.returncode == 0:
             return result.stdout.strip()
@@ -416,8 +469,10 @@ def _broadcast_cli_auth_event(cli: str, success: bool) -> None:
 @router.get("/cli-accounts/detect")
 async def detect_cli_accounts():
     """Detect both Codex and Gemini CLIs and their credential status."""
-    codex_status = _get_cli_status("codex")
-    gemini_status = _get_cli_status("gemini")
+    loop = asyncio.get_event_loop()
+    codex_future = loop.run_in_executor(None, _get_cli_status, "codex")
+    gemini_future = loop.run_in_executor(None, _get_cli_status, "gemini")
+    codex_status, gemini_status = await asyncio.gather(codex_future, gemini_future)
     return {
         "codex": codex_status.model_dump(),
         "gemini": gemini_status.model_dump(),
@@ -546,9 +601,14 @@ def install_or_update_cli(cli: str):
     cfg = CLI_CONFIG[cli]
     package = cfg["npm_package"]
 
-    def _run(cmd: str, timeout: int = 60) -> subprocess.CompletedProcess:
+    def _run(args: list[str], timeout: int = 60) -> subprocess.CompletedProcess:
+        """Run a command inside a login shell.
+
+        Takes an argument list (not a raw string) to prevent shell injection.
+        """
+        safe_cmd = " ".join(shlex.quote(a) for a in args)
         return subprocess.run(
-            ["bash", "-l", "-c", cmd],
+            ["bash", "-l", "-c", safe_cmd],
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -560,7 +620,11 @@ def install_or_update_cli(cli: str):
 
     # Step 1: Check Node.js availability
     try:
-        node_check = _run("node --version && npm --version", timeout=10)
+        # Two commands — use hardcoded shell string (no user input)
+        node_check = subprocess.run(
+            ["bash", "-l", "-c", "node --version && npm --version"],
+            capture_output=True, text=True, timeout=10,
+        )
         if node_check.returncode != 0:
             return {
                 "success": False,
@@ -575,7 +639,7 @@ def install_or_update_cli(cli: str):
     # Step 2: Install/update via npm
     try:
         logger.info(f"[{cli}] Running npm install -g {package}...")
-        install_result = _run(f"npm install -g {package}", timeout=120)
+        install_result = _run(["npm", "install", "-g", package], timeout=120)
         if install_result.returncode != 0:
             error_msg = install_result.stderr.strip() or install_result.stdout.strip()
             return {

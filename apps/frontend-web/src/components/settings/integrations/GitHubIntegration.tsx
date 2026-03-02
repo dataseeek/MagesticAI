@@ -7,6 +7,7 @@ import { Separator } from '../../ui/separator';
 import { Button } from '../../ui/button';
 import { GitHubOAuthFlow } from '../../project-settings/GitHubOAuthFlow';
 import { PasswordInput } from '../../project-settings/PasswordInput';
+import { updateProjectSettings } from '../../../stores/project-store';
 import type { ProjectEnvConfig, GitHubSyncStatus, ProjectSettings } from '../../../shared/types';
 
 // Debug logging
@@ -35,6 +36,7 @@ interface GitHubIntegrationProps {
   gitHubConnectionStatus: GitHubSyncStatus | null;
   isCheckingGitHub: boolean;
   projectPath?: string; // Project path for fetching git branches
+  projectId?: string;   // Project ID for persisting settings
   // Project settings for mainBranch (used by kanban tasks and terminal worktrees)
   settings?: ProjectSettings;
   setSettings?: React.Dispatch<React.SetStateAction<ProjectSettings>>;
@@ -52,6 +54,7 @@ export function GitHubIntegration({
   gitHubConnectionStatus,
   isCheckingGitHub,
   projectPath,
+  projectId,
   settings,
   setSettings
 }: GitHubIntegrationProps) {
@@ -60,6 +63,7 @@ export function GitHubIntegration({
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [isLoadingRepos, setIsLoadingRepos] = useState(false);
   const [reposError, setReposError] = useState<string | null>(null);
+  const [isAutoDetecting, setIsAutoDetecting] = useState(false);
 
   // Branch selection state
   const [branches, setBranches] = useState<string[]>([]);
@@ -70,12 +74,46 @@ export function GitHubIntegration({
   debugLog('Render - projectPath:', projectPath);
   debugLog('Render - envConfig:', envConfig ? { githubEnabled: envConfig.githubEnabled, hasToken: !!envConfig.githubToken, defaultBranch: envConfig.defaultBranch } : null);
 
-  // Fetch repos when entering oauth-success mode
+  // Auto-detect GitHub CLI auth when toggled on without a token
   useEffect(() => {
-    if (authMode === 'oauth-success') {
-      fetchUserRepos();
-    }
-  }, [authMode]);
+    if (!envConfig?.githubEnabled || envConfig?.githubTokenSet) return;
+
+    let cancelled = false;
+    const autoDetect = async () => {
+      debugLog('Auto-detecting GitHub CLI auth...');
+      setIsAutoDetecting(true);
+      try {
+        const result = await window.API.autoDetectGitHub(projectId);
+        if (cancelled) return;
+        debugLog('autoDetectGitHub result:', result);
+
+        if (result.success && result.data?.authenticated && result.data.tokenPersisted) {
+          // gh CLI is authenticated — token persisted server-side
+          updateEnvConfig({ githubAuthMethod: 'oauth' });
+          setOauthUsername(result.data.username || null);
+          setAuthMode('oauth-success');
+
+          // Always detect repo from project git remote
+          if (projectPath) {
+            const repoResult = await window.API.detectGitHubRepo(projectPath);
+            if (!cancelled && repoResult.success && repoResult.data) {
+              debugLog('Auto-detected repo:', repoResult.data);
+              updateEnvConfig({ githubRepo: repoResult.data });
+            }
+          }
+        }
+        // If not authenticated, stay in 'manual' mode — user can choose OAuth or PAT
+      } catch (err) {
+        debugLog('Auto-detect failed:', err);
+      } finally {
+        if (!cancelled) setIsAutoDetecting(false);
+      }
+    };
+
+    autoDetect();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [envConfig?.githubEnabled]);
 
   // Fetch branches when GitHub is enabled and project path is available
   useEffect(() => {
@@ -96,10 +134,16 @@ export function GitHubIntegration({
   const handleBranchChange = (branch: string) => {
     debugLog('handleBranchChange: Updating branch to:', branch);
 
-    // Update project settings (primary source for Electron app)
+    // Update local state
     if (setSettings) {
       setSettings(prev => ({ ...prev, mainBranch: branch }));
       debugLog('handleBranchChange: Updated settings.mainBranch');
+    }
+
+    // Persist to backend immediately so it survives page reload
+    if (projectId) {
+      updateProjectSettings(projectId, { mainBranch: branch });
+      debugLog('handleBranchChange: Persisted mainBranch to backend');
     }
 
     // Also update envConfig for CLI backward compatibility
@@ -178,12 +222,12 @@ export function GitHubIntegration({
     return null;
   }
 
-  const handleOAuthSuccess = (token: string, username?: string) => {
-    debugLog('handleOAuthSuccess called with token length:', token.length);
+  const handleOAuthSuccess = (username?: string) => {
+    debugLog('handleOAuthSuccess called');
     debugLog('OAuth username:', username);
 
-    // Update the token and auth method
-    updateEnvConfig({ githubToken: token, githubAuthMethod: 'oauth' });
+    // Token was persisted server-side, just update auth method
+    updateEnvConfig({ githubAuthMethod: 'oauth' });
 
     // Show success state with username
     setOauthUsername(username || null);
@@ -221,8 +265,21 @@ export function GitHubIntegration({
 
       {envConfig.githubEnabled && (
         <>
+          {/* Auto-detecting state */}
+          {isAutoDetecting && (
+            <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Detecting GitHub CLI...</p>
+                  <p className="text-xs text-muted-foreground">Checking if gh is already authenticated</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* OAuth Success State */}
-          {authMode === 'oauth-success' && (
+          {!isAutoDetecting && authMode === 'oauth-success' && (
             <div className="space-y-4">
               <div className="rounded-lg border border-success/30 bg-success/10 p-4">
                 <div className="flex items-center justify-between">
@@ -249,21 +306,24 @@ export function GitHubIntegration({
                 </div>
               </div>
 
-              {/* Repository Dropdown */}
-              <RepositoryDropdown
-                repos={repos}
-                selectedRepo={envConfig.githubRepo || ''}
-                isLoading={isLoadingRepos}
-                error={reposError}
-                onSelect={handleSelectRepo}
-                onRefresh={fetchUserRepos}
-                onManualEntry={() => setAuthMode('manual')}
-              />
+              {/* Detected Repository (read-only from git remote) */}
+              {envConfig.githubRepo && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground">Repository</Label>
+                  <div className="flex items-center gap-2 px-3 py-2 text-sm border border-input rounded-md bg-muted/50">
+                    <Github className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <code className="text-sm">{envConfig.githubRepo}</code>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Detected from project git remote
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
           {/* OAuth Flow */}
-          {authMode === 'oauth' && (
+          {!isAutoDetecting && authMode === 'oauth' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium text-foreground">GitHub Authentication</Label>
@@ -276,6 +336,7 @@ export function GitHubIntegration({
                 </Button>
               </div>
               <GitHubOAuthFlow
+                projectId={projectId}
                 onSuccess={handleOAuthSuccess}
                 onCancel={handleSwitchToManual}
               />
@@ -283,7 +344,7 @@ export function GitHubIntegration({
           )}
 
           {/* Manual Token Entry */}
-          {authMode === 'manual' && (
+          {!isAutoDetecting && authMode === 'manual' && (
             <>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -323,7 +384,7 @@ export function GitHubIntegration({
             </>
           )}
 
-          {envConfig.githubToken && envConfig.githubRepo && (
+          {(envConfig.githubTokenSet || envConfig.githubToken) && envConfig.githubRepo && (
             <ConnectionStatus
               isChecking={isCheckingGitHub}
               connectionStatus={gitHubConnectionStatus}
@@ -380,10 +441,11 @@ function RepositoryDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState('');
 
-  const filteredRepos = repos.filter(repo =>
-    repo.fullName.toLowerCase().includes(filter.toLowerCase()) ||
-    (repo.description?.toLowerCase().includes(filter.toLowerCase()))
-  );
+  const filteredRepos = repos.filter(repo => {
+    const name = repo.fullName || '';
+    return name.toLowerCase().includes(filter.toLowerCase()) ||
+      (repo.description?.toLowerCase().includes(filter.toLowerCase()));
+  });
 
   const selectedRepoData = repos.find(r => r.fullName === selectedRepo);
 

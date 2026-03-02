@@ -6,15 +6,15 @@
     <title>{{ spec_name }} - Implementation Plan Review</title>
     <style>
         :root {
-            --primary: #3b82f6;
+            --primary: #0ea5e9;
             --success: #22c55e;
             --warning: #f59e0b;
-            --error: #ef4444;
-            --bg-dark: #1e293b;
-            --bg-light: #f8fafc;
-            --text-dark: #0f172a;
-            --text-light: #64748b;
-            --border: #e2e8f0;
+            --error: #c03030;
+            --bg-dark: #092334;
+            --bg-light: #082f49;
+            --text-dark: #f2f2f2;
+            --text-light: #9494a0;
+            --border: #204660;
         }
 
         * {
@@ -37,12 +37,12 @@
         }
 
         .header {
-            background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, #064e6e 100%);
             color: white;
             padding: 3rem 2rem;
             border-radius: 12px;
             margin-bottom: 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
 
         .header h1 {
@@ -63,11 +63,11 @@
         }
 
         .stat-card {
-            background: white;
+            background: var(--bg-dark);
             padding: 1.5rem;
             border-radius: 8px;
             border-left: 4px solid var(--primary);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .stat-card .label {
@@ -85,11 +85,11 @@
         }
 
         .card {
-            background: white;
+            background: var(--bg-dark);
             border-radius: 8px;
             padding: 2rem;
             margin-bottom: 2rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .card h2 {
@@ -145,17 +145,17 @@
         }
 
         .phase-badge.pending {
-            background: #f1f5f9;
+            background: rgba(255, 255, 255, 0.08);
             color: var(--text-light);
         }
 
         .phase-badge.in-progress {
-            background: #dbeafe;
+            background: rgba(14, 165, 233, 0.15);
             color: var(--primary);
         }
 
         .phase-badge.completed {
-            background: #dcfce7;
+            background: rgba(34, 197, 94, 0.15);
             color: var(--success);
         }
 
@@ -169,14 +169,14 @@
             align-items: flex-start;
             gap: 1rem;
             padding: 1rem;
-            background: #f8fafc;
+            background: rgba(255, 255, 255, 0.03);
             border-radius: 6px;
             margin-bottom: 0.75rem;
             transition: all 0.2s;
         }
 
         .subtask:hover {
-            background: #f1f5f9;
+            background: rgba(255, 255, 255, 0.06);
             transform: translateX(4px);
         }
 
@@ -189,7 +189,7 @@
         }
 
         .subtask-status.pending {
-            background: #cbd5e1;
+            background: #204660;
         }
 
         .subtask-status.in-progress {
@@ -238,7 +238,7 @@
             align-items: center;
             gap: 0.25rem;
             padding: 0.25rem 0.75rem;
-            background: white;
+            background: transparent;
             border: 1px solid var(--border);
             border-radius: 4px;
             font-size: 0.875rem;
@@ -285,7 +285,7 @@
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1rem;
             padding: 1.5rem;
-            background: #f8fafc;
+            background: rgba(255, 255, 255, 0.03);
             border-radius: 8px;
             margin-top: 1rem;
         }
@@ -309,10 +309,10 @@
         .table-of-contents {
             position: sticky;
             top: 2rem;
-            background: white;
+            background: var(--bg-dark);
             border-radius: 8px;
             padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .toc-title {
@@ -368,7 +368,7 @@
         .progress-bar {
             width: 100%;
             height: 8px;
-            background: #e2e8f0;
+            background: #204660;
             border-radius: 4px;
             overflow: hidden;
             margin-top: 1rem;

@@ -49,6 +49,8 @@ interface ChangelogState {
   // Branch diff options
   baseBranch: string;
   compareBranch: string;
+  baseBranchRef: string;
+  compareBranchRef: string;
 
   // Generation config
   version: string;
@@ -95,8 +97,8 @@ interface ChangelogState {
   setIncludeMergeCommits: (include: boolean) => void;
 
   // Branch diff options actions
-  setBaseBranch: (branch: string) => void;
-  setCompareBranch: (branch: string) => void;
+  setBaseBranch: (branch: string, ref?: string) => void;
+  setCompareBranch: (branch: string, ref?: string) => void;
 
   // Config actions
   setVersion: (version: string) => void;
@@ -184,6 +186,8 @@ const initialState = {
   // Branch diff options
   baseBranch: '',
   compareBranch: '',
+  baseBranchRef: '',
+  compareBranchRef: '',
 
   // Generation config
   version: '1.0.0',
@@ -260,10 +264,11 @@ export const useChangelogStore = create<ChangelogState>((set, get) => ({
   setCurrentBranch: (branch) => set({ currentBranch: branch }),
   setDefaultBranch: (branch) => {
     set({ defaultBranch: branch });
-    // Auto-set base branch if not already set
+    // Auto-set base branch if not already set - find the ref from loaded branches
     const state = get();
     if (!state.baseBranch) {
-      set({ baseBranch: branch });
+      const branchInfo = state.branches.find((b) => b.name === branch);
+      set({ baseBranch: branch, baseBranchRef: branchInfo?.ref || branch });
     }
   },
   setPreviewCommits: (commits) => set({ previewCommits: commits }),
@@ -280,8 +285,8 @@ export const useChangelogStore = create<ChangelogState>((set, get) => ({
   setIncludeMergeCommits: (include) => set({ includeMergeCommits: include }),
 
   // Branch diff options actions
-  setBaseBranch: (branch) => set({ baseBranch: branch, previewCommits: [] }),
-  setCompareBranch: (branch) => set({ compareBranch: branch, previewCommits: [] }),
+  setBaseBranch: (branch, ref) => set({ baseBranch: branch, baseBranchRef: ref || branch, previewCommits: [] }),
+  setCompareBranch: (branch, ref) => set({ compareBranch: branch, compareBranchRef: ref || branch, previewCommits: [] }),
 
   // Config actions
   setVersion: (version) => set({ version }),
@@ -384,7 +389,7 @@ export async function loadGitData(projectId: string): Promise<void> {
         store.setCurrentBranch(currentBranch.name);
         // Default compare branch to current branch for branch-diff mode
         if (!store.compareBranch) {
-          store.setCompareBranch(currentBranch.name);
+          store.setCompareBranch(currentBranch.name, currentBranch.ref);
         }
       }
 
@@ -459,7 +464,9 @@ export async function loadCommitsPreview(projectId: string): Promise<void> {
       mode = 'branch-diff';
       options = {
         baseBranch: store.baseBranch,
-        compareBranch: store.compareBranch
+        compareBranch: store.compareBranch,
+        baseBranchRef: store.baseBranchRef || store.baseBranch,
+        compareBranchRef: store.compareBranchRef || store.compareBranch
       };
     } else {
       // Tasks mode doesn't need commit preview
@@ -571,7 +578,9 @@ export function generateChangelog(projectId: string): void {
       ...baseRequest,
       branchDiff: {
         baseBranch: store.baseBranch,
-        compareBranch: store.compareBranch
+        compareBranch: store.compareBranch,
+        baseBranchRef: store.baseBranchRef || store.baseBranch,
+        compareBranchRef: store.compareBranchRef || store.compareBranch
       }
     });
   }

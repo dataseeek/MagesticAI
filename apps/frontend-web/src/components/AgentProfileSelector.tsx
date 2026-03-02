@@ -7,7 +7,7 @@
  *
  * Used in TaskCreationWizard and TaskEditDialog.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Brain, Scale, Zap, Sliders, Sparkles, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import { Label } from './ui/label';
@@ -21,9 +21,11 @@ import {
 import {
   DEFAULT_AGENT_PROFILES,
   AVAILABLE_MODELS,
+  ALL_AVAILABLE_MODELS,
   THINKING_LEVELS,
   DEFAULT_PHASE_MODELS,
-  DEFAULT_PHASE_THINKING
+  DEFAULT_PHASE_THINKING,
+  fetchOllamaModels
 } from '../shared/constants';
 import type { ModelType, ThinkingLevel } from '../shared/types';
 import type { PhaseModelConfig, PhaseThinkingConfig } from '../shared/types/settings';
@@ -66,7 +68,8 @@ const PHASE_LABEL_KEYS: Record<keyof PhaseModelConfig, { label: string; descript
   spec: { label: 'agentProfile.phases.spec.label', description: 'agentProfile.phases.spec.description' },
   planning: { label: 'agentProfile.phases.planning.label', description: 'agentProfile.phases.planning.description' },
   coding: { label: 'agentProfile.phases.coding.label', description: 'agentProfile.phases.coding.description' },
-  qa: { label: 'agentProfile.phases.qa.label', description: 'agentProfile.phases.qa.description' }
+  qa: { label: 'agentProfile.phases.qa.label', description: 'agentProfile.phases.qa.description' },
+  qa_fixer: { label: 'agentProfile.phases.qa_fixer.label', description: 'agentProfile.phases.qa_fixer.description' }
 };
 
 export function AgentProfileSelector({
@@ -84,6 +87,11 @@ export function AgentProfileSelector({
 }: AgentProfileSelectorProps) {
   const { t } = useTranslation('settings');
   const [showPhaseDetails, setShowPhaseDetails] = useState(false);
+  const [ollamaModels, setOllamaModels] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    fetchOllamaModels().then(setOllamaModels);
+  }, []);
 
   const isCustom = profileId === 'custom';
   const isAuto = profileId === 'auto';
@@ -256,7 +264,7 @@ export function AgentProfileSelector({
             <div className="px-4 pb-4 -mt-1">
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {(Object.keys(PHASE_LABEL_KEYS) as Array<keyof PhaseModelConfig>).map((phase) => {
-                  const modelLabel = AVAILABLE_MODELS.find(m => m.value === currentPhaseModels[phase])?.label?.replace('Claude ', '') || currentPhaseModels[phase];
+                  const modelLabel = (ALL_AVAILABLE_MODELS.find(m => m.value === currentPhaseModels[phase]) || ollamaModels.find(m => m.value === currentPhaseModels[phase]))?.label?.replace('Claude ', '') || currentPhaseModels[phase];
                   return (
                     <div key={phase} className="flex items-center justify-between rounded bg-background/50 px-2 py-1">
                       <span className="text-muted-foreground">{t(PHASE_LABEL_KEYS[phase].label)}:</span>
@@ -293,7 +301,7 @@ export function AgentProfileSelector({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {AVAILABLE_MODELS.map((m) => (
+                          {[...ALL_AVAILABLE_MODELS, ...ollamaModels].map((m) => (
                             <SelectItem key={m.value} value={m.value}>
                               {m.label}
                             </SelectItem>

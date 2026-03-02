@@ -4,6 +4,17 @@ import { cn, calculateProgress } from '../../lib/utils';
 import { EXECUTION_PHASE_BADGE_COLORS, EXECUTION_PHASE_LABELS } from '../../shared/constants';
 import type { Task, ExecutionPhase } from '../../shared/types';
 
+const PROGRESS_STATUS_LABELS: Record<string, string> = {
+  spec_creation: 'planning',
+  planning: 'planning',
+  plan_review: 'planning completed',
+  coding: 'coding',
+  qa_review: 'reviewing',
+  qa_fixing: 'fixing issues',
+  complete: 'complete',
+  failed: 'failed',
+};
+
 interface TaskProgressProps {
   task: Task;
   isRunning: boolean;
@@ -50,7 +61,9 @@ export function TaskProgress({ task, isRunning, hasActiveExecution, executionPha
       {/* Progress Bar */}
       <div className="section-divider mb-3">
         <Zap className="h-3 w-3" />
-        Progress
+        {hasActiveExecution && executionPhase && PROGRESS_STATUS_LABELS[executionPhase]
+          ? `Progress (${PROGRESS_STATUS_LABELS[executionPhase]})`
+          : 'Progress'}
       </div>
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs text-muted-foreground">

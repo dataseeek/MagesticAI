@@ -3,6 +3,7 @@ Git, Ollama, MCP, and utility routes.
 """
 
 import json
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -37,7 +38,7 @@ def run_git_command(args: list[str], cwd: str) -> dict:
 @router.get("/branches")
 async def get_git_branches(path: str = Query(...)):
     """Get all branches for a repository."""
-    result = run_git_command(["branch", "-a", "--format=%(refname:short)"], path)
+    result = run_git_command(["branch", "--format=%(refname:short)"], path)
     if result["success"]:
         branches = [b.strip() for b in result["output"].split("\n") if b.strip()]
         return {"success": True, "data": branches}
@@ -314,52 +315,48 @@ async def check_claude_code_version():
     Returns data directly (not wrapped in {success, data}) because
     the frontend api-client.ts adds that wrapper automatically.
 
-    Uses `bash -l -c` so that login-profile PATH additions (fnm, npm-global)
-    are visible even when Node/Claude were installed at runtime via fnm.
+    Uses shutil.which for fast PATH lookup, falling back to login shell
+    only when the binary isn't on the non-login PATH.
     """
-    # Use login shell for all checks so fnm/npm-global PATH is available
-    try:
-        result = subprocess.run(
-            ["bash", "-l", "-c", "claude --version"],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        if result.returncode == 0:
-            version_str = result.stdout.strip()
-            path_result = subprocess.run(
-                ["bash", "-l", "-c", "which claude"],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            claude_path = path_result.stdout.strip() if path_result.returncode == 0 else None
-            return {
-                "installed": version_str,
-                "latest": "unknown",
-                "isOutdated": False,
-                "path": claude_path
-            }
-    except Exception:
-        pass
+    claude_path = shutil.which("claude")
 
-    # Check if Node.js is available (needed for install)
-    node_available = False
-    try:
-        node_result = subprocess.run(
-            ["bash", "-l", "-c", "node --version"],
-            capture_output=True, text=True, timeout=5
-        )
-        node_available = node_result.returncode == 0
-    except Exception:
-        pass
+    # Fallback: try login shell in case PATH is set in .bashrc/.profile
+    if not claude_path:
+        try:
+            result = subprocess.run(
+                ["bash", "-l", "-c", "which claude"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode == 0:
+                claude_path = result.stdout.strip()
+        except Exception:
+            pass
+
+    if claude_path:
+        try:
+            result = subprocess.run(
+                [claude_path, "--version"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode == 0:
+                return {
+                    "installed": result.stdout.strip(),
+                    "latest": "unknown",
+                    "isOutdated": False,
+                    "path": claude_path,
+                }
+        except Exception:
+            pass
+
+    # Claude not found — check if Node.js is available (needed for install)
+    node_available = shutil.which("node") is not None
 
     return {
         "installed": None,
         "latest": "unknown",
         "isOutdated": False,
         "path": None,
-        "nodeAvailable": node_available
+        "nodeAvailable": node_available,
     }
 
 
@@ -383,10 +380,15 @@ async def install_claude_code():
 
     steps_completed: list[str] = []
 
-    def _run(cmd: str, timeout: int = 30) -> subprocess.CompletedProcess:
-        """Run a command inside a login shell."""
+    def _run(args: list[str], timeout: int = 30) -> subprocess.CompletedProcess:
+        """Run a command inside a login shell.
+
+        Takes an argument list (not a raw string) to prevent shell injection.
+        Arguments are joined with shlex.quote() for safe shell execution.
+        """
+        safe_cmd = " ".join(shlex.quote(a) for a in args)
         return subprocess.run(
-            ["bash", "-l", "-c", cmd],
+            ["bash", "-l", "-c", safe_cmd],
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -394,7 +396,7 @@ async def install_claude_code():
 
     # Step 1: Check if claude is already installed
     try:
-        result = _run("claude --version", timeout=10)
+        result = _run(["claude", "--version"], timeout=10)
         if result.returncode == 0:
             return {
                 "success": True,
@@ -410,7 +412,7 @@ async def install_claude_code():
     # Step 2: Check if Node.js is available
     node_available = False
     try:
-        result = _run("node --version", timeout=10)
+        result = _run(["node", "--version"], timeout=10)
         node_available = result.returncode == 0
         if node_available:
             steps_completed.append("node-present")
@@ -424,8 +426,12 @@ async def install_claude_code():
 
         # 3a: Install fnm
         try:
-            result = _run(
-                "curl -fsSL https://fnm.vercel.app/install | bash",
+            # Shell pipeline — cannot be split into an arg list.
+            # Hardcoded URL, no user input, safe to pass as raw shell command.
+            result = subprocess.run(
+                ["bash", "-l", "-c", "curl -fsSL https://fnm.vercel.app/install | bash"],
+                capture_output=True,
+                text=True,
                 timeout=60,
             )
             if result.returncode != 0:
@@ -442,7 +448,7 @@ async def install_claude_code():
 
         # 3b: Install Node.js LTS via fnm
         try:
-            result = _run("fnm install --lts", timeout=120)
+            result = _run(["fnm", "install", "--lts"], timeout=120)
             if result.returncode != 0:
                 return {
                     "success": False,
@@ -457,13 +463,13 @@ async def install_claude_code():
 
         # 3c: Set fnm default so login shells pick it up
         try:
-            _run("fnm default lts-latest", timeout=10)
+            _run(["fnm", "default", "lts-latest"], timeout=10)
         except Exception:
             pass  # Non-critical
 
         # Verify node is now available
         try:
-            result = _run("node --version", timeout=10)
+            result = _run(["node", "--version"], timeout=10)
             if result.returncode != 0:
                 return {
                     "success": False,
@@ -480,7 +486,7 @@ async def install_claude_code():
     try:
         log.info("Installing Claude Code CLI via npm...")
         result = _run(
-            "npm install -g @anthropic-ai/claude-code",
+            ["npm", "install", "-g", "@anthropic-ai/claude-code"],
             timeout=180,
         )
         if result.returncode != 0:
@@ -498,7 +504,7 @@ async def install_claude_code():
     # Step 5: Verify installation
     version_str = "unknown"
     try:
-        result = _run("claude --version", timeout=10)
+        result = _run(["claude", "--version"], timeout=10)
         if result.returncode == 0:
             version_str = result.stdout.strip()
         else:
@@ -527,6 +533,171 @@ async def install_claude_code():
 # ============================================
 
 mcp_router = APIRouter()
+
+# Catalog of well-known MCP servers and the system binary they require.
+# "requires_binary": None means only npx is needed.
+_MCP_CATALOG = [
+    {
+        "id": "mcp-postgres",
+        "name": "PostgreSQL",
+        "description": "Query and explore PostgreSQL databases",
+        "category": "database",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-postgres"],
+        "requires_binary": "psql",
+        "package": "@modelcontextprotocol/server-postgres",
+    },
+    {
+        "id": "mcp-sqlite",
+        "name": "SQLite",
+        "description": "Query and explore SQLite databases",
+        "category": "database",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-sqlite"],
+        "requires_binary": "sqlite3",
+        "package": "@modelcontextprotocol/server-sqlite",
+    },
+    {
+        "id": "mcp-mysql",
+        "name": "MySQL",
+        "description": "Query and explore MySQL/MariaDB databases",
+        "category": "database",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "mcp-mysql-server"],
+        "requires_binary": "mysql",
+        "package": "mcp-mysql-server",
+    },
+    {
+        "id": "mcp-puppeteer",
+        "name": "Puppeteer",
+        "description": "Browser automation for web testing and scraping",
+        "category": "browser",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+        "requires_binary": None,
+        "package": "@modelcontextprotocol/server-puppeteer",
+    },
+    {
+        "id": "mcp-playwright",
+        "name": "Playwright",
+        "description": "Cross-browser automation via Playwright",
+        "category": "browser",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@playwright/mcp"],
+        "requires_binary": None,
+        "detect_binary": "playwright",
+        "package": "@playwright/mcp",
+    },
+    {
+        "id": "mcp-brave-search",
+        "name": "Brave Search",
+        "description": "Web and local search via Brave Search API",
+        "category": "search",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+        "requires_binary": None,
+        "package": "@modelcontextprotocol/server-brave-search",
+    },
+    {
+        "id": "mcp-docker",
+        "name": "Docker",
+        "description": "Manage Docker containers, images, and volumes",
+        "category": "devops",
+        "type": "command",
+        "command": "docker",
+        "args": ["mcp"],
+        "requires_binary": "docker",
+        "package": None,
+    },
+    {
+        "id": "mcp-kubernetes",
+        "name": "Kubernetes",
+        "description": "Manage Kubernetes clusters and workloads",
+        "category": "devops",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "mcp-server-kubernetes"],
+        "requires_binary": "kubectl",
+        "package": "mcp-server-kubernetes",
+    },
+    {
+        "id": "mcp-aws",
+        "name": "AWS",
+        "description": "Interact with AWS services via CLI",
+        "category": "devops",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "mcp-server-aws"],
+        "requires_binary": "aws",
+        "package": "mcp-server-aws",
+    },
+    {
+        "id": "mcp-slack",
+        "name": "Slack",
+        "description": "Read and post Slack messages",
+        "category": "communication",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-slack"],
+        "requires_binary": None,
+        "package": "@modelcontextprotocol/server-slack",
+    },
+    {
+        "id": "mcp-redis",
+        "name": "Redis",
+        "description": "Interact with Redis key-value store",
+        "category": "database",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "mcp-server-redis"],
+        "requires_binary": "redis-cli",
+        "package": "mcp-server-redis",
+    },
+    {
+        "id": "mcp-google-maps",
+        "name": "Google Maps",
+        "description": "Geocoding, directions, and place search",
+        "category": "search",
+        "type": "command",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-google-maps"],
+        "requires_binary": None,
+        "package": "@modelcontextprotocol/server-google-maps",
+    },
+]
+
+
+# Templates that overlap with built-in app features (skip in detect results)
+_HIDDEN_TEMPLATE_IDS = {"mcp-puppeteer"}
+
+
+def _check_binary(binary: str) -> bool:
+    """Check if a binary is available on PATH."""
+    import shutil
+    return shutil.which(binary) is not None
+
+
+def _check_npm_package_installed(package: str) -> bool:
+    """Check if an npm package is installed globally."""
+    import shutil
+    import subprocess
+    if not shutil.which("npm"):
+        return False
+    try:
+        result = subprocess.run(
+            ["npm", "list", "-g", "--depth=0", package],
+            capture_output=True, text=True, timeout=8,
+        )
+        return result.returncode == 0 and package in result.stdout
+    except Exception:
+        return False
+
 
 
 class McpServerConfig(BaseModel):
@@ -591,6 +762,57 @@ async def test_mcp_connection(server: McpServerConfig):
             "tools": []
         }
     }
+
+
+@mcp_router.get("/detect")
+async def detect_mcp_services():
+    """Detect pre-installed services and CLIs that can be used as MCP servers."""
+    import shutil
+
+    has_npx = shutil.which("npx") is not None
+    results = []
+
+    for entry in _MCP_CATALOG:
+        if entry["id"] in _HIDDEN_TEMPLATE_IDS:
+            continue
+
+        req = entry.get("requires_binary")
+        detect_bin = entry.get("detect_binary")
+
+        # Determine availability
+        if req is not None:
+            available = _check_binary(req)
+            reason = f"{req} detected" if available else f"{req} not found"
+        else:
+            available = has_npx
+            reason = "npx available" if has_npx else "npx not found"
+
+        # Optionally check if there's a hint binary (not required, just nice to have)
+        hint_installed = False
+        if detect_bin:
+            hint_installed = _check_binary(detect_bin)
+
+        # Check if the npm package is already installed globally (only if npx-based)
+        pkg = entry.get("package")
+        npm_installed = False
+        if pkg and available:
+            npm_installed = _check_npm_package_installed(pkg)
+
+        results.append({
+            "id": entry["id"],
+            "name": entry["name"],
+            "description": entry["description"],
+            "category": entry["category"],
+            "type": entry["type"],
+            "command": entry["command"],
+            "args": entry["args"],
+            "available": available,
+            "installed": npm_installed or hint_installed,
+            "reason": reason,
+        })
+
+    return {"success": True, "data": results}
+
 
 
 # ============================================

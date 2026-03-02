@@ -174,7 +174,7 @@ async def send_test_email(account_id: str, request: Request):
     subject = "MagesticAI - Test Email"
     body_html = f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #2563eb;">MagesticAI Email Notifications</h2>
+        <h2 style="color: #0ea5e9;">MagesticAI Email Notifications</h2>
         <p>This is a test email to confirm your email notifications are working correctly.</p>
         <p style="color: #6b7280; font-size: 14px;">Sent at {now}</p>
     </div>

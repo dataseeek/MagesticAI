@@ -798,18 +798,18 @@ class GHClient:
         """
         Get the current HEAD SHA of a PR.
 
+        Uses headRefOid instead of commits[-1].oid because the commits list
+        is paginated at 100 by the GitHub GraphQL API, returning a stale
+        SHA for PRs with more than 100 commits.
+
         Args:
             pr_number: PR number
 
         Returns:
             HEAD commit SHA or None if not found
         """
-        data = await self.pr_get(pr_number, json_fields=["commits"])
-        commits = data.get("commits", [])
-        if commits:
-            # Last commit is the HEAD
-            return commits[-1].get("oid")
-        return None
+        data = await self.pr_get(pr_number, json_fields=["headRefOid"])
+        return data.get("headRefOid") or None
 
     async def get_pr_checks(self, pr_number: int) -> dict[str, Any]:
         """

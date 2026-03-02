@@ -30,9 +30,8 @@ interface TaskReviewProps {
   mergePreview: { files: string[]; conflicts: MergeConflict[]; summary: MergeStats; gitConflicts?: GitConflictInfo; uncommittedChanges?: { hasChanges: boolean; files: string[]; count: number; conflictingFiles?: string[]; hasConflicts?: boolean } | null } | null;
   isLoadingPreview: boolean;
   showConflictDialog: boolean;
-  isResolvingConflicts?: boolean;
-  isResolvingUncommitted?: boolean;
   isAbortingMerge?: boolean;
+  mergeStep: 'idle' | 'resolving_uncommitted' | 'resolving_git_conflicts' | 'merging';
   phaseLogs?: TaskLogs;
   onFeedbackChange: (value: string) => void;
   onReject: () => void;
@@ -43,8 +42,6 @@ interface TaskReviewProps {
   onStageOnlyChange: (value: boolean) => void;
   onShowConflictDialog: (show: boolean) => void;
   onLoadMergePreview: () => void;
-  onResolveWithAI?: () => void;
-  onResolveUncommitted?: () => void;
   onAbortMerge?: () => void;
   onClose?: () => void;
   onSwitchToTerminals?: () => void;
@@ -79,9 +76,8 @@ export function TaskReview({
   mergePreview,
   isLoadingPreview,
   showConflictDialog,
-  isResolvingConflicts,
-  isResolvingUncommitted,
   isAbortingMerge,
+  mergeStep,
   phaseLogs,
   onFeedbackChange,
   onReject,
@@ -92,8 +88,6 @@ export function TaskReview({
   onStageOnlyChange,
   onShowConflictDialog,
   onLoadMergePreview,
-  onResolveWithAI,
-  onResolveUncommitted,
   onAbortMerge,
   onClose,
   onSwitchToTerminals,
@@ -125,9 +119,8 @@ export function TaskReview({
           isLoadingPreview={isLoadingPreview}
           isMerging={isMerging}
           isDiscarding={isDiscarding}
-          isResolvingConflicts={isResolvingConflicts}
-          isResolvingUncommitted={isResolvingUncommitted}
           isAbortingMerge={isAbortingMerge}
+          mergeStep={mergeStep}
           phaseLogs={phaseLogs}
           onShowDiffDialog={onShowDiffDialog}
           onShowDiscardDialog={onShowDiscardDialog}
@@ -135,8 +128,6 @@ export function TaskReview({
           onLoadMergePreview={onLoadMergePreview}
           onStageOnlyChange={onStageOnlyChange}
           onMerge={onMerge}
-          onResolveWithAI={onResolveWithAI}
-          onResolveUncommitted={onResolveUncommitted}
           onAbortMerge={onAbortMerge}
           onClose={onClose}
           onSwitchToTerminals={onSwitchToTerminals}
@@ -178,15 +169,11 @@ export function TaskReview({
         onOpenChange={onShowDiffDialog}
       />
 
-      {/* Conflict Details Dialog */}
+      {/* Conflict Details Dialog (informational only) */}
       <ConflictDetailsDialog
         open={showConflictDialog}
         mergePreview={mergePreview}
-        stageOnly={stageOnly}
         onOpenChange={onShowConflictDialog}
-        onMerge={onMerge}
-        onResolveWithAI={onResolveWithAI}
-        isResolvingConflicts={isResolvingConflicts}
       />
     </div>
   );

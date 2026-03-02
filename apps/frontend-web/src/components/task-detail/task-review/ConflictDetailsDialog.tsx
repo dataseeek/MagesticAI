@@ -1,7 +1,6 @@
-import { AlertTriangle, GitMerge, CheckCircle, Sparkles, Loader2, Info } from 'lucide-react';
+import { AlertTriangle, GitMerge, CheckCircle, Sparkles, Info } from 'lucide-react';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -10,7 +9,6 @@ import {
   AlertDialogTitle,
 } from '../../ui/alert-dialog';
 import { Badge } from '../../ui/badge';
-import { Button } from '../../ui/button';
 import { cn } from '../../../lib/utils';
 import { getSeverityIcon, getSeverityVariant } from './utils';
 import type { MergeConflict, MergeStats, GitConflictInfo } from '../../../shared/types';
@@ -18,11 +16,7 @@ import type { MergeConflict, MergeStats, GitConflictInfo } from '../../../shared
 interface ConflictDetailsDialogProps {
   open: boolean;
   mergePreview: { files: string[]; conflicts: MergeConflict[]; summary: MergeStats; gitConflicts?: GitConflictInfo } | null;
-  stageOnly: boolean;
   onOpenChange: (open: boolean) => void;
-  onMerge: () => void;
-  onResolveWithAI?: () => void;
-  isResolvingConflicts?: boolean;
 }
 
 /**
@@ -31,18 +25,12 @@ interface ConflictDetailsDialogProps {
 export function ConflictDetailsDialog({
   open,
   mergePreview,
-  stageOnly,
   onOpenChange,
-  onMerge,
-  onResolveWithAI,
-  isResolvingConflicts = false,
 }: ConflictDetailsDialogProps) {
   // Categorize conflicts
   const autoMergeable = mergePreview?.conflicts.filter(c => c.canAutoMerge) || [];
   const needsAI = mergePreview?.conflicts.filter(c => !c.canAutoMerge && (c.severity === 'low' || c.severity === 'medium')) || [];
   const needsHuman = mergePreview?.conflicts.filter(c => !c.canAutoMerge && (c.severity === 'high' || c.severity === 'critical')) || [];
-
-  const hasResolvableConflicts = needsAI.length > 0;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -50,10 +38,26 @@ export function ConflictDetailsDialog({
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-warning" />
-            Merge Conflicts Analysis
+            {mergePreview?.gitConflicts?.hasConflicts || (mergePreview?.conflicts?.length ?? 0) > 0
+              ? 'Merge Conflicts Analysis'
+              : 'Branch Divergence Details'}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {mergePreview?.conflicts.length || 0} potential conflict{(mergePreview?.conflicts.length || 0) !== 1 ? 's' : ''} detected.
+            {mergePreview?.gitConflicts?.hasConflicts ? (
+              <>
+                Branch has diverged with {mergePreview.gitConflicts.commitsBehind} commit{mergePreview.gitConflicts.commitsBehind !== 1 ? 's' : ''} behind
+                and {mergePreview.gitConflicts.conflictingFiles.length} conflicting file{mergePreview.gitConflicts.conflictingFiles.length !== 1 ? 's' : ''}.
+              </>
+            ) : mergePreview?.gitConflicts?.needsRebase ? (
+              <>
+                Branch is {mergePreview.gitConflicts.commitsBehind} commit{mergePreview.gitConflicts.commitsBehind !== 1 ? 's' : ''} behind.
+                AI will rebase and resolve during merge.
+              </>
+            ) : (
+              <>
+                {mergePreview?.conflicts.length || 0} potential conflict{(mergePreview?.conflicts.length || 0) !== 1 ? 's' : ''} detected.
+              </>
+            )}
             {autoMergeable.length > 0 && (
               <span className="text-success ml-1">
                 {autoMergeable.length} can be auto-merged.
@@ -72,6 +76,75 @@ export function ConflictDetailsDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="flex-1 overflow-auto min-h-0 -mx-6 px-6">
+          {/* Git-level conflicts (branch divergence) */}
+          {mergePreview?.gitConflicts?.hasConflicts && (
+            <div className="mb-4 p-3 bg-warning/10 rounded-lg border border-warning/30">
+              <div className="flex items-center gap-2 mb-2 text-sm font-medium text-warning">
+                <GitMerge className="h-4 w-4" />
+                Branch Diverged
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                The main branch has{' '}
+                <span className="font-medium text-foreground">
+                  {mergePreview.gitConflicts.commitsBehind}
+                </span>{' '}
+                new commit{mergePreview.gitConflicts.commitsBehind !== 1 ? 's' : ''} since this
+                worktree was created.
+                {mergePreview.gitConflicts.conflictingFiles.length > 0 && (
+                  <span>
+                    {' '}{mergePreview.gitConflicts.conflictingFiles.length} file
+                    {mergePreview.gitConflicts.conflictingFiles.length !== 1 ? 's' : ''} have
+                    conflicting changes:
+                  </span>
+                )}
+              </p>
+              {mergePreview.gitConflicts.conflictingFiles.length > 0 && (
+                <ul className="space-y-1 mb-2">
+                  {mergePreview.gitConflicts.conflictingFiles.map((file, idx) => (
+                    <li
+                      key={idx}
+                      className="text-xs font-mono text-muted-foreground flex items-center gap-2 p-1.5 bg-secondary/30 rounded border border-border"
+                    >
+                      <AlertTriangle className="h-3 w-3 text-warning shrink-0" />
+                      <span className="truncate">{file}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-2">
+                <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                AI will automatically merge these conflicts when you click Stage Changes.
+              </p>
+            </div>
+          )}
+
+          {/* Branch behind (needs rebase, no file conflicts) */}
+          {!mergePreview?.gitConflicts?.hasConflicts && mergePreview?.gitConflicts?.needsRebase && (
+            <div className="mb-4 p-3 bg-warning/10 rounded-lg border border-warning/30">
+              <div className="flex items-center gap-2 mb-2 text-sm font-medium text-warning">
+                <GitMerge className="h-4 w-4" />
+                Branch Behind
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                The target branch has{' '}
+                <span className="font-medium text-foreground">
+                  {mergePreview.gitConflicts.commitsBehind}
+                </span>{' '}
+                new commit{mergePreview.gitConflicts.commitsBehind !== 1 ? 's' : ''} since this
+                build started. No file conflicts detected.
+              </p>
+              {(mergePreview.gitConflicts.totalRenames ?? 0) > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {mergePreview.gitConflicts.totalRenames} file rename{mergePreview.gitConflicts.totalRenames !== 1 ? 's' : ''} detected — AI will handle path mapping.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-2">
+                <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                AI will automatically rebase and merge when you click Merge.
+              </p>
+            </div>
+          )}
+
           {mergePreview?.conflicts && mergePreview.conflicts.length > 0 ? (
             <div className="space-y-3">
               {/* Auto-mergeable conflicts section */}
@@ -119,47 +192,14 @@ export function ConflictDetailsDialog({
                 </div>
               )}
             </div>
-          ) : (
+          ) : !mergePreview?.gitConflicts?.hasConflicts && !mergePreview?.gitConflicts?.needsRebase ? (
             <div className="text-center py-8 text-muted-foreground">
               No conflicts detected
             </div>
-          )}
+          ) : null}
         </div>
         <AlertDialogFooter className="mt-4">
           <AlertDialogCancel>Close</AlertDialogCancel>
-          <div className="flex gap-2">
-            {hasResolvableConflicts && onResolveWithAI && (
-              <Button
-                variant="secondary"
-                onClick={onResolveWithAI}
-                disabled={isResolvingConflicts}
-                className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400"
-              >
-                {isResolvingConflicts ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Resolving...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Resolve {needsAI.length} with AI
-                  </>
-                )}
-              </Button>
-            )}
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                onOpenChange(false);
-                onMerge();
-              }}
-              className="bg-warning text-warning-foreground hover:bg-warning/90"
-            >
-              <GitMerge className="mr-2 h-4 w-4" />
-              {stageOnly ? 'Stage with AI Merge' : 'Merge with AI'}
-            </AlertDialogAction>
-          </div>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

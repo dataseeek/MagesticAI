@@ -86,6 +86,14 @@ export interface InsightsChatStatus {
   error?: string;
 }
 
+export interface InsightsStreamMetrics {
+  inputTokens?: number;
+  outputTokens: number;
+  tokensPerSecond: number;
+  elapsedSeconds: number;
+  estimated: boolean;       // true = char-based estimate, false = exact (e.g. Ollama)
+}
+
 export interface InsightsStreamChunk {
   type: 'text' | 'task_suggestion' | 'tool_start' | 'tool_end' | 'done' | 'error';
   content?: string;
@@ -99,4 +107,5 @@ export interface InsightsStreamChunk {
     input?: string;  // Brief description of what's being searched/read
   };
   error?: string;
+  metrics?: InsightsStreamMetrics;
 }

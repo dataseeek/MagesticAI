@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, Circle, CircleDot, Play } from 'lucide-react';
+import { CheckCircle, Circle, CircleDot, Loader2, Play, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../ui/button';
 import { cn } from '../../../lib/utils';
@@ -26,6 +26,7 @@ export interface ReviewStatusTreeProps {
   onRunReview: () => void;
   onRunFollowupReview: () => void;
   onCancelReview: () => void;
+  onCheckNewCommits?: () => Promise<void>;
   newCommitsCheck: NewCommitsCheck | null;
   lastPostedAt?: number | null;
 }
@@ -43,11 +44,13 @@ export function ReviewStatusTree({
   onRunReview,
   onRunFollowupReview,
   onCancelReview,
+  onCheckNewCommits,
   newCommitsCheck,
   lastPostedAt
 }: ReviewStatusTreeProps) {
   const { t, i18n } = useTranslation('common');
   const [isOpen, setIsOpen] = useState(true);
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
 
   // Determine if this is a follow-up review in progress (for edge case handling)
   const isFollowupInProgress = isReviewing && (previousReviewResult !== null || reviewResult?.isFollowupReview);
@@ -164,7 +167,41 @@ export function ReviewStatusTree({
       });
     }
 
-    // Step 4: Follow-up (only show when not currently reviewing AND commits happened after posting)
+    // Step 4a: Check for Updates (show when waiting for changes or follow-up has blocking issues, and no new commits detected yet)
+    if (!isReviewing && (status === 'waiting_for_changes' || status === 'followup_issues_remain') && !newCommitsCheck?.hasCommitsAfterPosting && onCheckNewCommits) {
+      const handleCheckUpdates = async () => {
+        setIsCheckingUpdates(true);
+        try {
+          await onCheckNewCommits();
+        } finally {
+          setIsCheckingUpdates(false);
+        }
+      };
+
+      steps.push({
+        id: 'check_updates',
+        label: t('prReview.waitingForChanges'),
+        status: 'pending',
+        action: (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleCheckUpdates}
+            disabled={isCheckingUpdates}
+            className="ml-2 h-6 text-xs px-2"
+          >
+            {isCheckingUpdates ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3 w-3 mr-1" />
+            )}
+            {t('prReview.checkForUpdates')}
+          </Button>
+        )
+      });
+    }
+
+    // Step 4b: Follow-up (only show when not currently reviewing AND commits happened after posting)
     // This prevents showing follow-up prompts for commits that were made during/before the review
     if (!isReviewing && newCommitsCheck?.hasNewCommits && newCommitsCheck?.hasCommitsAfterPosting) {
       steps.push({

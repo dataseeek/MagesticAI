@@ -79,8 +79,19 @@
     "labels": {
       "interrupted": "Interrupted",
       "progress": "Progress",
+      "progressWithStatus": "Progress ({{status}})",
       "entry": "entry",
       "entries": "entries"
+    },
+    "progressStatus": {
+      "idle": "idle",
+      "planning": "planning",
+      "planCompleted": "planning completed",
+      "coding": "coding",
+      "reviewing": "reviewing",
+      "fixing": "fixing issues",
+      "complete": "complete",
+      "failed": "failed"
     },
     "shortPhases": {
       "plan": "Plan",
@@ -100,10 +111,42 @@
     "retry": "Retry",
     "selectFile": "Select a file to view its contents",
     "openInIDE": "Open in IDE",
-    "downloadFile": "Download file"
+    "downloadFile": "Download file",
+    "previewInBrowser": "Preview in browser",
+    "backToParent": "Back"
   },
   "metadata": {
     "severity": "severity"
+  },
+  "skills": {
+    "title": "AI Skills",
+    "description": "Select skills to guide the AI agent with specialized knowledge",
+    "browseTab": "Browse",
+    "searchTab": "Search",
+    "suggestionsTab": "Suggestions",
+    "selectCategory": "Select a category to browse skills",
+    "categoryCount": "{{count}}",
+    "searchPlaceholder": "Search skills...",
+    "clearSearch": "Clear search",
+    "noResults": "No skills found",
+    "analyzing": "Analyzing…",
+    "loadingSuggestions": "Analyzing task description...",
+    "noSuggestions": "No suggestions for this description",
+    "selectedCount": "{{count}}/{{max}} skills selected",
+    "selected_one": "{{count}} skill selected",
+    "selected_other": "{{count}} skills selected",
+    "maximumReached": "Maximum reached",
+    "maxSkillsReached": "Maximum {{max}} skills selected",
+    "noSkillsSelected": "No skills selected",
+    "selectSkill": "{{name}}",
+    "removeSkill": "Remove skill",
+    "relevanceMatch": "{{score}}% match",
+    "categories": "Categories",
+    "allSkills": "All Skills",
+    "showPreview": "Show preview",
+    "hidePreview": "Hide preview",
+    "expandSection": "Show AI Skills",
+    "collapseSection": "Hide AI Skills"
   },
   "notifications": {
     "profileSwitch": {

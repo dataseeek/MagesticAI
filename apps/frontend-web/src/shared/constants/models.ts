@@ -4,6 +4,7 @@
  */
 
 import type { AgentProfile, PhaseModelConfig, FeatureModelConfig, FeatureThinkingConfig } from '../types/settings';
+import { apiRequest } from '../../lib/api-client';
 
 // ============================================
 // Available Models
@@ -14,6 +15,42 @@ export const AVAILABLE_MODELS = [
   { value: 'sonnet', label: 'Claude Sonnet 4.6' },
   { value: 'haiku', label: 'Claude Haiku 4.5' }
 ] as const;
+
+// Models available for all phases (Claude + alternative providers)
+// The provider is inferred from the model ID on the backend, so no separate
+// provider setting is needed per phase.
+export const ALL_AVAILABLE_MODELS = [
+  { value: 'opus', label: 'Claude Opus 4.6' },
+  { value: 'sonnet', label: 'Claude Sonnet 4.6' },
+  { value: 'haiku', label: 'Claude Haiku 4.5' },
+  { value: 'gpt-5.3-codex', label: 'Codex — GPT-5.3' },
+  { value: 'gpt-5.1-codex-max', label: 'Codex — GPT-5.1 Max' },
+  { value: 'gpt-5-codex-mini', label: 'Codex — GPT-5 Mini' },
+  { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
+  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
+  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+] as const;
+
+// Backward compatibility alias
+export const QA_AVAILABLE_MODELS = ALL_AVAILABLE_MODELS;
+
+// Dynamically fetch installed Ollama chat models for phase dropdowns
+export async function fetchOllamaModels(): Promise<{ value: string; label: string }[]> {
+  try {
+    const result = await apiRequest<{ models: { name: string }[] }>('/settings/ollama/models');
+    if (result.success && result.data?.models) {
+      return result.data.models.map(m => ({
+        value: `ollama:${m.name}`,
+        label: `Ollama — ${m.name}`,
+      }));
+    }
+  } catch { /* Ollama not running — no models */ }
+  return [];
+}
+
+// Backward compatibility alias
+export const fetchOllamaQAModels = fetchOllamaModels;
 
 // Maps model shorthand to actual Claude model IDs
 export const MODEL_ID_MAP: Record<string, string> = {
@@ -40,8 +77,7 @@ export const THINKING_LEVELS = [
   { value: 'none', label: 'None', description: 'No extended thinking' },
   { value: 'low', label: 'Low', description: 'Brief consideration' },
   { value: 'medium', label: 'Medium', description: 'Moderate analysis' },
-  { value: 'high', label: 'High', description: 'Deep thinking' },
-  { value: 'max', label: 'Max', description: 'Maximum reasoning (Opus only)' }
+  { value: 'high', label: 'High', description: 'Deep thinking' }
 ] as const;
 
 // ============================================
@@ -54,15 +90,17 @@ export const DEFAULT_PHASE_MODELS: PhaseModelConfig = {
   spec: 'opus',       // Best quality for spec creation
   planning: 'opus',   // Complex architecture decisions benefit from Opus
   coding: 'opus',     // Highest quality implementation
-  qa: 'opus'          // Thorough QA review
+  qa: 'opus',         // Thorough QA review
+  qa_fixer: 'sonnet'  // Efficient QA fixing
 };
 
 // Default phase thinking configuration for Auto profile
 export const DEFAULT_PHASE_THINKING: import('../types/settings').PhaseThinkingConfig = {
-  spec: 'max',   // Deep thinking for comprehensive spec creation
-  planning: 'high',     // High thinking for planning complex features
-  coding: 'low',        // Faster coding iterations
-  qa: 'low'             // Efficient QA review
+  spec: 'high',       // Deep thinking for comprehensive spec creation
+  planning: 'high',   // High thinking for planning complex features
+  coding: 'low',      // Faster coding iterations
+  qa: 'low',          // Efficient QA review
+  qa_fixer: 'low'     // Efficient QA fixing
 };
 
 // ============================================
@@ -111,7 +149,7 @@ export const DEFAULT_AGENT_PROFILES: AgentProfile[] = [
     name: 'Complex Tasks',
     description: 'For intricate, multi-step implementations requiring deep analysis',
     model: 'opus',
-    thinkingLevel: 'max',
+    thinkingLevel: 'high',
     icon: 'Brain'
   },
   {
@@ -154,12 +192,13 @@ export const PROVIDER_MODELS: Record<string, { id: string; label: string }[]> = 
     { id: 'haiku', label: 'Claude Haiku 4.5' },
   ],
   codex: [
-    { id: 'o4-mini', label: 'o4-mini' },
-    { id: 'o3', label: 'o3' },
-    { id: 'gpt-4.1', label: 'GPT-4.1' },
-    { id: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
+    { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
+    { id: 'gpt-5.1-codex-max', label: 'GPT-5.1 Codex Max' },
+    { id: 'gpt-5-codex-mini', label: 'GPT-5 Codex Mini' },
   ],
   gemini: [
+    { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
+    { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
     { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
     { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
   ],

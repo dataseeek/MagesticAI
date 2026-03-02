@@ -249,7 +249,7 @@ Please confirm you're ready by saying: I'm ready to work on ${selectedTask.title
     <div
       ref={setDropRef}
       className={cn(
-        'flex h-full flex-col rounded-lg border bg-[#0B0B0F] overflow-hidden transition-all relative',
+        'flex h-full flex-col rounded-lg border bg-[#0B0B0F] overflow-hidden transition-all relative min-w-0',
         isActive ? 'border-primary ring-1 ring-primary/20' : 'border-border',
         isFileDragOver && 'ring-2 ring-info border-info'
       )}
@@ -288,7 +288,7 @@ Please confirm you're ready by saying: I'm ready to work on ${selectedTask.title
 
       <div
         ref={terminalRef}
-        className="flex-1 px-3 py-2"
+        className="flex-1 px-3 py-2 min-w-0 overflow-hidden"
         style={{ minHeight: 0 }}
       />
 

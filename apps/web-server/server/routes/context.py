@@ -363,6 +363,7 @@ async def get_project_env(projectId: str = Path(...)):
     config = {
         "claudeAuthStatus": "not_configured",
         "githubEnabled": False,
+        "githubTokenSet": False,
         "githubRepo": "",
         "graphitiEnabled": False,
         "enableFancyUi": True
@@ -385,6 +386,7 @@ async def get_project_env(projectId: str = Path(...)):
 
                     if key == "GITHUB_TOKEN" and value:
                         config["githubEnabled"] = True
+                        config["githubTokenSet"] = True
                     elif key == "GITHUB_REPO" and value:
                         config["githubRepo"] = value
                     elif key == "GRAPHITI_ENABLED":

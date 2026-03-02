@@ -46,8 +46,10 @@ export interface GitHistoryOptions {
 
 // Branch diff options for changelog generation
 export interface BranchDiffOptions {
-  baseBranch: string;       // e.g., 'main'
-  compareBranch: string;    // e.g., 'feature/auth'
+  baseBranch: string;       // e.g., 'main' (display name)
+  compareBranch: string;    // e.g., 'feature/auth' (display name)
+  baseBranchRef?: string;   // e.g., 'origin/main' (git-resolvable ref)
+  compareBranchRef?: string; // e.g., 'dev' (git-resolvable ref)
 }
 
 // Git commit representation
@@ -66,7 +68,8 @@ export interface GitCommit {
 
 // Git branch information for UI dropdowns
 export interface GitBranchInfo {
-  name: string;
+  name: string;       // Display name (e.g., "main")
+  ref: string;        // Git-resolvable ref (e.g., "origin/main" or "master")
   isRemote: boolean;
   isCurrent: boolean;
 }

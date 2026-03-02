@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue
 } from './ui/select';
-import { AVAILABLE_MODELS, THINKING_LEVELS, PROVIDER_INFO } from '../shared/constants';
+import { AVAILABLE_MODELS, THINKING_LEVELS, PROVIDER_INFO, DEFAULT_FEATURE_MODELS, DEFAULT_FEATURE_THINKING } from '../shared/constants';
 import type { InsightsModelConfig, InsightsProviderInfo, InsightsProvider } from '../shared/types';
 import type { ThinkingLevel } from '../shared/types';
 
@@ -42,25 +42,25 @@ export function CustomModelModal({
     currentConfig?.provider || 'claude'
   );
   const [model, setModel] = useState<string>(
-    currentConfig?.model || 'sonnet'
+    currentConfig?.model || DEFAULT_FEATURE_MODELS.insights
   );
   const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>(
-    currentConfig?.thinkingLevel || 'medium'
+    currentConfig?.thinkingLevel || DEFAULT_FEATURE_THINKING.insights as ThinkingLevel
   );
 
   // Sync internal state when modal opens or config changes
   useEffect(() => {
     if (open) {
       setProvider(currentConfig?.provider || 'claude');
-      setModel(currentConfig?.model || 'sonnet');
-      setThinkingLevel(currentConfig?.thinkingLevel || 'medium');
+      setModel(currentConfig?.model || DEFAULT_FEATURE_MODELS.insights);
+      setThinkingLevel(currentConfig?.thinkingLevel || DEFAULT_FEATURE_THINKING.insights as ThinkingLevel);
     }
   }, [open, currentConfig]);
 
   // When provider changes, reset model to first available
   useEffect(() => {
     if (provider === 'claude') {
-      setModel(currentConfig?.provider === 'claude' ? (currentConfig?.model || 'sonnet') : 'sonnet');
+      setModel(currentConfig?.provider === 'claude' ? (currentConfig?.model || DEFAULT_FEATURE_MODELS.insights) : DEFAULT_FEATURE_MODELS.insights);
     } else {
       const providerInfo = availableProviders.find(p => p.provider === provider);
       if (providerInfo && providerInfo.models.length > 0) {

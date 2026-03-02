@@ -53,7 +53,7 @@ export function SortableTerminal({
       ref={setNodeRef}
       style={style}
       className={cn(
-        'terminal-grid-item h-full',
+        'terminal-grid-item h-full min-w-0 overflow-hidden',
         isDragging && 'dragging opacity-60 ring-2 ring-primary/50'
       )}
       {...attributes}

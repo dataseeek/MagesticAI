@@ -26,9 +26,7 @@ import { OpenAIIcon } from './icons/OpenAIIcon';
 import { GeminiIcon } from './icons/GeminiIcon';
 import type { CLIAccountStatus, CLIAccountsDetectionResult } from '../shared/types';
 
-interface CLIToolStatusBadgeProps {
-  className?: string;
-}
+// No props needed — rendered as fragment children
 
 // Refresh every 5 minutes
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -348,7 +346,7 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
  * Shows Codex CLI and Gemini CLI status with brand icons, colored indicators,
  * and rich popover modals with version info, auth status, and action buttons.
  */
-export function CLIToolStatusBadge({ className }: CLIToolStatusBadgeProps) {
+export function CLIToolStatusBadge() {
   const [accounts, setAccounts] = useState<CLIAccountsDetectionResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
@@ -394,7 +392,7 @@ export function CLIToolStatusBadge({ className }: CLIToolStatusBadgeProps) {
   ];
 
   return (
-    <div className={cn('space-y-0.5', className)}>
+    <>
       {clis.map(({ key, Icon, label }) => (
         <CLIToolPopover
           key={key}
@@ -406,6 +404,6 @@ export function CLIToolStatusBadge({ className }: CLIToolStatusBadgeProps) {
           onRefresh={detect}
         />
       ))}
-    </div>
+    </>
   );
 }

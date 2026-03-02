@@ -10,6 +10,7 @@
  * - Form validation (description required)
  * - Editable classification fields (category, priority, complexity, impact)
  * - Editable image attachments (add/remove images)
+ * - Editable AI skills selection (browse, search, or get AI suggestions)
  * - Editable review settings (requireReviewBeforeCoding)
  * - Saves changes via persistUpdateTask (updates store + spec files)
  * - Prevents save when no changes have been made
@@ -25,6 +26,7 @@
  * ```
  */
 import { useState, useEffect, useCallback, useRef, type ClipboardEvent, type DragEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, Image as ImageIcon, ChevronDown, ChevronUp, X } from 'lucide-react';
 import {
   Dialog,
@@ -55,9 +57,11 @@ import {
   resolveFilename
 } from './ImageUpload';
 import { AgentProfileSelector } from './AgentProfileSelector';
+import { SkillsBrowser } from './SkillsBrowser';
+import { Badge } from './ui/badge';
 import { persistUpdateTask } from '../stores/task-store';
 import { cn } from '../lib/utils';
-import type { Task, ImageAttachment, TaskCategory, TaskPriority, TaskComplexity, TaskImpact, ModelType, ThinkingLevel } from '../shared/types';
+import type { Task, ImageAttachment, TaskCategory, TaskPriority, TaskComplexity, TaskImpact, ModelType, ThinkingLevel, SelectedSkill } from '../shared/types';
 import {
   TASK_CATEGORY_LABELS,
   TASK_PRIORITY_LABELS,
@@ -87,6 +91,8 @@ interface TaskEditDialogProps {
 }
 
 export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDialogProps) {
+  const { t } = useTranslation('tasks');
+
   // Get selected agent profile from settings for defaults
   const { settings } = useSettingsStore();
   const selectedProfile = DEFAULT_AGENT_PROFILES.find(
@@ -148,6 +154,12 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
     task.metadata?.requireReviewBeforeCoding ?? false
   );
 
+  // Skills state
+  const [selectedSkills, setSelectedSkills] = useState<SelectedSkill[]>(
+    task.metadata?.selectedSkills || []
+  );
+  const [showSkillsBrowser, setShowSkillsBrowser] = useState(false);
+
   // Ref for the textarea to handle paste events
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
@@ -195,6 +207,7 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
       setImages(task.metadata?.attachedImages || []);
       setMode(task.metadata?.mode || 'full');
       setRequireReviewBeforeCoding(task.metadata?.requireReviewBeforeCoding ?? false);
+      setSelectedSkills(task.metadata?.selectedSkills || []);
       setError(null);
 
       // Auto-expand sections if they have content
@@ -203,6 +216,8 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
       }
       // Auto-expand images section if task has images
       setShowImages((task.metadata?.attachedImages || []).length > 0);
+      // Auto-expand skills section if task has skills
+      setShowSkillsBrowser((task.metadata?.selectedSkills || []).length > 0);
       setPasteSuccess(false);
     }
   }, [open, task, settings.selectedAgentProfile, selectedProfile.model, selectedProfile.thinkingLevel]);
@@ -426,6 +441,7 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
       mode !== (task.metadata?.mode || 'full') ||
       requireReviewBeforeCoding !== (task.metadata?.requireReviewBeforeCoding ?? false) ||
       JSON.stringify(images) !== JSON.stringify(task.metadata?.attachedImages || []) ||
+      JSON.stringify(selectedSkills) !== JSON.stringify(task.metadata?.selectedSkills || []) ||
       // Auto profile fields
       profileId !== originalProfileId ||
       (profileId === 'auto' && JSON.stringify(phaseModels) !== JSON.stringify(task.metadata?.phaseModels || DEFAULT_PHASE_MODELS)) ||
@@ -468,6 +484,9 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
 
     // Images - use null to clear when all removed, array to set
     metadataUpdates.attachedImages = images.length > 0 ? images : null;
+
+    // Skills - use null to clear when all removed, array to set
+    metadataUpdates.selectedSkills = selectedSkills.length > 0 ? selectedSkills : null;
 
     // Execution mode: 'quick' uses simplified prompts (~70% fewer tokens)
     if (mode) metadataUpdates.mode = mode;
@@ -795,6 +814,42 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
               />
             </div>
           )}
+
+          {/* AI Skills Section */}
+          <div className="rounded-lg border border-border">
+            <button
+              type="button"
+              onClick={() => setShowSkillsBrowser(!showSkillsBrowser)}
+              className={cn(
+                'flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors',
+                'w-full justify-between py-2 px-3 rounded-lg hover:bg-muted/50'
+              )}
+              disabled={isSaving}
+            >
+              <span className="flex items-center gap-2 font-medium">
+                {t('skills.title')}
+                {selectedSkills.length > 0 && (
+                  <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                    {selectedSkills.length}
+                  </Badge>
+                )}
+              </span>
+              <ChevronDown
+                className={cn(
+                  'h-4 w-4 transition-transform duration-200',
+                  showSkillsBrowser && 'rotate-180'
+                )}
+              />
+            </button>
+            {showSkillsBrowser && (
+              <SkillsBrowser
+                selectedSkills={selectedSkills}
+                onSkillsChange={setSelectedSkills}
+                taskDescription={description}
+                maxSkills={5}
+              />
+            )}
+          </div>
 
           {/* Review Requirement Toggle */}
           <div className="flex items-start gap-3 p-4 rounded-lg border border-border bg-muted/30">

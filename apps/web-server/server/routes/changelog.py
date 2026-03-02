@@ -82,6 +82,8 @@ class GitHistoryOptions(BaseModel):
 class BranchDiffOptions(BaseModel):
     baseBranch: str
     compareBranch: str
+    baseBranchRef: str | None = None
+    compareBranchRef: str | None = None
 
 
 class ChangelogGenerateRequest(BaseModel):
@@ -236,6 +238,8 @@ async def generate_changelog(projectId: str = Path(...), request: ChangelogGener
         request_dict["branchDiff"] = {
             "baseBranch": request.branchDiff.baseBranch,
             "compareBranch": request.branchDiff.compareBranch,
+            "baseBranchRef": request.branchDiff.baseBranchRef,
+            "compareBranchRef": request.branchDiff.compareBranchRef,
         }
 
     # Start generation in background
@@ -472,7 +476,7 @@ async def get_changelog_branches(projectId: str = Path(...)):
             return {"success": False, "error": result.stderr.strip()}
 
         branch_objects = []
-        seen_names = set()
+        seen_names: dict[str, int] = {}  # display_name -> index in branch_objects
 
         for line in result.stdout.strip().split("\n"):
             if not line.strip():
@@ -489,17 +493,29 @@ async def get_changelog_branches(projectId: str = Path(...)):
             # Determine if remote and clean up name
             is_remote = branch_name.startswith("origin/")
             display_name = branch_name.replace("origin/", "") if is_remote else branch_name
-
-            # Skip duplicates (prefer local over remote)
-            if display_name in seen_names:
-                continue
-            seen_names.add(display_name)
+            # ref is the actual git-resolvable reference
+            git_ref = branch_name  # e.g., "origin/main" for remote, "master" for local
 
             # Determine if current branch
             is_current = is_head or display_name == current_branch
 
+            if display_name in seen_names:
+                if not is_remote:
+                    # Local branch replaces remote entry (local takes priority)
+                    idx = seen_names[display_name]
+                    branch_objects[idx] = {
+                        "name": display_name,
+                        "ref": git_ref,
+                        "isRemote": False,
+                        "isCurrent": is_current
+                    }
+                # Skip remote duplicates when local already exists
+                continue
+
+            seen_names[display_name] = len(branch_objects)
             branch_objects.append({
                 "name": display_name,
+                "ref": git_ref,
                 "isRemote": is_remote,
                 "isCurrent": is_current
             })
@@ -591,12 +607,14 @@ async def get_commits_preview(projectId: str = Path(...), request: CommitsPrevie
 
     try:
         # Build git log command based on mode
-        cmd = ["git", "log", "--format=%H|%s|%an|%ae|%aI"]
+        # Use NUL (%x00) as record separator and unit separator (%x1f) for fields
+        # to safely handle commit messages containing pipes or special characters
+        cmd = ["git", "log", "--format=%x00%H%x1f%s%x1f%an%x1f%ae%x1f%aI"]
 
         if mode == "branch-diff":
-            # Compare two branches
-            base_branch = options.get("baseBranch", "main")
-            compare_branch = options.get("compareBranch", "HEAD")
+            # Compare two branches - use ref (git-resolvable) if provided, fall back to name
+            base_branch = options.get("baseBranchRef") or options.get("baseBranch", "main")
+            compare_branch = options.get("compareBranchRef") or options.get("compareBranch", "HEAD")
             cmd.append(f"{base_branch}..{compare_branch}")
         else:
             # History mode with various options
@@ -638,17 +656,18 @@ async def get_commits_preview(projectId: str = Path(...), request: CommitsPrevie
             return {"success": False, "error": result.stderr.strip()}
 
         commits = []
-        for line in result.stdout.strip().split("\n"):
-            if not line:
+        for record in result.stdout.split("\x00"):
+            record = record.strip()
+            if not record:
                 continue
-            parts = line.split("|", 4)
+            parts = record.split("\x1f")
             if len(parts) >= 5:
                 commits.append({
                     "hash": parts[0],
                     "message": parts[1],
                     "author": parts[2],
                     "email": parts[3],
-                    "date": parts[4],
+                    "date": parts[4].strip(),
                     "selected": True  # Default to selected
                 })
 
@@ -780,6 +799,10 @@ async def detect_insights_providers(projectId: str = Path(...)):
     }
 
 
+class GenerateTaskRequest(BaseModel):
+    modelConfig: dict | None = None
+
+
 class CreateTaskRequest(BaseModel):
     title: str
     description: str
@@ -791,7 +814,10 @@ class RenameSessionRequest(BaseModel):
 
 
 class UpdateModelConfigRequest(BaseModel):
+    provider: str | None = None
+    profileId: str | None = None
     model: str | None = None
+    thinkingLevel: str | None = None
     temperature: float | None = None
 
 
@@ -832,17 +858,23 @@ async def send_insights_message(projectId: str = Path(...), request: InsightsMes
     project_path = _get_project_path(projectId)
     service = get_insights_service()
 
-    # Start message processing in background (non-blocking)
-    asyncio.create_task(
-        service.send_message(
-            project_path=project_path,
-            project_id=projectId,
-            message=request.message,
-            model_config=request.modelConfig,
-        )
+    # Start message processing in background (non-blocking, tracked for cancellation)
+    service.start_message(
+        project_path=project_path,
+        project_id=projectId,
+        message=request.message,
+        model_config=request.modelConfig,
     )
 
     return {"success": True}
+
+
+@insights_router.post("/stop")
+async def stop_insights_message(projectId: str = Path(...)):
+    """Stop the currently running insights chat for a project."""
+    service = get_insights_service()
+    cancelled = service.stop_message(projectId)
+    return {"success": True, "cancelled": cancelled}
 
 
 @insights_router.delete("")
@@ -906,18 +938,36 @@ async def clear_insights_session(projectId: str = Path(...)):
 @insights_router.post("/create-task")
 async def create_task_from_insights(projectId: str = Path(...), request: CreateTaskRequest = ...):
     """Create a task from insights conversation."""
-    # Import task creation logic
-    from .tasks import TaskCreateRequest, create_task
+    from .tasks import TaskCreate, create_task
 
     try:
-        task_request = TaskCreateRequest(
+        task_request = TaskCreate(
+            project_id=projectId,
             title=request.title,
             description=request.description,
-            metadata=request.metadata,
         )
-        result = await create_task(projectId, task_request)
-        return {"success": True, "data": result.get("data")}
+        result = await create_task(task_request)
+        return {"success": True, "data": result}
     except Exception as e:
+        logger.error(f"create_task_from_insights failed: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
+@insights_router.post("/generate-task")
+async def generate_task_from_chat(projectId: str = Path(...), request: GenerateTaskRequest = ...):
+    """Generate a structured task (title + description) from the current chat session."""
+    project_path = _get_project_path(projectId)
+    service = get_insights_service()
+
+    try:
+        result = await service.generate_task_from_chat(
+            project_path=project_path,
+            project_id=projectId,
+            model_config=request.modelConfig,
+        )
+        return {"success": True, "data": result}
+    except Exception as e:
+        logger.error(f"generate_task_from_chat failed: {e}", exc_info=True)
         return {"success": False, "error": str(e)}
 
 
@@ -989,8 +1039,8 @@ async def delete_insights_session(projectId: str = Path(...), sessionId: str = P
     """Delete an insights session."""
     project_path = _get_project_path(projectId)
     service = get_insights_service()
-    success = service.delete_session(project_path, sessionId)
-    return {"success": success}
+    result = service.delete_session(project_path, sessionId)
+    return {"success": result["deleted"], "data": {"switchedTo": result.get("switchedTo")}}
 
 
 @insights_router.patch("/sessions/{sessionId}")
@@ -1011,6 +1061,6 @@ async def update_insights_model_config(
     """Update model config for a session."""
     project_path = _get_project_path(projectId)
     service = get_insights_service()
-    config = {"model": request.model, "temperature": request.temperature}
+    config = {k: v for k, v in request.model_dump().items() if v is not None}
     success = service.update_model_config(project_path, sessionId, config)
     return {"success": success}

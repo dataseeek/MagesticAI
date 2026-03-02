@@ -52,10 +52,12 @@ class ProviderStrategy(abc.ABC):
         model: str | None,
         model_config: dict | None,
         conversation_history: list[dict] | None,
-    ) -> None:
+    ) -> str:
         """Send a message and stream the response via WebSocket events.
 
         Must broadcast insights:chunk events with types:
         text, tool_start, tool_end, done, error.
+
+        Returns the full accumulated response text for persistence.
         """
         ...
