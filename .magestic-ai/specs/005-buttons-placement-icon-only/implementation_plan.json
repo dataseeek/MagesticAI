@@ -86,7 +86,9 @@
         {
           "id": "3.2",
           "description": "Verify popover interactions work correctly for each icon in the new header location",
-          "status": "pending"
+          "status": "completed",
+          "notes": "Verified all 4 popover interactions work correctly in the new header location. ClaudeCodeStatusBadge: controlled Popover (open={isOpen} onOpenChange={setIsOpen}), TooltipContent side=\"bottom\", PopoverContent side=\"bottom\" align=\"end\", rich content with header/version/auth/actions, setIsOpen(false) before opening onboarding wizard, AlertDialog for update warning. CLIToolStatusBadge (Codex + Gemini): each CLIToolPopover has independent isOpen state, same side=\"bottom\"/align=\"end\" pattern, content includes header/version/auth status/login hint/Install+Login+Refresh+ImportCredentials buttons, horizontal flex layout for header. LocalLLMStatusBadge (Ollama): identical Popover/Tooltip structure, side=\"bottom\"/align=\"end\", content shows version/modelCount/model list/status callout/Refresh+Install-link. All 4 badges use iconOnly=true in ProjectTabBar.tsx. No console.log statements. TypeScript passes 0 errors. Production build succeeds.",
+          "updated_at": "2026-03-02T18:40:37.138399+00:00"
         },
         {
           "id": "3.3",
@@ -101,5 +103,5 @@
       ]
     }
   ],
-  "last_updated": "2026-03-02T18:36:54.896442+00:00"
+  "last_updated": "2026-03-02T18:40:37.138422+00:00"
 }

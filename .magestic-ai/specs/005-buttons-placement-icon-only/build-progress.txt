@@ -9,3 +9,5 @@
   [x] 2.4: Add local LLM (Ollama) icon to header using the same icon + status + popover pattern (277d0c4)
   [x] 2.4: If feasible, add local LLM icon to header using the same icon + status + popover pattern (277d0c4f)
   [x] 3.1: Verify all 3 CLI status icons display correctly in the header (icon + status dot visible, text labels absent)
+  [x] 3.1: Verify all 3 CLI status icons display correctly in the header (icon + status dot visible, text labels absent) (b9a9e0d2)
+  [x] 3.2: Verify popover interactions work correctly for each icon in the new header location
