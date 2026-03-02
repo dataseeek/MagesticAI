@@ -57,7 +57,7 @@ export function ReviewFindings({
   // Check if all findings are posted
   const allFindingsPosted = findings.length > 0 && unpostedFindings.length === 0;
 
-  // Group unposted findings by severity (only show findings that haven't been posted)
+  // Group ALL findings by severity (posted + unposted)
   const groupedFindings = useMemo(() => {
     const groups: Record<SeverityGroup, PRReviewFinding[]> = {
       critical: [],
@@ -66,7 +66,7 @@ export function ReviewFindings({
       low: [],
     };
 
-    for (const finding of unpostedFindings) {
+    for (const finding of findings) {
       const severity = finding.severity as SeverityGroup;
       if (groups[severity]) {
         groups[severity].push(finding);
@@ -74,18 +74,18 @@ export function ReviewFindings({
     }
 
     return groups;
-  }, [unpostedFindings]);
+  }, [findings]);
 
-  // Count by severity (unposted findings only)
+  // Count by severity (all findings) + unposted counts for selection
   const counts = useMemo(() => ({
     critical: groupedFindings.critical.length,
     high: groupedFindings.high.length,
     medium: groupedFindings.medium.length,
     low: groupedFindings.low.length,
-    total: unpostedFindings.length,
-    important: groupedFindings.critical.length + groupedFindings.high.length,
+    total: findings.length,
+    unpostedImportant: unpostedFindings.filter(f => f.severity === 'critical' || f.severity === 'high').length,
     posted: postedIds.size,
-  }), [groupedFindings, unpostedFindings.length, postedIds.size]);
+  }), [groupedFindings, findings.length, unpostedFindings, postedIds.size]);
 
   // Selection hooks - use unposted findings only
   const {
@@ -114,63 +114,62 @@ export function ReviewFindings({
     });
   };
 
-  // When all findings have been posted, show a success message instead of the selection UI
-  if (allFindingsPosted) {
-    return (
-      <div className="space-y-4">
-        <div className="text-center py-8 text-muted-foreground bg-success/5 rounded-lg border border-success/20">
-          <Send className="h-8 w-8 mx-auto mb-2 text-success" />
-          <p className="text-sm font-medium text-success">{t('prReview.allFindingsPosted')}</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {t('prReview.findingsPostedCount', { count: counts.posted })}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
-      {/* Summary Stats Bar - show unposted findings only */}
-      <FindingsSummary
-        findings={unpostedFindings}
-        selectedCount={selectedIds.size}
-      />
+      {/* Success banner when all findings are posted */}
+      {allFindingsPosted && (
+        <div className="flex items-center gap-2 py-2 px-3 bg-success/5 rounded-lg border border-success/20">
+          <Send className="h-4 w-4 text-success flex-shrink-0" />
+          <p className="text-sm font-medium text-success">{t('prReview.allFindingsPosted')}</p>
+          <p className="text-xs text-muted-foreground">
+            ({t('prReview.findingsPostedCount', { count: counts.posted })})
+          </p>
+        </div>
+      )}
 
-      {/* Quick Select Actions */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={selectImportant}
-          className="text-xs"
-          disabled={counts.important === 0}
-        >
-          <AlertTriangle className="h-3 w-3 mr-1" />
-          {t('prReview.selectCriticalHigh', { count: counts.important })}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={selectAll}
-          className="text-xs"
-        >
-          <CheckSquare className="h-3 w-3 mr-1" />
-          {t('prReview.selectAll')}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={selectNone}
-          className="text-xs"
-          disabled={selectedIds.size === 0}
-        >
-          <Square className="h-3 w-3 mr-1" />
-          {t('prReview.clear')}
-        </Button>
-      </div>
+      {/* Summary Stats Bar & Quick Select Actions - only when there are unposted findings */}
+      {!allFindingsPosted && (
+        <>
+          <FindingsSummary
+            findings={unpostedFindings}
+            selectedCount={selectedIds.size}
+          />
 
-      {/* Grouped Findings (unposted only) */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={selectImportant}
+              className="text-xs"
+              disabled={counts.unpostedImportant === 0}
+            >
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              {t('prReview.selectCriticalHigh', { count: counts.unpostedImportant })}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={selectAll}
+              className="text-xs"
+            >
+              <CheckSquare className="h-3 w-3 mr-1" />
+              {t('prReview.selectAll')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={selectNone}
+              className="text-xs"
+              disabled={selectedIds.size === 0}
+            >
+              <Square className="h-3 w-3 mr-1" />
+              {t('prReview.clear')}
+            </Button>
+          </div>
+        </>
+      )}
+
+      {/* Grouped Findings (all findings - posted shown with posted styling) */}
       <div className="space-y-3">
         {SEVERITY_ORDER.map((severity) => {
           const group = groupedFindings[severity];
@@ -195,7 +194,7 @@ export function ReviewFindings({
                 selectedCount={selectedInGroup}
                 expanded={isExpanded}
                 onToggle={() => toggleSection(severity)}
-                onSelectAll={(e) => {
+                onSelectAll={allFindingsPosted ? undefined : (e) => {
                   e.stopPropagation();
                   toggleSeverityGroup(severity);
                 }}
@@ -204,15 +203,18 @@ export function ReviewFindings({
               {/* Group Content */}
               {isExpanded && (
                 <div className="p-3 pt-0 space-y-2">
-                  {group.map((finding) => (
-                    <FindingItem
-                      key={finding.id}
-                      finding={finding}
-                      selected={selectedIds.has(finding.id)}
-                      posted={false}
-                      onToggle={() => toggleFinding(finding.id)}
-                    />
-                  ))}
+                  {group.map((finding) => {
+                    const isPosted = postedIds.has(finding.id);
+                    return (
+                      <FindingItem
+                        key={finding.id}
+                        finding={finding}
+                        selected={!isPosted && selectedIds.has(finding.id)}
+                        posted={isPosted}
+                        onToggle={isPosted ? undefined : () => toggleFinding(finding.id)}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>

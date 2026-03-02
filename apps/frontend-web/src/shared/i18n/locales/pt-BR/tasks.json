@@ -74,8 +74,19 @@
     "labels": {
       "interrupted": "Interrompido",
       "progress": "Progresso",
+      "progressWithStatus": "Progresso ({{status}})",
       "entry": "entrada",
       "entries": "entradas"
+    },
+    "progressStatus": {
+      "idle": "inativo",
+      "planning": "planejando",
+      "planCompleted": "planejamento concluído",
+      "coding": "codificando",
+      "reviewing": "revisando",
+      "fixing": "corrigindo",
+      "complete": "completo",
+      "failed": "falhou"
     },
     "shortPhases": {
       "plan": "Plano",
@@ -94,10 +105,43 @@
     "errorLoadingContent": "Falha ao carregar conteúdo do arquivo",
     "retry": "Tentar novamente",
     "selectFile": "Selecione um arquivo para ver seu conteúdo",
-    "openInIDE": "Abrir na IDE"
+    "openInIDE": "Abrir na IDE",
+    "downloadFile": "Baixar arquivo",
+    "previewInBrowser": "Visualizar no navegador",
+    "backToParent": "Voltar"
   },
   "metadata": {
     "severity": "severidade"
+  },
+  "skills": {
+    "title": "Habilidades de IA",
+    "description": "Selecione habilidades para guiar o agente de IA com conhecimento especializado",
+    "browseTab": "Navegar",
+    "searchTab": "Pesquisar",
+    "suggestionsTab": "Sugestões",
+    "selectCategory": "Selecione uma categoria para navegar pelas habilidades",
+    "categoryCount": "{{count}}",
+    "searchPlaceholder": "Pesquisar habilidades...",
+    "clearSearch": "Limpar pesquisa",
+    "noResults": "Nenhuma habilidade encontrada",
+    "analyzing": "Analisando…",
+    "loadingSuggestions": "Analisando descrição da tarefa...",
+    "noSuggestions": "Nenhuma sugestão para esta descrição",
+    "selectedCount": "{{count}}/{{max}} habilidades selecionadas",
+    "selected_one": "{{count}} habilidade selecionada",
+    "selected_other": "{{count}} habilidades selecionadas",
+    "maximumReached": "Máximo atingido",
+    "maxSkillsReached": "Máximo de {{max}} habilidades selecionadas",
+    "noSkillsSelected": "Nenhuma habilidade selecionada",
+    "selectSkill": "{{name}}",
+    "removeSkill": "Remover habilidade",
+    "relevanceMatch": "{{score}}% de correspondência",
+    "categories": "Categorias",
+    "allSkills": "Todas as Habilidades",
+    "showPreview": "Mostrar prévia",
+    "hidePreview": "Ocultar prévia",
+    "expandSection": "Mostrar Habilidades de IA",
+    "collapseSection": "Ocultar Habilidades de IA"
   },
   "notifications": {
     "profileSwitch": {

@@ -16,6 +16,7 @@ import {
   Sparkles,
   GitBranch,
   Wrench,
+  Lightbulb,
   LogOut
 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -48,7 +49,7 @@ import { GitSetupModal } from './GitSetupModal';
 import { RateLimitIndicator } from './RateLimitIndicator';
 import type { Project, AutoBuildVersionInfo, GitStatus, ProjectEnvConfig } from '../shared/types';
 
-export type SidebarView = 'kanban' | 'terminals' | 'editor' | 'context' | 'github-issues' | 'github-prs' | 'changelog' | 'insights' | 'worktrees' | 'agent-tools';
+export type SidebarView = 'kanban' | 'terminals' | 'editor' | 'context' | 'github-issues' | 'github-prs' | 'changelog' | 'insights' | 'worktrees' | 'agent-tools' | 'skills';
 
 interface SidebarProps {
   onSettingsClick: () => void;
@@ -71,6 +72,7 @@ const baseNavItems: NavItem[] = [
   { id: 'insights', labelKey: 'navigation:items.chat', icon: Sparkles },
   { id: 'terminals', labelKey: 'navigation:items.terminals', icon: Terminal },
   { id: 'agent-tools', labelKey: 'navigation:items.agentTools', icon: Wrench },
+  { id: 'skills', labelKey: 'navigation:items.skills', icon: Lightbulb },
   { id: 'changelog', labelKey: 'navigation:items.changelog', icon: FileText },
   { id: 'worktrees', labelKey: 'navigation:items.worktrees', icon: GitBranch },
   { id: 'context', labelKey: 'navigation:items.context', icon: BookOpen }
@@ -306,7 +308,7 @@ export function Sidebar({
         {/* Header with drag area - extra top padding for macOS traffic lights */}
         <div className="electron-drag flex h-14 items-center gap-2.5 px-4 pt-6">
           <img src="/logo.png" alt="MagesticAI" className="electron-no-drag h-7 w-7 rounded" />
-          <span className="electron-no-drag text-lg font-bold" style={{ color: '#61CE70' }}>MagesticAI</span>
+          <span className="electron-no-drag text-lg font-bold" style={{ color: '#61CE70' }}>Magestic<span style={{ color: '#FFFFFF' }}>AI</span></span>
         </div>
 
         <Separator className="mt-2" />

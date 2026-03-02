@@ -178,6 +178,19 @@ export function TerminalGrid({ projectPath, onNewTaskClick, isActive = false }: 
     removeTerminal(id);
   }, [removeTerminal]);
 
+  // Re-fit all xterm instances when the terminals view becomes visible again.
+  // xterm FitAddon can't measure while container is display:none, so we dispatch
+  // a resize event to trigger all ResizeObservers once the DOM is visible.
+  useEffect(() => {
+    if (isActive && terminals.length > 0) {
+      // Small delay to let the browser lay out the now-visible container
+      const timer = setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isActive, terminals.length]);
+
   // Handle keyboard shortcut for new terminal (only when this view is active)
   useEffect(() => {
     if (!isActive) return;
@@ -332,7 +345,7 @@ export function TerminalGrid({ projectPath, onNewTaskClick, isActive = false }: 
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex h-full flex-col">
+      <div className="flex h-full flex-col min-w-0 overflow-hidden">
         {/* Toolbar */}
         <div className="flex h-10 items-center justify-between border-b border-border bg-card/30 px-3">
           <div className="flex items-center gap-2">
@@ -428,7 +441,7 @@ export function TerminalGrid({ projectPath, onNewTaskClick, isActive = false }: 
           )}>
             <SortableContext items={terminalIds} strategy={rectSortingStrategy}>
               <div
-                className="grid gap-2 h-full"
+                className="grid gap-2 h-full min-w-0"
                 style={{
                   gridTemplateColumns: `repeat(${gridLayout.cols}, 1fr)`,
                   gridTemplateRows: `repeat(${gridLayout.rows}, 1fr)`,

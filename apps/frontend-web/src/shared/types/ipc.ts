@@ -25,7 +25,8 @@ import type {
   GitStatus,
   CustomMcpServer,
   McpHealthCheckResult,
-  McpTestConnectionResult
+  McpTestConnectionResult,
+  DetectedMcpService
 } from './project';
 import type {
   Task,
@@ -147,7 +148,7 @@ export interface API {
   startTask: (taskId: string, options?: TaskStartOptions) => void;
   stopTask: (taskId: string) => void;
   submitReview: (taskId: string, approved: boolean, feedback?: string) => Promise<IPCResult>;
-  updateTaskStatus: (taskId: string, status: TaskStatus) => Promise<IPCResult>;
+  updateTaskStatus: (taskId: string, status: TaskStatus, options?: { force?: boolean }) => Promise<IPCResult>;
   recoverStuckTask: (taskId: string, options?: TaskRecoveryOptions) => Promise<IPCResult<TaskRecoveryResult>>;
   checkTaskRunning: (taskId: string) => Promise<IPCResult<boolean>>;
 
@@ -162,6 +163,12 @@ export interface API {
   resolveGitMergeConflicts: (taskId: string) => Promise<IPCResult<{ resolved: string[]; failed?: Array<{ file: string; error: string }>; message: string }>>;
   abortWorktreeMerge: (taskId: string) => Promise<IPCResult<{ abortedIn: string[]; message: string }>>;
   discardWorktree: (taskId: string) => Promise<IPCResult<WorktreeDiscardResult>>;
+  createPRFromTask: (taskId: string, options?: {
+    title?: string;
+    body?: string;
+    draft?: boolean;
+    baseBranch?: string;
+  }) => Promise<IPCResult<{ prUrl: string; prNumber: number | null; branch: string; baseBranch: string }>>;
   listWorktrees: (projectId: string) => Promise<IPCResult<WorktreeListResult>>;
   worktreeOpenInIDE: (worktreePath: string, ide: SupportedIDE, customPath?: string) => Promise<IPCResult<{ opened: boolean }>>;
   worktreeOpenInTerminal: (worktreePath: string, terminal: SupportedTerminal, customPath?: string) => Promise<IPCResult<{ opened: boolean }>>;
@@ -326,9 +333,10 @@ export interface API {
   getGitHubIssues: (projectId: string, state?: 'open' | 'closed' | 'all') => Promise<IPCResult<GitHubIssue[]>>;
   getGitHubIssue: (projectId: string, issueNumber: number) => Promise<IPCResult<GitHubIssue>>;
   checkGitHubConnection: (projectId: string) => Promise<IPCResult<GitHubSyncStatus>>;
-  investigateGitHubIssue: (projectId: string, issueNumber: number, selectedCommentIds?: number[]) => void;
+  investigateGitHubIssue: (projectId: string, issueNumber: number, selectedCommentIds?: number[]) => Promise<IPCResult> | void;
   getIssueComments: (projectId: string, issueNumber: number) => Promise<IPCResult<Array<{ id: number; body: string; user: { login: string; avatar_url?: string }; created_at: string; updated_at: string }>>>;
   importGitHubIssues: (projectId: string, issueNumbers: number[]) => Promise<IPCResult<GitHubImportResult>>;
+  closeGitHubIssue: (projectId: string, issueNumber: number) => Promise<IPCResult>;
   createGitHubRelease: (
     projectId: string,
     version: string,
@@ -339,7 +347,7 @@ export interface API {
   // GitHub OAuth operations (gh CLI)
   checkGitHubCli: () => Promise<IPCResult<{ installed: boolean; version?: string }>>;
   checkGitHubAuth: () => Promise<IPCResult<{ authenticated: boolean; username?: string }>>;
-  autoDetectGitHub: () => Promise<IPCResult<{ authenticated: boolean; username?: string; token?: string; reason?: string }>>;
+  autoDetectGitHub: (projectId?: string) => Promise<IPCResult<{ authenticated: boolean; username?: string; tokenPersisted?: boolean; reason?: string }>>;
   startGitHubAuth: () => Promise<IPCResult<{
     success: boolean;
     message?: string;
@@ -348,11 +356,12 @@ export interface API {
     browserOpened?: boolean;
     fallbackUrl?: string;
   }>>;
-  getGitHubToken: () => Promise<IPCResult<{ token: string }>>;
+  getGitHubToken: () => Promise<IPCResult<{ hasToken: boolean }>>;
+  persistGitHubToken: (projectId: string) => Promise<IPCResult<{ tokenPersisted: boolean }>>;
   getGitHubUser: () => Promise<IPCResult<{ username: string; name?: string }>>;
   listGitHubUserRepos: () => Promise<IPCResult<{ repos: Array<{ fullName: string; description: string | null; isPrivate: boolean }> }>>;
   detectGitHubRepo: (projectPath: string) => Promise<IPCResult<string>>;
-  getGitHubBranches: (repo: string, token: string) => Promise<IPCResult<string[]>>;
+  getGitHubBranches: (repo: string) => Promise<IPCResult<string[]>>;
   createGitHubRepo: (
     repoName: string,
     options: { description?: string; isPrivate?: boolean; projectPath: string; owner?: string }
@@ -478,6 +487,7 @@ export interface API {
   getInsightsSession: (projectId: string) => Promise<IPCResult<InsightsSession | null>>;
   detectInsightsProviders: (projectId: string) => Promise<IPCResult<InsightsProviderInfo[]>>;
   sendInsightsMessage: (projectId: string, message: string, modelConfig?: InsightsModelConfig) => void;
+  stopInsightsMessage: (projectId: string) => Promise<IPCResult>;
   clearInsightsSession: (projectId: string) => Promise<IPCResult>;
   createTaskFromInsights: (
     projectId: string,
@@ -485,6 +495,10 @@ export interface API {
     description: string,
     metadata?: TaskMetadata
   ) => Promise<IPCResult<Task>>;
+  generateTaskFromChat: (
+    projectId: string,
+    modelConfig?: InsightsModelConfig
+  ) => Promise<IPCResult<{ title: string; description: string }>>;
   listInsightsSessions: (projectId: string) => Promise<IPCResult<InsightsSessionSummary[]>>;
   newInsightsSession: (projectId: string) => Promise<IPCResult<InsightsSession>>;
   switchInsightsSession: (projectId: string, sessionId: string) => Promise<IPCResult<InsightsSession | null>>;
@@ -615,6 +629,7 @@ export interface API {
   // MCP Server health check operations
   checkMcpHealth: (server: CustomMcpServer) => Promise<IPCResult<McpHealthCheckResult>>;
   testMcpConnection: (server: CustomMcpServer) => Promise<IPCResult<McpTestConnectionResult>>;
+  detectMcpServices: () => Promise<IPCResult<DetectedMcpService[]>>;
 }
 
 declare global {

@@ -198,7 +198,7 @@ export function useXterm({ terminalId, onCommandEnter, onResize }: UseXtermOptio
     };
   }, [terminalId, onCommandEnter, onResize]);
 
-  // Handle resize on container resize
+  // Handle resize on container resize and window resize
   useEffect(() => {
     const handleResize = () => {
       if (fitAddonRef.current && xtermRef.current) {
@@ -206,12 +206,21 @@ export function useXterm({ terminalId, onCommandEnter, onResize }: UseXtermOptio
       }
     };
 
+    // ResizeObserver for container dimension changes
     const container = terminalRef.current?.parentElement;
+    let resizeObserver: ResizeObserver | undefined;
     if (container) {
-      const resizeObserver = new ResizeObserver(handleResize);
+      resizeObserver = new ResizeObserver(handleResize);
       resizeObserver.observe(container);
-      return () => resizeObserver.disconnect();
     }
+
+    // Window resize listener as fallback (e.g. when container becomes visible after display:none)
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   const fit = useCallback(() => {

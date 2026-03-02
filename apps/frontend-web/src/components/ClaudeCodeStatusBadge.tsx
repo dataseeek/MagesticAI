@@ -53,6 +53,7 @@ export function ClaudeCodeStatusBadge({ className, onOpenOnboarding, iconOnly = 
   // Auth status
   const [hasToken, setHasToken] = useState<boolean | null>(null);
   const [authSource, setAuthSource] = useState<string | null>(null);
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
 
   // Check Claude Code version
   const checkVersion = useCallback(async () => {
@@ -92,6 +93,7 @@ export function ClaudeCodeStatusBadge({ className, onOpenOnboarding, iconOnly = 
       if (result.success && result.data) {
         setHasToken(result.data.hasToken);
         setAuthSource(result.data.source);
+        setAuthEmail(result.data.email ?? null);
       }
     } catch {
       // Non-critical, just leave as null
@@ -341,9 +343,14 @@ export function ClaudeCodeStatusBadge({ className, onOpenOnboarding, iconOnly = 
               hasToken ? 'bg-green-500/10 text-green-700 dark:text-green-400' : 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400'
             )}>
               <KeyRound className="h-3.5 w-3.5 shrink-0" />
-              <div className="flex-1">
+              <div className="flex-1 space-y-0.5">
                 {hasToken ? (
-                  <span>{t('navigation:claudeCode.tokenConfigured', 'Auth token configured')}{authSource ? ` (${authSource})` : ''}</span>
+                  <>
+                    <span className="block">{t('navigation:claudeCode.tokenConfigured', 'Auth token configured')}{authSource ? ` (${authSource})` : ''}</span>
+                    {authEmail && (
+                      <span className="block text-muted-foreground">{authEmail}</span>
+                    )}
+                  </>
                 ) : (
                   <span>{t('navigation:claudeCode.noTokenConfigured', 'No auth token configured')}</span>
                 )}

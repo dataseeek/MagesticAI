@@ -26,8 +26,11 @@ _cached_profile_mtime: float | None = None  # Track file modification time
 
 
 def _get_profile_path(project_dir: Path) -> Path:
-    """Get the security profile file path for a project."""
-    return project_dir / ProjectAnalyzer.PROFILE_FILENAME
+    """Get the security profile file path for a project.
+
+    Matches ProjectAnalyzer.get_profile_path() — stores in .magestic-ai/ (gitignored).
+    """
+    return project_dir / ".magestic-ai" / ProjectAnalyzer.PROFILE_FILENAME
 
 
 def _get_profile_mtime(project_dir: Path) -> float | None:

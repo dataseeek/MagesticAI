@@ -20,6 +20,7 @@ from .auth import TokenAuthMiddleware
 from .config import get_settings
 from .database.engine import init_db
 from .logging_config import setup_logging
+from .services.skills_service import init_skills_service
 from .routes import (
     api_keys,
     audit,
@@ -33,6 +34,7 @@ from .routes import (
     notifications,
     organizations,
     projects,
+    skills,
     tasks,
     terminal,
 )
@@ -65,6 +67,10 @@ async def lifespan(app: FastAPI):
 
     # Initialize database (creates tables if needed)
     await init_db()
+
+    # Initialize skills service singleton once at startup
+    init_skills_service()
+    logger.info("SkillsService initialized")
 
     yield
 
@@ -140,6 +146,9 @@ def create_app() -> FastAPI:
 
     # Logs viewing routes
     app.include_router(logs_routes.router, prefix="/api/logs", tags=["Logs"])
+
+    # Skills knowledge base routes
+    app.include_router(skills.router, prefix="/api/skills", tags=["Skills"])
 
     # Include WebSocket routers
     app.include_router(logs_ws.router, tags=["WebSocket"])

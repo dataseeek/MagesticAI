@@ -139,7 +139,8 @@ export function PRDetail({
     if (checkNewCommitsAbortRef.current) {
       checkNewCommitsAbortRef.current.abort();
     }
-    checkNewCommitsAbortRef.current = new AbortController();
+    const controller = new AbortController();
+    checkNewCommitsAbortRef.current = controller;
 
     // Check for new commits if we have ANY successful review with a commit SHA
     // This includes follow-up reviews that resolved all issues (no new findings)
@@ -149,13 +150,12 @@ export function PRDetail({
       try {
         const result = await onCheckNewCommits();
         // Only update state if not aborted
-        if (!checkNewCommitsAbortRef.current?.signal.aborted) {
+        if (!controller.signal.aborted) {
           setNewCommitsCheck(result);
         }
       } finally {
-        if (!checkNewCommitsAbortRef.current?.signal.aborted) {
-          isCheckingNewCommitsRef.current = false;
-        }
+        // Always reset the guard so future checks aren't permanently blocked
+        isCheckingNewCommitsRef.current = false;
       }
     }
   }, [reviewResult, onCheckNewCommits]);
@@ -169,6 +169,12 @@ export function PRDetail({
       }
     };
   }, [checkForNewCommits]);
+
+  // Simple direct callback for the "Check for Updates" button (bypasses ref guards)
+  const handleManualCheckForUpdates = useCallback(async () => {
+    const result = await onCheckNewCommits();
+    setNewCommitsCheck(result);
+  }, [onCheckNewCommits]);
 
   // Clear success message after 3 seconds
   useEffect(() => {
@@ -356,8 +362,8 @@ export function PRDetail({
 
     // Initial review statuses (non-follow-up)
 
-    // Priority 1: Ready for follow-up review (posted findings + new commits AFTER posting)
-    if (hasPosted && hasNewCommits && hasCommitsAfterPosting) {
+    // Priority 1: Ready for follow-up review (new commits since the reviewed commit)
+    if (hasNewCommits && hasCommitsAfterPosting) {
       return {
         status: 'ready_for_followup',
         label: t('prReview.readyForFollowup'),
@@ -531,6 +537,7 @@ ${reviewResult.isFollowupReview ? `- Follow-up review: All previous blocking iss
           onRunReview={onRunReview}
           onRunFollowupReview={onRunFollowupReview}
           onCancelReview={onCancelReview}
+          onCheckNewCommits={handleManualCheckForUpdates}
           newCommitsCheck={newCommitsCheck}
           lastPostedAt={postSuccess?.timestamp || (reviewResult?.postedAt ? new Date(reviewResult.postedAt).getTime() : null)}
         />
@@ -698,8 +705,8 @@ ${reviewResult.isFollowupReview ? `- Follow-up review: All previous blocking iss
           </Card>
         )}
 
-        {/* Review Logs - show during review or after completion */}
-        {(reviewResult || isReviewing) && (
+        {/* Review Logs - only show during active review */}
+        {isReviewing && (
           <CollapsibleCard
             title={t('prReview.reviewLogs')}
             icon={<FileText className="h-4 w-4 text-muted-foreground" />}

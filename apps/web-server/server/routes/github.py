@@ -13,6 +13,7 @@ import sys
 from pathlib import Path as FilePath
 
 from fastapi import APIRouter, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -40,6 +41,30 @@ class InvestigateRequest(BaseModel):
 
 class ImportIssuesRequest(BaseModel):
     issueNumbers: list[int]
+
+
+class PRReviewRequest(BaseModel):
+    followup: bool = False
+
+
+class PostPRReviewRequest(BaseModel):
+    selectedFindingIds: list[str] | None = None
+
+
+class PersistTokenRequest(BaseModel):
+    projectId: str
+
+
+class PostPRCommentRequest(BaseModel):
+    body: str
+
+
+class MergePRRequest(BaseModel):
+    mergeMethod: str = "squash"  # merge, squash, rebase
+
+
+class AssignPRRequest(BaseModel):
+    username: str
 
 
 class CreateReleaseRequest(BaseModel):
@@ -72,6 +97,48 @@ def run_gh_command(args: list[str], cwd: str | None = None) -> dict:
         return {"success": False, "error": "Command timed out"}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+def _persist_cli_token_to_project(project_id: str) -> bool:
+    """Persist the gh CLI token to a project's .magestic-ai/.env file.
+
+    Reads the current token from `gh auth token`, then inserts/updates
+    GITHUB_TOKEN in the project env file with secure 0o600 permissions.
+    Returns True on success.
+    """
+    from .projects import load_projects
+
+    token_result = run_gh_command(["auth", "token"])
+    if not token_result["success"] or not token_result["output"]:
+        return False
+
+    token = token_result["output"]
+
+    projects = load_projects()
+    if project_id not in projects:
+        return False
+
+    project_path = FilePath(projects[project_id]["path"])
+    env_path = project_path / ".magestic-ai" / ".env"
+
+    try:
+        existing = {}
+        if env_path.exists():
+            for line in env_path.read_text().split("\n"):
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    existing[key.strip()] = value.strip()
+
+        existing["GITHUB_TOKEN"] = token
+
+        env_path.parent.mkdir(parents=True, exist_ok=True)
+        content = "\n".join(f"{k}={v}" for k, v in existing.items())
+        env_path.write_text(content)
+        env_path.chmod(0o600)
+        return True
+    except Exception:
+        return False
 
 
 # ============================================
@@ -109,24 +176,29 @@ async def analyze_issue_with_ai(issue_data: dict, comments: list, project_path: 
     # Build analysis prompt
     prompt = _build_issue_analysis_prompt(issue_data, comments)
 
-    # Create AI client for batch analysis
+    # Run AI analysis using Claude Agent SDK async context manager
     try:
         client = create_simple_client(
-            agent_type="batch_analysis",  # Read-only analysis agent
-            model="claude-sonnet-4-20250514",  # Use Sonnet for better analysis
+            agent_type="batch_analysis",
+            model="claude-sonnet-4-20250514",
             cwd=FilePath(project_path),
-            max_turns=1  # Single-turn analysis
+            max_turns=1,
         )
-    except Exception as e:
-        raise RuntimeError(f"Failed to create AI client: {e}")
 
-    # Run AI analysis
-    try:
-        response = await client.send_message(prompt)
+        response_text = ""
+        async with client:
+            await client.query(prompt)
+            async for msg in client.receive_response():
+                msg_type = type(msg).__name__
+                if msg_type == "AssistantMessage" and hasattr(msg, "content"):
+                    for block in msg.content:
+                        if hasattr(block, "text"):
+                            response_text += block.text
 
-        # Extract analysis from response
-        analysis = _parse_ai_analysis_response(response.content)
-        return analysis
+        if not response_text:
+            raise RuntimeError("Empty response from AI")
+
+        return _parse_ai_analysis_response(response_text)
 
     except Exception as e:
         raise RuntimeError(f"AI analysis failed: {e}")
@@ -280,8 +352,13 @@ async def check_github_auth():
 
 
 @router.get("/auto-detect")
-async def auto_detect_github():
-    """Auto-detect GitHub CLI authentication, token, and username in one call."""
+async def auto_detect_github(projectId: str | None = Query(None)):
+    """Auto-detect GitHub CLI authentication and username in one call.
+
+    If projectId is provided, the CLI token is persisted directly to the
+    project's .magestic-ai/.env file (server-side). The raw token is never
+    included in the response.
+    """
     # Check gh CLI is installed
     if not shutil.which("gh"):
         return {"success": True, "data": {"authenticated": False, "reason": "gh_not_installed"}}
@@ -298,18 +375,17 @@ async def auto_detect_github():
     if user_result["success"]:
         username = user_result["output"]
 
-    # Get token
-    token = ""
-    token_result = run_gh_command(["auth", "token"])
-    if token_result["success"]:
-        token = token_result["output"]
+    # Persist token server-side if projectId provided
+    token_persisted = False
+    if projectId:
+        token_persisted = _persist_cli_token_to_project(projectId)
 
     return {
         "success": True,
         "data": {
             "authenticated": True,
             "username": username,
-            "token": token,
+            "tokenPersisted": token_persisted,
         }
     }
 
@@ -425,11 +501,25 @@ async def start_github_auth():
 
 @router.get("/token")
 async def get_github_token():
-    """Get GitHub auth token from CLI."""
+    """Check if a GitHub auth token is available from CLI.
+
+    Returns only a boolean flag -- the raw token is never exposed.
+    """
     result = run_gh_command(["auth", "token"])
-    if result["success"]:
-        return {"success": True, "data": {"token": result["output"]}}
-    return {"success": True, "data": {"token": ""}}
+    has_token = result["success"] and bool(result.get("output"))
+    return {"success": True, "data": {"hasToken": has_token}}
+
+
+@router.post("/persist-token")
+async def persist_github_token(request: PersistTokenRequest):
+    """Persist the gh CLI token to a project's .magestic-ai/.env file.
+
+    The raw token never appears in the response.
+    """
+    persisted = _persist_cli_token_to_project(request.projectId)
+    if persisted:
+        return {"success": True, "data": {"tokenPersisted": True}}
+    return {"success": False, "error": "Failed to persist token"}
 
 
 @router.get("/user")
@@ -487,7 +577,6 @@ async def detect_github_repo(path: str = Query(...)):
 @router.get("/branches")
 async def get_github_branches(
     repo: str = Query(...),
-    token: str = Query(...)
 ):
     """Get branches for a GitHub repository."""
     result = run_gh_command([
@@ -787,7 +876,7 @@ async def investigate_github_issue(
         # Fetch issue details using gh CLI
         # Use 'gh issue view' with JSON output
         issue_result = run_gh_command(
-            ["issue", "view", str(issueNumber), "--json", "number,title,body,state,labels,user,createdAt,updatedAt,url"],
+            ["issue", "view", str(issueNumber), "--json", "number,title,body,state,labels,author,createdAt,updatedAt,url"],
             cwd=str(project_path)
         )
 
@@ -834,7 +923,7 @@ async def investigate_github_issue(
             "body": issue_data.get("body"),
             "state": issue_data.get("state"),
             "labels": issue_data.get("labels", []),
-            "user": issue_data.get("user", {}),
+            "user": issue_data.get("author", {}),
             "created_at": issue_data.get("createdAt"),
             "updated_at": issue_data.get("updatedAt"),
             "url": issue_data.get("url"),
@@ -973,6 +1062,364 @@ async def import_github_issues(projectId: str, request: ImportIssuesRequest):
             "issues": issues,
         }
     }
+
+
+@project_router.post("/issues/{issueNumber}/close")
+async def close_github_issue(projectId: str, issueNumber: int):
+    """Close a GitHub issue."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return {"success": False, "error": f"Project {projectId} not found"}
+
+    result = run_gh_command(
+        ["issue", "close", str(issueNumber)],
+        cwd=str(project_path),
+    )
+    if not result["success"]:
+        return {"success": False, "error": result.get("error", f"Failed to close issue #{issueNumber}")}
+
+    return {"success": True}
+
+
+@project_router.get("/prs")
+async def get_project_github_prs(
+    projectId: str,
+    state: str | None = Query(None),
+):
+    """Get GitHub pull requests for a project."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return {"success": False, "error": f"Project {projectId} not found"}
+
+    from ..services.pr_data_service import get_pr_data_service
+
+    service = get_pr_data_service()
+    return service.list_prs(project_path, state=state)
+
+
+@project_router.post("/prs/{prNumber}/review")
+async def trigger_pr_review(
+    projectId: str,
+    prNumber: int,
+    request: PRReviewRequest | None = None,
+):
+    """Trigger an async PR review.
+
+    Launches the GitHub runner's review-pr (or followup-review-pr) command
+    as a background subprocess. Progress is emitted via WebSocket events:
+    - pr:review-progress
+    - pr:review-complete
+    - pr:review-error
+
+    Returns 202 Accepted immediately.
+    """
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    followup = request.followup if request else False
+
+    from ..services.pr_review_service import get_pr_review_service
+
+    service = get_pr_review_service()
+
+    if service.is_running(projectId, prNumber):
+        return JSONResponse(
+            status_code=409,
+            content={
+                "success": False,
+                "error": f"A review is already running for PR #{prNumber}",
+            },
+        )
+
+    started = await service.start_review(
+        project_id=projectId,
+        pr_number=prNumber,
+        project_path=project_path,
+        followup=followup,
+    )
+
+    if not started:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "Failed to start PR review"},
+        )
+
+    return JSONResponse(
+        status_code=202,
+        content={
+            "success": True,
+            "data": {
+                "message": f"PR #{prNumber} review started",
+                "prNumber": prNumber,
+                "followup": followup,
+            },
+        },
+    )
+
+
+@project_router.get("/prs/{prNumber}/review")
+async def get_pr_review(projectId: str, prNumber: int):
+    """Get stored PR review result.
+
+    Reads the review result JSON from the project's
+    .magestic-ai/github/pr/review_{prNumber}.json file.
+
+    Returns PRReviewResult data or null if no review exists.
+    """
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    from ..services.pr_data_service import get_pr_data_service
+
+    service = get_pr_data_service()
+    result = service.get_review(project_path, prNumber)
+
+    if not result["success"]:
+        return JSONResponse(
+            status_code=500,
+            content=result,
+        )
+    return result
+
+
+@project_router.delete("/prs/{prNumber}/review")
+async def delete_pr_review(projectId: str, prNumber: int):
+    """Delete a stored PR review result.
+
+    Removes the review result JSON file and updates the index.
+    """
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    from ..services.pr_data_service import get_pr_data_service
+
+    service = get_pr_data_service()
+    result = service.delete_review(project_path, prNumber)
+
+    if not result["success"]:
+        return JSONResponse(
+            status_code=500,
+            content=result,
+        )
+    return result
+
+
+@project_router.post("/prs/{prNumber}/post-review")
+async def post_pr_review_to_github(
+    projectId: str,
+    prNumber: int,
+    request: PostPRReviewRequest | None = None,
+):
+    """Post review findings as GitHub review comments.
+
+    Reads the stored review result, filters by selectedFindingIds if provided,
+    and posts each finding as a file-level review comment via gh CLI.
+    """
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    from ..services.pr_data_service import get_pr_data_service
+
+    service = get_pr_data_service()
+    selected_ids = request.selectedFindingIds if request else None
+    result = service.post_review_to_github(project_path, prNumber, selected_finding_ids=selected_ids)
+
+    if not result["success"]:
+        # Determine appropriate status code based on error
+        error_msg = result.get("error", "")
+        if "No review found" in error_msg:
+            status_code = 404
+        elif "No findings to post" in error_msg:
+            status_code = 400
+        elif "Failed to read" in error_msg:
+            status_code = 500
+        else:
+            status_code = 500
+        return JSONResponse(status_code=status_code, content=result)
+
+    return result
+
+
+@project_router.post("/prs/{prNumber}/comment")
+async def post_pr_comment(
+    projectId: str,
+    prNumber: int,
+    request: PostPRCommentRequest,
+):
+    """Post a general comment on a PR via gh pr comment."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    from ..services.pr_data_service import get_pr_data_service
+
+    service = get_pr_data_service()
+    result = service.post_comment(project_path, prNumber, request.body)
+
+    if not result["success"]:
+        error_msg = result.get("error", "")
+        status_code = 400 if "cannot be empty" in error_msg else 500
+        return JSONResponse(status_code=status_code, content=result)
+
+    return result
+
+
+@project_router.post("/prs/{prNumber}/merge")
+async def merge_pr(
+    projectId: str,
+    prNumber: int,
+    request: MergePRRequest | None = None,
+):
+    """Merge a PR with configurable merge method (merge/squash/rebase)."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    from ..services.pr_data_service import get_pr_data_service
+
+    service = get_pr_data_service()
+    merge_method = request.mergeMethod if request else "squash"
+    result = service.merge_pr(project_path, prNumber, method=merge_method)
+
+    if not result["success"]:
+        error_msg = result.get("error", "")
+        status_code = 400 if "Invalid merge method" in error_msg else 500
+        return JSONResponse(status_code=status_code, content=result)
+
+    return result
+
+
+@project_router.post("/prs/{prNumber}/assign")
+async def assign_pr(
+    projectId: str,
+    prNumber: int,
+    request: AssignPRRequest,
+):
+    """Assign a user to a PR via gh pr edit --add-assignee."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    from ..services.pr_data_service import get_pr_data_service
+
+    service = get_pr_data_service()
+    result = service.assign_pr(project_path, prNumber, request.username)
+
+    if not result["success"]:
+        error_msg = result.get("error", "")
+        status_code = 400 if "cannot be empty" in error_msg else 500
+        return JSONResponse(status_code=status_code, content=result)
+
+    return result
+
+
+@project_router.post("/prs/{prNumber}/cancel")
+async def cancel_pr_review(
+    projectId: str,
+    prNumber: int,
+):
+    """Cancel an ongoing PR review process."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    from ..services.pr_review_service import get_pr_review_service
+
+    service = get_pr_review_service()
+
+    if not service.is_running(projectId, prNumber):
+        return {"success": True, "data": {"cancelled": False, "reason": "No review is running"}}
+
+    cancelled = await service.cancel_review(projectId, prNumber)
+
+    if not cancelled:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": "Failed to cancel review"},
+        )
+
+    return {"success": True, "data": {"cancelled": True}}
+
+
+@project_router.get("/prs/{prNumber}/new-commits")
+async def check_pr_new_commits(projectId: str, prNumber: int):
+    """Check if there are new commits since the last review.
+
+    Compares the reviewed_commit_sha stored in the review result JSON against
+    the current HEAD SHA of the PR (fetched via gh pr view).
+
+    Returns NewCommitsCheck: hasNewCommits, newCommitCount,
+    lastReviewedCommit, currentHeadCommit.
+    """
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    from ..services.pr_data_service import get_pr_data_service
+
+    service = get_pr_data_service()
+    return service.check_new_commits(project_path, prNumber)
+
+
+@project_router.get("/prs/{prNumber}/logs")
+async def get_pr_review_logs(projectId: str, prNumber: int):
+    """Get PR review execution logs.
+
+    Reads phase-level review logs from the project's
+    .magestic-ai/github/pr/review_{prNumber}_logs.json file.
+
+    Returns PRLogs data with per-phase timing and entries, or null
+    if no logs are available.
+    """
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    from ..services.pr_data_service import get_pr_data_service
+
+    service = get_pr_data_service()
+    result = service.get_review_logs(project_path, prNumber)
+
+    if not result["success"]:
+        return JSONResponse(
+            status_code=500,
+            content=result,
+        )
+    return result
 
 
 @project_router.post("/releases")

@@ -1119,21 +1119,46 @@ def temp_project(temp_git_repo: Path):
 # =============================================================================
 
 # Import endpoint testing fixtures from endpoint_test_utils.py
-from tests.endpoint_test_utils import (  # noqa: E402, F401
-    test_app,
-    client,
-    authenticated_client,
-    mock_file_system,
-    mock_claude_profiles,
-    mock_api_profiles,
-    mock_roadmap_json,
-    mock_ideation_json,
-    mock_subprocess,
-    mock_glab_cli,
-    mock_gh_cli,
-    mock_ai_service,
-    mock_background_task,
-    test_data_factory,
-    assert_endpoint,
-    endpoint_integration_helper,
-)
+# Guard against environments where FastAPI / web-server deps are not installed
+# (e.g. pure backend CI runs).  Tests that require these fixtures will be
+# collected but skipped automatically by pytest when the fixtures are missing.
+try:
+    from tests.endpoint_test_utils import (  # noqa: E402, F401
+        test_app,
+        client,
+        authenticated_client,
+        mock_file_system,
+        mock_claude_profiles,
+        mock_api_profiles,
+        mock_roadmap_json,
+        mock_ideation_json,
+        mock_subprocess,
+        mock_glab_cli,
+        mock_gh_cli,
+        mock_ai_service,
+        mock_background_task,
+        test_data_factory,
+        assert_endpoint,
+        endpoint_integration_helper,
+    )
+except ImportError:
+    # FastAPI (or another web-server dependency) is not installed.
+    # Stub out all endpoint fixtures as pytest.skip wrappers so that
+    # backend-only test runs still collect and report cleanly.
+    import pytest as _pytest
+
+    def _make_skip_fixture(name: str):
+        @_pytest.fixture(name=name)
+        def _skipped():
+            _pytest.skip(f"FastAPI not installed – endpoint fixture '{name}' unavailable")
+        return _skipped
+
+    for _name in (
+        "test_app", "client", "authenticated_client",
+        "mock_file_system", "mock_claude_profiles", "mock_api_profiles",
+        "mock_roadmap_json", "mock_ideation_json", "mock_subprocess",
+        "mock_glab_cli", "mock_gh_cli", "mock_ai_service",
+        "mock_background_task", "test_data_factory",
+        "assert_endpoint", "endpoint_integration_helper",
+    ):
+        globals()[_name] = _make_skip_fixture(_name)

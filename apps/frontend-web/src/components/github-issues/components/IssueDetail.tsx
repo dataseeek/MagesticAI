@@ -1,4 +1,6 @@
-import { ExternalLink, User, Clock, MessageCircle, Sparkles, CheckCircle2, Eye } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ExternalLink, User, Clock, MessageCircle, Sparkles, CheckCircle2, Eye, XCircle } from 'lucide-react';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
@@ -21,7 +23,11 @@ export function IssueDetail({
   projectId,
   autoFixConfig,
   autoFixQueueItem,
+  onCloseIssue,
 }: IssueDetailProps) {
+  const { t } = useTranslation(['common']);
+  const [isClosing, setIsClosing] = useState(false);
+
   // Determine which task ID to use - either already linked or just created
   const taskId = linkedTaskId || (investigationResult?.success ? investigationResult.taskId : undefined);
   const hasLinkedTask = !!taskId;
@@ -29,6 +35,16 @@ export function IssueDetail({
   const handleViewTask = () => {
     if (taskId && onViewTask) {
       onViewTask(taskId);
+    }
+  };
+
+  const handleCloseIssue = async () => {
+    if (!onCloseIssue) return;
+    setIsClosing(true);
+    try {
+      await onCloseIssue(issue.number);
+    } finally {
+      setIsClosing(false);
     }
   };
 
@@ -98,7 +114,7 @@ export function IssueDetail({
         {/* Actions */}
         <div className="flex items-center gap-2">
           {hasLinkedTask ? (
-            <Button onClick={handleViewTask} className="flex-1" variant="secondary">
+            <Button onClick={handleViewTask} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">
               <Eye className="h-4 w-4 mr-2" />
               View Task
             </Button>
@@ -117,6 +133,17 @@ export function IssueDetail({
                 />
               )}
             </>
+          )}
+          {issue.state === 'open' && onCloseIssue && (
+            <Button
+              variant="outline"
+              onClick={handleCloseIssue}
+              disabled={isClosing}
+              className="text-destructive border-destructive/30 hover:bg-destructive/10"
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              {isClosing ? t('common:buttons.closing') : t('common:buttons.closeIssue')}
+            </Button>
           )}
         </div>
 

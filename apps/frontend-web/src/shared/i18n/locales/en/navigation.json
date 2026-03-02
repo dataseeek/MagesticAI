@@ -4,7 +4,7 @@
     "tools": "Tools"
   },
   "items": {
-    "kanban": "Boards",
+    "kanban": "Tasks",
     "terminals": "Terminal",
     "editor": "Files",
     "chat": "Chat",
@@ -15,7 +15,8 @@
     "gitlabIssues": "GitLab Issues",
     "gitlabMRs": "GitLab MRs",
     "worktrees": "Worktrees",
-    "agentTools": "MCP"
+    "agentTools": "MCP",
+    "skills": "Skills"
   },
   "actions": {
     "settings": "Settings",

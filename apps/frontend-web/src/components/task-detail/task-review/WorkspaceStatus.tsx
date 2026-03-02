@@ -5,6 +5,7 @@ import {
   Minus,
   Eye,
   GitMerge,
+  GitPullRequestCreateArrow,
   FolderX,
   Loader2,
   RotateCcw,
@@ -13,7 +14,6 @@ import {
   GitCommit,
   Code,
   Terminal,
-  Sparkles,
   XCircle
 } from 'lucide-react';
 import { Button } from '../../ui/button';
@@ -31,9 +31,8 @@ interface WorkspaceStatusProps {
   isLoadingPreview: boolean;
   isMerging: boolean;
   isDiscarding: boolean;
-  isResolvingConflicts?: boolean;
-  isResolvingUncommitted?: boolean;
   isAbortingMerge?: boolean;
+  mergeStep: 'idle' | 'resolving_uncommitted' | 'resolving_git_conflicts' | 'merging';
   phaseLogs?: TaskLogs;
   onShowDiffDialog: (show: boolean) => void;
   onShowDiscardDialog: (show: boolean) => void;
@@ -41,8 +40,8 @@ interface WorkspaceStatusProps {
   onLoadMergePreview: () => void;
   onStageOnlyChange: (value: boolean) => void;
   onMerge: () => void;
-  onResolveWithAI?: () => void;
-  onResolveUncommitted?: () => void;
+  onCreatePR?: () => void;
+  isCreatingPR?: boolean;
   onAbortMerge?: () => void;
   onClose?: () => void;
   onSwitchToTerminals?: () => void;
@@ -131,9 +130,8 @@ export function WorkspaceStatus({
   isLoadingPreview,
   isMerging,
   isDiscarding,
-  isResolvingConflicts = false,
-  isResolvingUncommitted = false,
   isAbortingMerge = false,
+  mergeStep,
   phaseLogs,
   onShowDiffDialog,
   onShowDiscardDialog,
@@ -141,8 +139,8 @@ export function WorkspaceStatus({
   onLoadMergePreview,
   onStageOnlyChange,
   onMerge,
-  onResolveWithAI,
-  onResolveUncommitted,
+  onCreatePR,
+  isCreatingPR = false,
   onAbortMerge,
   onClose,
   onSwitchToTerminals,
@@ -286,10 +284,10 @@ export function WorkspaceStatus({
 
         {/* Branch info */}
         {worktreeStatus.branch && (
-          <div className="mt-2 text-xs text-muted-foreground">
-            <code className="bg-background/80 px-1.5 py-0.5 rounded text-[11px]">{worktreeStatus.branch}</code>
-            <span className="mx-1.5">→</span>
-            <code className="bg-background/80 px-1.5 py-0.5 rounded text-[11px]">{worktreeStatus.baseBranch || 'main'}</code>
+          <div className="mt-2 text-base text-muted-foreground">
+            <code className="bg-background/80 px-2 py-1 rounded text-sm">{worktreeStatus.branch}</code>
+            <span className="mx-2">→</span>
+            <code className="bg-background/80 px-2 py-1 rounded text-sm">{worktreeStatus.baseBranch || 'main'}</code>
           </div>
         )}
 
@@ -364,27 +362,6 @@ export function WorkspaceStatus({
                 )}
               </div>
             </div>
-            {mergePreview?.uncommittedChanges?.hasConflicts && onResolveUncommitted && (
-              <Button
-                variant="warning"
-                size="sm"
-                onClick={onResolveUncommitted}
-                disabled={isResolvingUncommitted}
-                className="h-7 text-xs flex-shrink-0"
-              >
-                {isResolvingUncommitted ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                    Resolving...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-3.5 w-3.5 mr-1" />
-                    Fix with AI
-                  </>
-                )}
-              </Button>
-            )}
           </div>
         )}
 
@@ -485,67 +462,6 @@ export function WorkspaceStatus({
           </div>
         )}
 
-        {/* Git Conflicts Resolution - shown when actual git merge conflicts exist */}
-        {hasGitConflicts && mergePreview?.gitConflicts && (
-          <div className="flex items-center justify-between p-2.5 rounded-lg border bg-warning/10 border-warning/30">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-warning" />
-              <div>
-                <span className="text-sm font-medium text-warning">
-                  Git conflicts detected
-                </span>
-                <span className="text-xs text-muted-foreground ml-2">
-                  {mergePreview.gitConflicts.conflictingFiles?.length || 0} file{(mergePreview.gitConflicts.conflictingFiles?.length || 0) !== 1 ? 's' : ''} need resolution
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {onAbortMerge && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onAbortMerge}
-                  disabled={isAbortingMerge || isResolvingConflicts}
-                  className="h-7 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30"
-                  title="Abort merge and reset git state"
-                >
-                  {isAbortingMerge ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                      Aborting...
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-3.5 w-3.5 mr-1" />
-                      Abort Merge
-                    </>
-                  )}
-                </Button>
-              )}
-              {onResolveWithAI && (
-                <Button
-                  variant="warning"
-                  size="sm"
-                  onClick={onResolveWithAI}
-                  disabled={isResolvingConflicts || isAbortingMerge}
-                  className="h-7 text-xs"
-                >
-                  {isResolvingConflicts ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                      Resolving...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-3.5 w-3.5 mr-1" />
-                      Fix Conflicts with AI
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Branch Behind Details (no explicit conflicts but needs AI merge due to path mappings) */}
         {!hasGitConflicts && isBranchBehind && mergePreview?.gitConflicts && (
@@ -563,51 +479,6 @@ export function WorkspaceStatus({
           </div>
         )}
 
-        {/* Resolve Conflicts with AI - shown when semantic conflicts exist */}
-        {hasAIConflicts && mergePreview && !hasGitConflicts && onResolveWithAI && (
-          (() => {
-            // Calculate if there are AI-resolvable conflicts (non-critical, non-auto-mergeable)
-            const aiResolvable = mergePreview.conflicts.filter(
-              c => !c.canAutoMerge && (c.severity === 'low' || c.severity === 'medium')
-            );
-            if (aiResolvable.length === 0) return null;
-
-            return (
-              <div className="flex items-center justify-between p-2.5 rounded-lg border bg-purple-500/5 border-purple-500/20">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
-                  <div>
-                    <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
-                      {aiResolvable.length} conflict{aiResolvable.length !== 1 ? 's' : ''} can be resolved by AI
-                    </span>
-                    <span className="text-xs text-muted-foreground ml-2">
-                      Click to resolve before merging
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={onResolveWithAI}
-                  disabled={isResolvingConflicts}
-                  className="h-7 text-xs bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400"
-                >
-                  {isResolvingConflicts ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                      Resolving...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-3.5 w-3.5 mr-1" />
-                      Resolve with AI
-                    </>
-                  )}
-                </Button>
-              </div>
-            );
-          })()
-        )}
       </div>
 
       {/*
@@ -642,19 +513,77 @@ export function WorkspaceStatus({
             )}>Stage only (review in IDE before committing)</span>
           </label>
 
+          {/* Merge Step Progress Indicator */}
+          {mergeStep !== 'idle' && (
+            <div className="p-2.5 rounded-lg border bg-muted/30 border-border space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-foreground">
+                  {mergeStep === 'resolving_uncommitted' && 'Resolving uncommitted conflicts...'}
+                  {mergeStep === 'resolving_git_conflicts' && 'Resolving git merge conflicts...'}
+                  {mergeStep === 'merging' && 'Merging to main...'}
+                </span>
+                {workspaceError && onAbortMerge && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onAbortMerge}
+                    disabled={isAbortingMerge}
+                    className="h-6 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+                    title="Abort merge and reset git state"
+                  >
+                    {isAbortingMerge ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        Aborting...
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Abort Merge
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                {(['resolving_uncommitted', 'resolving_git_conflicts', 'merging'] as const).map((step, idx) => {
+                  const steps = ['resolving_uncommitted', 'resolving_git_conflicts', 'merging'] as const;
+                  const currentIdx = steps.indexOf(mergeStep);
+                  const stepIdx = idx;
+                  const isCompleted = stepIdx < currentIdx;
+                  const isCurrent = stepIdx === currentIdx;
+                  return (
+                    <div
+                      key={step}
+                      className={cn(
+                        "h-1.5 flex-1 rounded-full transition-colors",
+                        isCompleted ? "bg-success" :
+                        isCurrent ? "bg-primary animate-pulse" :
+                        "bg-muted-foreground/20"
+                      )}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Primary Actions */}
           <div className="flex gap-2">
             <Button
               type="button"
               variant={hasGitConflicts || isBranchBehind || hasPathMappedMerges ? "warning" : "default"}
               onClick={onMerge}
-              disabled={isMerging || isDiscarding}
+              disabled={isMerging || isDiscarding || mergeStep !== 'idle'}
               className="flex-1"
             >
               {isMerging ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {hasGitConflicts || isBranchBehind || hasPathMappedMerges ? 'Resolving...' : stageOnly ? 'Staging...' : 'Merging...'}
+                  {mergeStep === 'resolving_uncommitted' ? 'Resolving uncommitted...'
+                    : mergeStep === 'resolving_git_conflicts' ? 'Resolving conflicts...'
+                    : mergeStep === 'merging' ? (stageOnly ? 'Staging...' : 'Merging...')
+                    : stageOnly ? 'Staging...' : 'Merging...'}
                 </>
               ) : (
                 <>
@@ -665,12 +594,33 @@ export function WorkspaceStatus({
                 </>
               )}
             </Button>
+            {onCreatePR && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCreatePR}
+                disabled={isMerging || isDiscarding || isCreatingPR || mergeStep !== 'idle'}
+                className="flex-1"
+              >
+                {isCreatingPR ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating PR...
+                  </>
+                ) : (
+                  <>
+                    <GitPullRequestCreateArrow className="mr-2 h-4 w-4" />
+                    Create PR
+                  </>
+                )}
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
               size="icon"
               onClick={() => onShowDiscardDialog(true)}
-              disabled={isMerging || isDiscarding}
+              disabled={isMerging || isDiscarding || isCreatingPR}
               className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30"
               title="Discard build"
             >

@@ -29,7 +29,10 @@
     "add": "Ajouter",
     "gotIt": "Compris",
     "continue": "Continuer",
-    "saving": "Enregistrement..."
+    "saving": "Enregistrement...",
+    "closeIssue": "Fermer le ticket",
+    "closing": "Fermeture...",
+    "openInBrowser": "Ouvrir dans le navigateur"
   },
   "labels": {
     "loading": "Chargement...",
@@ -143,6 +146,7 @@
     "runFollowup": "Lancer le suivi",
     "aiReviewInProgress": "Révision IA en cours",
     "waitingForChanges": "En attente de modifications",
+    "checkForUpdates": "Vérifier les mises à jour",
     "reviewComplete": "Révision terminée",
     "reviewStatus": "Statut de révision",
     "files": "fichiers",
@@ -230,7 +234,8 @@
     "findingsFoundSelectPost_plural": "{{count}} résultats trouvés. Sélectionnez et publiez sur GitHub.",
     "reviewLogs": "Journaux de révision",
     "followup": "Suivi",
-    "initial": "Initial"
+    "initial": "Initial",
+    "connectingToGitHub": "Connexion à GitHub..."
   },
   "insights": {
     "modelSelector": {
@@ -240,6 +245,19 @@
       "detecting": "Détection des fournisseurs...",
       "noProviders": "Aucun fournisseur disponible",
       "via": "via {{provider}}"
+    },
+    "createTask": {
+      "button": "Créer une tâche",
+      "dialogTitle": "Créer une tâche depuis le chat",
+      "dialogDescription": "Vérifiez et modifiez la tâche générée par l'IA avant de l'ajouter à votre backlog.",
+      "generating": "Résumé de la conversation...",
+      "titleLabel": "Titre",
+      "titlePlaceholder": "Entrez le titre de la tâche",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Entrez la description de la tâche",
+      "cancel": "Annuler",
+      "confirm": "Créer la tâche",
+      "creating": "Création..."
     }
   },
   "downloads": {

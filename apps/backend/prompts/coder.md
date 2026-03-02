@@ -672,6 +672,15 @@ The system **automatically scans for secrets** before every commit. If secrets a
 - Add the file pattern to `.secretsignore` in the project root
 - Example: `echo 'tests/fixtures/' >> .secretsignore`
 
+### Before Running Build/Lint/Test Scripts
+
+**ALWAYS** check `package.json` for available scripts before running `npm run <name>`:
+```bash
+cat package.json | grep -A 20 '"scripts"'
+```
+Script names vary between projects (`typecheck` vs `type-check`, `lint` vs `lint:fix`).
+Never guess — verify first.
+
 ### Create the Commit
 
 ```bash
@@ -682,6 +691,23 @@ git commit -m "magestic-ai: Complete [subtask-id] - [subtask description]
 - Verification: [type] - passed
 - Phase progress: [X]/[Y] subtasks complete"
 ```
+
+**IMPORTANT — NEVER commit `.magestic-ai/` files:**
+The `.magestic-ai/` directory is gitignored and managed by the framework.
+Do NOT run `git add` on any path under `.magestic-ai/` — this includes
+`build-progress.txt`, `implementation_plan.json`, `context.json`, `qa_report.md`,
+and `memory/`. The framework syncs these automatically. Only commit your source code changes.
+
+**For multi-line commit messages**, use a temp file:
+```bash
+echo "magestic-ai: Complete [id] - [desc]
+
+- Files modified: [list]
+- Verification: passed" > /tmp/commit-msg.txt
+git commit -F /tmp/commit-msg.txt
+rm /tmp/commit-msg.txt
+```
+Do NOT use heredoc syntax (`<<EOF`) in commit messages — it may be blocked by the security parser.
 
 ### DO NOT Push to Remote
 

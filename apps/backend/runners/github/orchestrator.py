@@ -433,7 +433,9 @@ class GitHubOrchestrator:
             )
 
             # Get HEAD SHA for follow-up review tracking
-            head_sha = self.bot_detector.get_last_commit_sha(pr_context.commits)
+            # Prefer headRefOid from context (accurate) over commits[-1] which is
+            # paginated at 100 by the GitHub GraphQL API
+            head_sha = pr_context.head_sha or self.bot_detector.get_last_commit_sha(pr_context.commits)
 
             # Get file blob SHAs for rebase-resistant follow-up reviews
             # Blob SHAs persist across rebases - same content = same blob SHA

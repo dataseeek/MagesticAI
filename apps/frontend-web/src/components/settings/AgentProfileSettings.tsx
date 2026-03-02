@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Brain, Scale, Zap, Check, Sparkles, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import {
   DEFAULT_AGENT_PROFILES,
-  AVAILABLE_MODELS,
+  ALL_AVAILABLE_MODELS,
   THINKING_LEVELS,
   DEFAULT_PHASE_MODELS,
-  DEFAULT_PHASE_THINKING
+  DEFAULT_PHASE_THINKING,
+  fetchOllamaModels
 } from '../../shared/constants';
 import { useSettingsStore, saveSettings } from '../../stores/settings-store';
 import { SettingsSection } from './SettingsSection';
@@ -20,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '../ui/select';
-import type { AgentProfile, PhaseModelConfig, PhaseThinkingConfig, ModelTypeShort, ThinkingLevel } from '../../shared/types/settings';
+import type { AgentProfile, PhaseModelConfig, PhaseThinkingConfig, ThinkingLevel } from '../../shared/types/settings';
 
 /**
  * Icon mapping for agent profile icons
@@ -32,7 +33,7 @@ const iconMap: Record<string, React.ElementType> = {
   Sparkles
 };
 
-const PHASE_KEYS: Array<keyof PhaseModelConfig> = ['spec', 'planning', 'coding', 'qa'];
+const PHASE_KEYS: Array<keyof PhaseModelConfig> = ['spec', 'planning', 'coding', 'qa', 'qa_fixer'];
 
 /**
  * Agent Profile Settings component
@@ -44,6 +45,11 @@ export function AgentProfileSettings() {
   const settings = useSettingsStore((state) => state.settings);
   const selectedProfileId = settings.selectedAgentProfile || 'auto';
   const [showPhaseConfig, setShowPhaseConfig] = useState(selectedProfileId === 'auto');
+  const [ollamaModels, setOllamaModels] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    fetchOllamaModels().then(setOllamaModels);
+  }, []);
 
   // Get current phase config from settings or defaults
   const currentPhaseModels: PhaseModelConfig = settings.customPhaseModels || DEFAULT_PHASE_MODELS;
@@ -62,7 +68,7 @@ export function AgentProfileSettings() {
     }
   };
 
-  const handlePhaseModelChange = async (phase: keyof PhaseModelConfig, value: ModelTypeShort) => {
+  const handlePhaseModelChange = async (phase: keyof PhaseModelConfig, value: string) => {
     const newPhaseModels = { ...currentPhaseModels, [phase]: value };
     await saveSettings({ customPhaseModels: newPhaseModels });
   };
@@ -83,7 +89,8 @@ export function AgentProfileSettings() {
    * Get human-readable model label
    */
   const getModelLabel = (modelValue: string): string => {
-    const model = AVAILABLE_MODELS.find((m) => m.value === modelValue);
+    const model = ALL_AVAILABLE_MODELS.find((m) => m.value === modelValue)
+      || ollamaModels.find((m) => m.value === modelValue);
     return model?.label || modelValue;
   };
 
@@ -245,13 +252,13 @@ export function AgentProfileSettings() {
                           <Label className="text-xs text-muted-foreground">{t('agentProfile.model')}</Label>
                           <Select
                             value={currentPhaseModels[phase]}
-                            onValueChange={(value) => handlePhaseModelChange(phase, value as ModelTypeShort)}
+                            onValueChange={(value) => handlePhaseModelChange(phase, value)}
                           >
                             <SelectTrigger className="h-9">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {AVAILABLE_MODELS.map((m) => (
+                              {[...ALL_AVAILABLE_MODELS, ...ollamaModels].map((m) => (
                                 <SelectItem key={m.value} value={m.value}>
                                   {m.label}
                                 </SelectItem>

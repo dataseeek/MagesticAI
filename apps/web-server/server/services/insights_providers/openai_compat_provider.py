@@ -8,6 +8,7 @@ POST /v1/chat/completions with SSE streaming.
 import asyncio
 import json
 import logging
+import time
 from pathlib import Path
 
 from ...websockets.events import broadcast_event
@@ -62,7 +63,7 @@ class OpenAICompatProvider(ProviderStrategy):
 
         try:
             import httpx
-            async with httpx.AsyncClient(timeout=3.0) as client:
+            async with httpx.AsyncClient(timeout=1.5) as client:
                 resp = await client.get(f"{self.base_url}/v1/models")
                 resp.raise_for_status()
                 data = resp.json()
@@ -120,6 +121,7 @@ class OpenAICompatProvider(ProviderStrategy):
             })
 
             accumulated = ""
+            stream_start = time.monotonic()
 
             async with httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=10.0)) as client:
                 async with client.stream(
@@ -154,9 +156,19 @@ class OpenAICompatProvider(ProviderStrategy):
                             except (json.JSONDecodeError, IndexError):
                                 continue
 
+            elapsed = time.monotonic() - stream_start
+            estimated_tokens = max(1, len(accumulated) // 4)
+            tokens_per_sec = round(estimated_tokens / elapsed, 1) if elapsed > 0 else 0
+
             await broadcast_event("insights:chunk", {
                 "projectId": project_id,
                 "type": "done",
+                "metrics": {
+                    "outputTokens": estimated_tokens,
+                    "tokensPerSecond": tokens_per_sec,
+                    "elapsedSeconds": round(elapsed, 1),
+                    "estimated": True,
+                },
             })
 
             return accumulated

@@ -42,7 +42,7 @@ interface GitHubSetupModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   project: Project;
-  onComplete: (settings: { githubToken: string; githubRepo: string; mainBranch: string; githubAuthMethod?: 'oauth' | 'pat' }) => void;
+  onComplete: (settings: { githubRepo: string; mainBranch: string; githubAuthMethod?: 'oauth' | 'pat' }) => void;
   onSkip?: () => void;
 }
 
@@ -66,7 +66,6 @@ export function GitHubSetupModal({
 }: GitHubSetupModalProps) {
   const { t } = useTranslation('dialogs');
   const [step, setStep] = useState<SetupStep>('github-auth');
-  const [githubToken, setGithubToken] = useState<string | null>(null);
   const [githubRepo, setGithubRepo] = useState<string | null>(null);
   const [detectedRepo, setDetectedRepo] = useState<string | null>(null);
   const [branches, setBranches] = useState<string[]>([]);
@@ -93,7 +92,6 @@ export function GitHubSetupModal({
   useEffect(() => {
     if (open) {
       // Reset all state first
-      setGithubToken(null);
       setGithubRepo(null);
       setDetectedRepo(null);
       setBranches([]);
@@ -115,9 +113,9 @@ export function GitHubSetupModal({
       // Check for existing authentication and skip to appropriate step
       const checkExistingAuth = async () => {
         try {
-          // Check for existing GitHub token
-          const ghTokenResult = await window.API.getGitHubToken();
-          const hasGitHubAuth = ghTokenResult.success && ghTokenResult.data?.token;
+          // Check for existing GitHub auth (no token exposed)
+          const ghAuthResult = await window.API.checkGitHubAuth();
+          const hasGitHubAuth = ghAuthResult.success && ghAuthResult.data?.authenticated;
 
           // Check for existing Claude authentication
           const profilesResult = await window.API.getClaudeProfiles();
@@ -132,13 +130,10 @@ export function GitHubSetupModal({
           // Determine starting step based on existing auth
           if (hasGitHubAuth && hasClaudeAuth) {
             // Both authenticated, go directly to repo detection
-            setGithubToken(ghTokenResult.data!.token);
-            // detectRepository will be called and set the step
             setStep('repo'); // Temporary, detectRepository will update
             await detectRepository();
           } else if (hasGitHubAuth) {
             // Only GitHub authenticated, go to Claude auth
-            setGithubToken(ghTokenResult.data!.token);
             setStep('claude-auth');
           } else {
             // No auth, start from beginning
@@ -212,7 +207,7 @@ export function GitHubSetupModal({
 
     try {
       // Get branches from GitHub API
-      const result = await window.API.getGitHubBranches(repo, githubToken!);
+      const result = await window.API.getGitHubBranches(repo);
       if (result.success && result.data) {
         setBranches(result.data);
 
@@ -242,9 +237,7 @@ export function GitHubSetupModal({
   };
 
   // Handle GitHub OAuth success
-  const handleGitHubAuthSuccess = async (token: string) => {
-    setGithubToken(token);
-
+  const handleGitHubAuthSuccess = async () => {
     // Check if Claude is already authenticated before showing auth step
     try {
       const profilesResult = await window.API.getClaudeProfiles();
@@ -363,9 +356,8 @@ export function GitHubSetupModal({
 
   // Handle branch selection complete
   const handleComplete = () => {
-    if (githubToken && githubRepo && selectedBranch) {
+    if (githubRepo && selectedBranch) {
       onComplete({
-        githubToken,
         githubRepo,
         mainBranch: selectedBranch,
         githubAuthMethod: 'oauth' // Setup modal always uses OAuth flow
@@ -391,6 +383,7 @@ export function GitHubSetupModal({
 
             <div className="py-4">
               <GitHubOAuthFlow
+                projectId={project.id}
                 onSuccess={handleGitHubAuthSuccess}
                 onCancel={onSkip}
               />

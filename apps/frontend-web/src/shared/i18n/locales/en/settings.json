@@ -76,7 +76,20 @@
         "refreshModels": "Refresh Models",
         "downloadModel": "Download Model"
       },
-      "testConnection": "Test Connection"
+      "testConnection": "Test Connection",
+      "qaProvider": {
+        "title": "QA LLM Provider",
+        "description": "Select the AI model used to run QA review sessions",
+        "providerLabel": "Provider",
+        "providerDescription": "Choose which LLM drives quality-assurance reviews after each build. Claude is the default.",
+        "cliNote": "Ensure the selected CLI tool is installed and authenticated on this machine before running QA reviews.",
+        "providers": {
+          "claude": "Claude (Anthropic)",
+          "codex": "Codex CLI (OpenAI)",
+          "gemini": "Gemini CLI (Google)",
+          "ollama": "Ollama (Local)"
+        }
+      }
     },
     "integrations": {
       "title": "Integrations",
@@ -313,6 +326,10 @@
       "qa": {
         "label": "QA Review",
         "description": "Quality assurance and validation"
+      },
+      "qa_fixer": {
+        "label": "QA Fixer",
+        "description": "Fixes issues reported by QA review"
       }
     }
   },
@@ -522,6 +539,22 @@
       "createAnthropicKey": "Create Anthropic API Key",
       "openai": "This looks like an OpenAI API. You'll need an API key.",
       "createOpenaiKey": "Create OpenAI API Key"
+    },
+    "quickTemplates": "Quick Templates",
+    "quickTemplatesDescription": "Click a template to pre-fill the form",
+    "quickTemplatesLoading": "Detecting installed services...",
+    "quickTemplatesEmpty": "No additional services detected",
+    "quickTemplatesAvailable": "available",
+    "quickTemplatesInstalled": "installed",
+    "quickTemplatesNotAvailable": "not installed",
+    "categories": {
+      "core": "Core",
+      "database": "Database",
+      "vcs": "Version Control",
+      "browser": "Browser",
+      "search": "Search",
+      "devops": "DevOps",
+      "communication": "Communication"
     }
   }
 }

@@ -36,7 +36,6 @@ THINKING_BUDGET_MAP: dict[str, int | None] = {
     "low": 1024,
     "medium": 4096,  # Moderate analysis
     "high": 16384,  # Deep thinking for QA review
-    "max": 65536,  # Maximum reasoning depth (Opus only)
 }
 
 # Effort level mapping for adaptive thinking models (e.g., Opus 4.6)
@@ -45,7 +44,6 @@ EFFORT_LEVEL_MAP: dict[str, str] = {
     "low": "low",
     "medium": "medium",
     "high": "high",
-    "max": "max",  # Maximum effort (Opus only)
 }
 
 # Models that support adaptive thinking via effort level (env var)
@@ -56,10 +54,10 @@ ADAPTIVE_THINKING_MODELS: set[str] = {"claude-opus-4-6", "claude-sonnet-4-6"}
 # Heavy phases use max for deep analysis
 # Light phases use medium after compaction
 SPEC_PHASE_THINKING_LEVELS: dict[str, str] = {
-    # Heavy phases - max (discovery, spec creation, self-critique)
-    "discovery": "max",
-    "spec_writing": "max",
-    "self_critique": "max",
+    # Heavy phases - high (discovery, spec creation, self-critique)
+    "discovery": "high",
+    "spec_writing": "high",
+    "self_critique": "high",
     # Light phases - medium (after first invocation with compaction)
     "requirements": "medium",
     "research": "medium",
@@ -77,6 +75,7 @@ DEFAULT_PHASE_MODELS: dict[str, str] = {
     "planning": "sonnet",  # Changed from "opus" (fix #433)
     "coding": "sonnet",
     "qa": "sonnet",
+    "qa_fixer": "sonnet",
 }
 
 DEFAULT_PHASE_THINKING: dict[str, str] = {
@@ -84,6 +83,7 @@ DEFAULT_PHASE_THINKING: dict[str, str] = {
     "planning": "high",
     "coding": "medium",
     "qa": "high",
+    "qa_fixer": "low",
 }
 
 
@@ -92,6 +92,7 @@ class PhaseModelConfig(TypedDict, total=False):
     planning: str
     coding: str
     qa: str
+    qa_fixer: str
 
 
 class PhaseThinkingConfig(TypedDict, total=False):
@@ -99,6 +100,7 @@ class PhaseThinkingConfig(TypedDict, total=False):
     planning: str
     coding: str
     qa: str
+    qa_fixer: str
 
 
 class TaskMetadataConfig(TypedDict, total=False):
@@ -112,7 +114,7 @@ class TaskMetadataConfig(TypedDict, total=False):
     fastMode: bool
 
 
-Phase = Literal["spec", "planning", "coding", "qa"]
+Phase = Literal["spec", "planning", "coding", "qa", "qa_fixer"]
 
 
 def resolve_model_id(model: str) -> str:
@@ -484,6 +486,81 @@ def get_fast_mode(spec_dir: Path) -> bool:
         return enabled
     logger.info("[Fast Mode] disabled — no task_metadata.json found")
     return False
+
+
+def infer_provider_from_model(model: str) -> str:
+    """
+    Infer the LLM provider from the model ID.  Works for any phase.
+
+    The provider is determined by the model string itself, so a separate
+    provider setting is no longer needed.
+
+    Claude shorthands (opus, sonnet, haiku) or claude-* IDs -> 'claude'
+    gpt-* or *codex* IDs -> 'codex'
+    gemini-* IDs -> 'gemini'
+    ollama:* prefix -> 'ollama'
+    Otherwise -> check QA_LLM_PROVIDER env var, then default 'claude'
+
+    Args:
+        model: Model shorthand or full model ID
+
+    Returns:
+        Provider name string (e.g., "claude", "codex", "gemini", "ollama")
+    """
+    m = model.strip().lower()
+
+    # Explicit prefix: "ollama:model-name"
+    if m.startswith("ollama:"):
+        return "ollama"
+
+    # Claude models: known shorthands or full claude-* IDs
+    if m in MODEL_ID_MAP or m.startswith("claude-"):
+        return "claude"
+
+    # OpenAI Codex models
+    if m.startswith("gpt-") or "codex" in m:
+        return "codex"
+
+    # Google Gemini models
+    if m.startswith("gemini"):
+        return "gemini"
+
+    # Env fallback for unknown models (e.g., ollama custom models)
+    env_provider = os.environ.get("QA_LLM_PROVIDER", "").strip()
+    return env_provider or "claude"
+
+
+# Backward compatibility alias
+infer_qa_provider_from_model = infer_provider_from_model
+
+
+# Provider capabilities: which providers support agentic phases (file ops, code execution)
+PROVIDER_AGENTIC_SUPPORT = {"claude", "codex", "gemini", "ollama"}
+
+
+def validate_phase_provider(phase: Phase, model: str) -> tuple[bool, str]:
+    """
+    Validate that the model/provider is compatible with the phase.
+
+    Agentic phases (spec, planning, coding, qa_fixer) require providers that
+    support file operations and code execution.  Providers in
+    PROVIDER_AGENTIC_SUPPORT can handle these phases.
+
+    Args:
+        phase: Execution phase (spec, planning, coding, qa, qa_fixer)
+        model: Model shorthand or full model ID
+
+    Returns:
+        Tuple of (is_valid, error_message).  error_message is empty when valid.
+    """
+    provider = infer_provider_from_model(model)
+    agentic_phases: set[str] = {"spec", "planning", "coding", "qa_fixer"}
+    if phase in agentic_phases and provider not in PROVIDER_AGENTIC_SUPPORT:
+        return False, (
+            f"Provider '{provider}' doesn't support agentic mode needed for "
+            f"{phase} phase. Supported: {sorted(PROVIDER_AGENTIC_SUPPORT)}"
+        )
+    return True, ""
 
 
 def get_spec_phase_thinking_budget(phase_name: str) -> int | None:

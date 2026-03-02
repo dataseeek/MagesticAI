@@ -29,7 +29,10 @@
     "add": "Add",
     "gotIt": "Got it",
     "continue": "Continue",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "closeIssue": "Close Issue",
+    "closing": "Closing...",
+    "openInBrowser": "Open in Browser"
   },
   "labels": {
     "loading": "Loading...",
@@ -143,6 +146,7 @@
     "runFollowup": "Run Follow-up",
     "aiReviewInProgress": "AI Review in Progress",
     "waitingForChanges": "Waiting for Changes",
+    "checkForUpdates": "Check for Updates",
     "reviewComplete": "Review Complete",
     "reviewStatus": "Review Status",
     "files": "files",
@@ -230,7 +234,8 @@
     "findingsFoundSelectPost_plural": "{{count}} findings found. Select and post to GitHub.",
     "reviewLogs": "Review Logs",
     "followup": "Follow-up",
-    "initial": "Initial"
+    "initial": "Initial",
+    "connectingToGitHub": "Connecting to GitHub..."
   },
   "insights": {
     "modelSelector": {
@@ -240,6 +245,19 @@
       "detecting": "Detecting providers...",
       "noProviders": "No providers available",
       "via": "via {{provider}}"
+    },
+    "createTask": {
+      "button": "Create Task",
+      "dialogTitle": "Create Task from Chat",
+      "dialogDescription": "Review and edit the AI-generated task before adding it to your backlog.",
+      "generating": "Summarizing conversation...",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter task title",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Enter task description",
+      "cancel": "Cancel",
+      "confirm": "Create Task",
+      "creating": "Creating..."
     }
   },
   "downloads": {

@@ -52,9 +52,14 @@ def extract_commands(command_string: str) -> list[str]:
         try:
             tokens = shlex.split(segment)
         except ValueError:
-            # Malformed command (unclosed quotes, etc.)
-            # Return empty to trigger block (fail-safe)
-            return []
+            # Complex quoting (heredocs, command substitution) — can't tokenize fully.
+            # Fallback: extract leading command name from the raw segment.
+            match = re.match(r'^\s*(?:\w+=\S*\s+)*(\S+)', segment)
+            if match:
+                cmd = os.path.basename(match.group(1))
+                if cmd and not cmd.startswith('-'):
+                    commands.append(cmd)
+            continue
 
         if not tokens:
             continue

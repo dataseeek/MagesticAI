@@ -4,6 +4,7 @@ Task execution routes.
 Handles starting, stopping, and monitoring task execution.
 """
 
+import json
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request, status
@@ -149,6 +150,13 @@ async def start_task(task_id: str, request: StartTaskRequest, raw_request: Reque
             # Valid plan must have "phases" key (even if empty array)
             plan_is_valid = "phases" in plan_data and isinstance(plan_data.get("phases"), (list, dict))
             logger.info(f"[StartTask] Plan validity check: has_phases={plan_is_valid}, keys={list(plan_data.keys())}")
+
+            # Guard against re-starting a completed task
+            if plan_data.get("status") == "done":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot start a completed task. Reset the task status first.",
+                )
         except (json.JSONDecodeError, OSError) as e:
             logger.warning(f"[StartTask] Failed to parse implementation_plan.json: {e}")
             plan_is_valid = False
@@ -324,12 +332,6 @@ async def start_task(task_id: str, request: StartTaskRequest, raw_request: Reque
 
     agent_service = get_agent_service()
 
-    if agent_service.is_running(task_id):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Task is already running",
-        )
-
     # Check if plan was manually approved - if so, use --force to bypass review check
     force_execution = False
     review_state_file = spec_dir / "review_state.json"
@@ -341,6 +343,54 @@ async def start_task(task_id: str, request: StartTaskRequest, raw_request: Reque
                 logger.info(f"[StartTask] Plan was manually approved for {task_id}, using --force")
         except (json.JSONDecodeError, OSError):
             pass
+
+    if agent_service.is_running(task_id):
+        if force_execution:
+            # Plan was approved — clean up stale spec creation process before starting execution
+            logger.info(f"[StartTask] Cleaning up stale spec creation process for approved task {task_id}")
+            try:
+                await agent_service.stop_task(task_id)
+            except Exception as stop_err:
+                logger.warning(f"[StartTask] Failed to stop stale process: {stop_err}")
+                agent_service.running_tasks.pop(task_id, None)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Task is already running",
+            )
+
+    # If review is required but not yet approved, set human_review status
+    # and return early WITHOUT starting the subprocess (which would just exit)
+    if not force_execution:
+        task_metadata_file = spec_dir / "task_metadata.json"
+        require_review = False
+        if task_metadata_file.exists():
+            try:
+                tm = json.loads(task_metadata_file.read_text())
+                require_review = tm.get("requireReviewBeforeCoding", False)
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        if require_review:
+            try:
+                if implementation_plan.exists():
+                    plan = json.loads(implementation_plan.read_text())
+                    plan["status"] = "human_review"
+                    plan["reviewReason"] = "plan_review"
+                    implementation_plan.write_text(json.dumps(plan, indent=2))
+                    logger.info(f"[StartTask] Plan requires approval for {task_id}, set human_review")
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"[StartTask] Failed to persist human_review status: {e}")
+
+            await emit_task_status(task_id, "human_review", "plan_review")
+
+            return {
+                "success": True,
+                "task_id": task_id,
+                "message": "Task requires plan approval before coding can begin",
+                "status": "human_review",
+                "reviewReason": "plan_review",
+            }
 
     # Extract user_id from auth context for email notifications
     _user = getattr(raw_request.state, "user", None)
@@ -361,7 +411,6 @@ async def start_task(task_id: str, request: StartTaskRequest, raw_request: Reque
         # Persist status to implementation_plan.json for page refresh survival
         # This ensures the task shows as "in_progress" even after browser refresh
         try:
-            import json
             if implementation_plan.exists():
                 plan = json.loads(implementation_plan.read_text())
                 plan["status"] = "in_progress"

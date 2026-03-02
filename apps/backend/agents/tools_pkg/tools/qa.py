@@ -112,9 +112,11 @@ def create_qa_tools(spec_dir: Path, project_dir: Path) -> list:
             if status == "approved":
                 plan["status"] = "human_review"
                 plan["planStatus"] = "review"
+                plan["reviewReason"] = "completed"
             elif status == "rejected":
                 plan["status"] = "human_review"
                 plan["planStatus"] = "review"
+                plan["reviewReason"] = "qa_issues"
 
             plan["last_updated"] = datetime.now(timezone.utc).isoformat()
 

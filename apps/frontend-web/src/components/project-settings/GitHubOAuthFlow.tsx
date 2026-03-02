@@ -15,7 +15,8 @@ import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 
 interface GitHubOAuthFlowProps {
-  onSuccess: (token: string, username?: string) => void;
+  projectId?: string;
+  onSuccess: (username?: string) => void;
   onCancel?: () => void;
 }
 
@@ -40,7 +41,7 @@ const AUTH_TIMEOUT_MS = 5 * 60 * 1000;
  * GitHub OAuth flow component using gh CLI
  * Guides users through authenticating with GitHub using the gh CLI
  */
-export function GitHubOAuthFlow({ onSuccess, onCancel }: GitHubOAuthFlowProps) {
+export function GitHubOAuthFlow({ projectId, onSuccess, onCancel }: GitHubOAuthFlowProps) {
   const [status, setStatus] = useState<'checking' | 'need-install' | 'need-auth' | 'authenticating' | 'success' | 'error'>('checking');
   const [error, setError] = useState<string | null>(null);
   const [_cliInstalled, setCliInstalled] = useState(false);
@@ -196,27 +197,38 @@ export function GitHubOAuthFlow({ onSuccess, onCancel }: GitHubOAuthFlowProps) {
   const fetchAndNotifyToken = async () => {
     debugLog('fetchAndNotifyToken() called');
     try {
-      debugLog('Calling getGitHubToken...');
-      const tokenResult = await window.API.getGitHubToken();
-      debugLog('getGitHubToken result:', {
-        success: tokenResult.success,
-        hasToken: !!tokenResult.data?.token,
-        tokenLength: tokenResult.data?.token?.length,
-        error: tokenResult.error
-      });
+      if (projectId) {
+        // Persist token server-side — never expose in response
+        debugLog('Calling persistGitHubToken...');
+        const persistResult = await window.API.persistGitHubToken(projectId);
+        debugLog('persistGitHubToken result:', persistResult);
 
-      if (tokenResult.success && tokenResult.data?.token) {
-        debugLog('Token retrieved successfully, calling onSuccess with username:', username);
-        setStatus('success');
-        onSuccess(tokenResult.data.token, username);
+        if (persistResult.success && persistResult.data?.tokenPersisted) {
+          debugLog('Token persisted successfully, calling onSuccess with username:', username);
+          setStatus('success');
+          onSuccess(username);
+        } else {
+          debugLog('Failed to persist token:', persistResult.error);
+          setError(persistResult.error || 'Failed to persist token');
+          setStatus('error');
+        }
       } else {
-        debugLog('Failed to get token:', tokenResult.error);
-        setError(tokenResult.error || 'Failed to get token');
-        setStatus('error');
+        // No projectId — just check auth status and notify
+        debugLog('No projectId, checking auth status...');
+        const authResult = await window.API.checkGitHubAuth();
+        if (authResult.success && authResult.data?.authenticated) {
+          debugLog('Auth confirmed, calling onSuccess with username:', username);
+          setStatus('success');
+          onSuccess(username);
+        } else {
+          debugLog('Auth check failed');
+          setError('Authentication could not be confirmed');
+          setStatus('error');
+        }
       }
     } catch (err) {
       debugLog('Error in fetchAndNotifyToken:', err);
-      setError(err instanceof Error ? err.message : 'Failed to get token');
+      setError(err instanceof Error ? err.message : 'Failed to persist token');
       setStatus('error');
     }
   };

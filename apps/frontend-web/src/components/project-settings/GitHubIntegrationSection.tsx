@@ -20,6 +20,7 @@ interface GitHubIntegrationSectionProps {
   gitHubConnectionStatus: GitHubSyncStatus | null;
   isCheckingGitHub: boolean;
   projectName?: string;
+  projectId?: string;
 }
 
 export function GitHubIntegrationSection({
@@ -30,18 +31,19 @@ export function GitHubIntegrationSection({
   gitHubConnectionStatus,
   isCheckingGitHub,
   projectName,
+  projectId,
 }: GitHubIntegrationSectionProps) {
   // Show OAuth flow if user previously used OAuth, or if there's no token yet
   const [showOAuthFlow, setShowOAuthFlow] = useState(
-    envConfig.githubAuthMethod === 'oauth' || (!envConfig.githubToken && !envConfig.githubAuthMethod)
+    envConfig.githubAuthMethod === 'oauth' || (!envConfig.githubTokenSet && !envConfig.githubToken && !envConfig.githubAuthMethod)
   );
 
   const badge = envConfig.githubEnabled ? (
     <StatusBadge status="success" label="Enabled" />
   ) : null;
 
-  const handleOAuthSuccess = (token: string, _username?: string) => {
-    onUpdateConfig({ githubToken: token, githubAuthMethod: 'oauth' });
+  const handleOAuthSuccess = (_username?: string) => {
+    onUpdateConfig({ githubAuthMethod: 'oauth' });
     setShowOAuthFlow(false);
   };
 
@@ -89,7 +91,7 @@ export function GitHubIntegrationSection({
       {envConfig.githubEnabled && (
         <>
           {/* Show OAuth connected state when authenticated via OAuth */}
-          {envConfig.githubAuthMethod === 'oauth' && envConfig.githubToken && !showOAuthFlow ? (
+          {envConfig.githubAuthMethod === 'oauth' && (envConfig.githubTokenSet || envConfig.githubToken) && !showOAuthFlow ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium text-foreground">GitHub Authentication</Label>
@@ -120,6 +122,7 @@ export function GitHubIntegrationSection({
                 </Button>
               </div>
               <GitHubOAuthFlow
+                projectId={projectId}
                 onSuccess={handleOAuthSuccess}
                 onCancel={() => setShowOAuthFlow(false)}
               />
@@ -170,7 +173,7 @@ export function GitHubIntegrationSection({
           </div>
 
           {/* Connection Status */}
-          {envConfig.githubToken && envConfig.githubRepo && (
+          {(envConfig.githubTokenSet || envConfig.githubToken) && envConfig.githubRepo && (
             <ConnectionStatus
               isChecking={isCheckingGitHub}
               isConnected={gitHubConnectionStatus?.connected || false}

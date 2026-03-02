@@ -5,7 +5,7 @@
  * Supports both command-based (npx/npm) and HTTP-based servers.
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,14 +19,15 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { useTranslation } from 'react-i18next';
-import type { CustomMcpServer } from '../shared/types';
-import { Terminal, Globe, X, Github, Loader2, ExternalLink } from 'lucide-react';
+import type { CustomMcpServer, DetectedMcpService } from '../shared/types';
+import { Terminal, Globe, X, Github, Loader2, ExternalLink, ChevronDown, ChevronRight, CheckCircle2, Circle } from 'lucide-react';
 
 interface CustomMcpDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   server: CustomMcpServer | null; // null = create new, non-null = edit
   existingIds: string[]; // Existing server IDs for validation
+  existingServers?: CustomMcpServer[]; // Full server objects for template filtering
   onSave: (server: CustomMcpServer) => void;
 }
 
@@ -35,6 +36,7 @@ export function CustomMcpDialog({
   onOpenChange,
   server,
   existingIds,
+  existingServers,
   onSave
 }: CustomMcpDialogProps) {
   const { t } = useTranslation(['settings', 'common']);
@@ -57,6 +59,9 @@ export function CustomMcpDialog({
   const [bearerToken, setBearerToken] = useState('');
   const [showAdvancedHeaders, setShowAdvancedHeaders] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detectedServices, setDetectedServices] = useState<DetectedMcpService[]>([]);
+  const [loadingDetected, setLoadingDetected] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(true);
 
   // Known provider patterns for helpful hints
   const urlHint = useMemo(() => {
@@ -133,10 +138,46 @@ export function CustomMcpDialog({
       setBearerToken('');
       setShowAdvancedHeaders(false);
       setError(null);
+      // Fetch detected services when opening the create dialog
+      setLoadingDetected(true);
+      setDetectedServices([]);
+      window.API?.detectMcpServices?.().then((res: any) => {
+        const items: DetectedMcpService[] = res?.data ?? res ?? [];
+        // Filter out templates already configured as custom MCP servers
+        const existingArgs = new Set(
+          (existingServers || []).flatMap(s => s.args || [])
+        );
+        const filtered = items.filter(svc =>
+          !(svc.args || []).some(arg => !arg.startsWith('-') && existingArgs.has(arg))
+        );
+        setDetectedServices(filtered);
+      }).catch(() => {
+        setDetectedServices([]);
+      }).finally(() => {
+        setLoadingDetected(false);
+      });
     }
     setHeaderKey('');
     setHeaderValue('');
   }, [open, server]);
+
+  // Apply a detected service template to the form
+  const applyTemplate = useCallback((service: DetectedMcpService) => {
+    setFormData({
+      id: '',
+      name: service.name,
+      type: service.type,
+      command: service.command ?? 'npx',
+      args: service.args ?? [],
+      url: service.url ?? '',
+      headers: {},
+      description: service.description,
+    });
+    setArgsInput(service.args?.join(' ') ?? '');
+    setBearerToken('');
+    setError(null);
+    setShowTemplates(false);
+  }, []);
 
   // Generate ID from name
   const generateId = (name: string): string => {
@@ -232,7 +273,7 @@ export function CustomMcpDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? t('mcp.editCustomServer') : t('mcp.addCustomServer')}
@@ -243,6 +284,76 @@ export function CustomMcpDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Quick Templates (only when creating) */}
+          {!isEditing && (
+            <div className="border border-border rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowTemplates(!showTemplates)}
+                className="w-full flex items-center justify-between px-3 py-2 bg-muted/40 hover:bg-muted/60 transition-colors text-sm font-medium"
+              >
+                <span className="flex items-center gap-1.5">
+                  {showTemplates ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                  {t('mcp.quickTemplates')}
+                </span>
+                {loadingDetected && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+              </button>
+
+              {showTemplates && (
+                <div className="p-2 max-h-48 overflow-y-auto">
+                  {loadingDetected ? (
+                    <p className="text-xs text-muted-foreground text-center py-3">
+                      {t('mcp.quickTemplatesLoading')}
+                    </p>
+                  ) : detectedServices.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-3">
+                      {t('mcp.quickTemplatesEmpty')}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-xs text-muted-foreground px-1 pb-2">
+                        {t('mcp.quickTemplatesDescription')}
+                      </p>
+                      <div className="grid grid-cols-2 gap-1">
+                        {detectedServices.map((service) => (
+                          <button
+                            key={service.id}
+                            type="button"
+                            onClick={() => applyTemplate(service)}
+                            disabled={!service.available}
+                            title={service.reason}
+                            className={[
+                              'flex flex-col items-start gap-0.5 px-2 py-1.5 rounded border text-left transition-colors',
+                              service.available
+                                ? 'border-border hover:bg-muted/60 hover:border-primary/40 cursor-pointer'
+                                : 'border-border/40 opacity-40 cursor-not-allowed',
+                            ].join(' ')}
+                          >
+                            <div className="flex items-center gap-1.5 w-full">
+                              {service.available
+                                ? <CheckCircle2 className="h-3 w-3 text-green-500 flex-shrink-0" />
+                                : <Circle className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                              }
+                              <span className="text-xs font-medium truncate">{service.name}</span>
+                              {service.installed && (
+                                <span className="ml-auto text-[10px] text-green-600 bg-green-500/10 px-1 rounded flex-shrink-0">
+                                  {t('mcp.quickTemplatesInstalled')}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-muted-foreground pl-4.5 line-clamp-1 w-full">
+                              {service.description}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Error message */}
           {error && (
             <div className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded">

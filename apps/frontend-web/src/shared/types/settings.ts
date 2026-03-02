@@ -158,18 +158,20 @@ export interface ColorThemeDefinition {
 }
 
 // Thinking level for Claude model (budget token allocation)
-export type ThinkingLevel = 'none' | 'low' | 'medium' | 'high' | 'max';
+export type ThinkingLevel = 'none' | 'low' | 'medium' | 'high';
 
 // Model type shorthand
 export type ModelTypeShort = 'haiku' | 'sonnet' | 'opus';
 
 // Phase-based model configuration for Auto profile
 // Each phase can use a different model optimized for that task type
+// All phases accept any provider model ID (Claude shorthands, Codex, Gemini, Ollama, etc.)
 export interface PhaseModelConfig {
-  spec: ModelTypeShort;       // Spec creation (discovery, requirements, context)
-  planning: ModelTypeShort;   // Implementation planning
-  coding: ModelTypeShort;     // Actual coding implementation
-  qa: ModelTypeShort;         // QA review and fixing
+  spec: string;       // Spec creation — any provider model ID
+  planning: string;   // Implementation planning — any provider model ID
+  coding: string;     // Actual coding implementation — any provider model ID
+  qa: string;         // QA review — any provider model ID
+  qa_fixer: string;   // QA fixing — any provider model ID
 }
 
 // Thinking level configuration per phase
@@ -178,6 +180,7 @@ export interface PhaseThinkingConfig {
   planning: ThinkingLevel;
   coding: ThinkingLevel;
   qa: ThinkingLevel;
+  qa_fixer: ThinkingLevel;
 }
 
 // Feature-specific model configuration (for non-pipeline features)
@@ -245,6 +248,8 @@ export interface AppSettings {
   llmAnthropicModel?: string;
   llmOpenaiModel?: string;
   llmOpenaiBaseUrl?: string;
+  // QA LLM Provider (which LLM drives QA review sessions)
+  qaLlmProvider?: 'claude' | 'codex' | 'gemini' | 'ollama';
   // Onboarding wizard completion state
   onboardingCompleted?: boolean;
   // Selected agent profile for preset model/thinking configurations
