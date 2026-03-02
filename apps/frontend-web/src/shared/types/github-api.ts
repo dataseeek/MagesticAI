@@ -287,14 +287,15 @@ export interface GitHubAPI {
   suggestReleaseVersion: (projectId: string) => Promise<IPCResult<{ suggestedVersion: string; currentVersion: string; bumpType: 'major' | 'minor' | 'patch'; commitCount: number; reason: string }>>;
   checkGitHubCli: () => Promise<IPCResult<{ installed: boolean; version?: string }>>;
   checkGitHubAuth: () => Promise<IPCResult<{ authenticated: boolean; username?: string }>>;
-  autoDetectGitHub: () => Promise<IPCResult<{ authenticated: boolean; username?: string; token?: string; reason?: string }>>;
+  autoDetectGitHub: (projectId?: string) => Promise<IPCResult<{ authenticated: boolean; username?: string; tokenPersisted?: boolean; reason?: string }>>;
   startGitHubAuth: () => Promise<IPCResult<{ success: boolean; message?: string }>>;
-  getGitHubToken: () => Promise<IPCResult<{ token: string }>>;
+  getGitHubToken: () => Promise<IPCResult<{ hasToken: boolean }>>;
+  persistGitHubToken: (projectId: string) => Promise<IPCResult<{ tokenPersisted: boolean }>>;
   getGitHubUser: () => Promise<IPCResult<{ username: string; name?: string }>>;
   listGitHubUserRepos: () => Promise<IPCResult<{ repos: Array<{ fullName: string; description: string | null; isPrivate: boolean }> }>>;
   onGitHubAuthDeviceCode: (callback: (data: { deviceCode: string; authUrl: string; browserOpened: boolean }) => void) => IpcListenerCleanup;
   detectGitHubRepo: (projectPath: string) => Promise<IPCResult<string>>;
-  getGitHubBranches: (repo: string, token: string) => Promise<IPCResult<string[]>>;
+  getGitHubBranches: (repo: string) => Promise<IPCResult<string[]>>;
   createGitHubRepo: (repoName: string, options: { description?: string; isPrivate?: boolean; projectPath: string; owner?: string }) => Promise<IPCResult<{ fullName: string; url: string }>>;
   addGitRemote: (projectPath: string, repoFullName: string) => Promise<IPCResult<{ remoteUrl: string }>>;
   listGitHubOrgs: () => Promise<IPCResult<{ orgs: Array<{ login: string; avatarUrl?: string }> }>>;

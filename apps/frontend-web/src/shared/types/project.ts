@@ -286,6 +286,7 @@ export interface ProjectEnvConfig {
 
   // GitHub Integration
   githubEnabled: boolean;
+  githubTokenSet?: boolean;
   githubToken?: string;
   githubRepo?: string; // Format: owner/repo
   githubAutoSync?: boolean; // Auto-sync issues on project load
