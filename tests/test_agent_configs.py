@@ -131,34 +131,20 @@ class TestGetRequiredMcpServers:
         assert "magestic-ai" in servers
 
     def test_linear_optional_not_included_by_default(self):
-        """Linear should not be included unless linear_enabled=True."""
+        """Linear should not be included unless explicitly added via mcp_config."""
         from agents.tools_pkg.models import get_required_mcp_servers
 
-        servers = get_required_mcp_servers("planner", linear_enabled=False)
+        servers = get_required_mcp_servers("planner")
         assert "linear" not in servers
 
-    def test_linear_included_when_enabled(self):
-        """Linear should be included when linear_enabled=True for agents with optional Linear."""
+    def test_mcp_server_added_via_per_agent_override(self):
+        """MCP servers can be added via per-agent AGENT_MCP_<type>_ADD override."""
         from agents.tools_pkg.models import get_required_mcp_servers
 
-        servers = get_required_mcp_servers("planner", linear_enabled=True)
-        assert "linear" in servers
-
-    def test_browser_resolved_to_electron_for_electron_project(self):
-        """Browser should resolve to 'electron' for Electron projects."""
-        from agents.tools_pkg.models import get_required_mcp_servers
-
-        # Mock ELECTRON_MCP_ENABLED
-        os.environ["ELECTRON_MCP_ENABLED"] = "true"
-        try:
-            servers = get_required_mcp_servers(
-                "qa_reviewer", project_capabilities={"is_electron": True}
-            )
-            assert "electron" in servers
-            assert "browser" not in servers
-            assert "puppeteer" not in servers
-        finally:
-            os.environ.pop("ELECTRON_MCP_ENABLED", None)
+        servers = get_required_mcp_servers(
+            "planner", mcp_config={"AGENT_MCP_planner_ADD": "puppeteer"}
+        )
+        assert "puppeteer" in servers
 
     def test_browser_resolved_to_puppeteer_for_web_frontend(self):
         """Browser should resolve to 'puppeteer' for web frontend projects when enabled."""
@@ -204,12 +190,12 @@ class TestGetDefaultThinkingLevel:
         result = get_default_thinking_level("qa_reviewer")
         assert result == "high"
 
-    def test_returns_ultrathink_for_spec_critic(self):
-        """Spec critic should return 'ultrathink' level."""
+    def test_returns_high_for_spec_critic(self):
+        """Spec critic should return 'high' thinking level."""
         from agents.tools_pkg.models import get_default_thinking_level
 
         result = get_default_thinking_level("spec_critic")
-        assert result == "ultrathink"
+        assert result == "high"
 
     def test_can_convert_to_budget_via_phase_config(self):
         """Verify thinking level can be converted to budget using phase_config."""

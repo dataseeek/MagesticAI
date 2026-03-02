@@ -19,7 +19,9 @@ def mock_project_dir(tmp_path):
 
 @pytest.fixture
 def mock_profile_path(mock_project_dir):
-    return mock_project_dir / ".magestic-ai-security.json"
+    magestic_dir = mock_project_dir / ".magestic-ai"
+    magestic_dir.mkdir(exist_ok=True)
+    return magestic_dir / ".magestic-ai-security.json"
 
 def create_valid_profile_json(commands, project_hash=""):
     """Helper to create a valid SecurityProfile JSON structure."""

@@ -188,8 +188,9 @@ class TestPhasesToRun:
         )
         phases = assessment.phases_to_run()
         assert phases == [
-            "discovery", "historical_context", "requirements", "research",
-            "context", "spec_writing", "self_critique", "planning", "validation"
+            "discovery", "historical_context", "requirements", "architecture",
+            "research", "context", "spec_writing", "self_critique", "planning",
+            "validation"
         ]
 
     def test_recommended_phases_override(self):
