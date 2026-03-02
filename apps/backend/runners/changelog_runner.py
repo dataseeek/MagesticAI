@@ -322,7 +322,7 @@ def build_changelog_prompt(
         elif emoji_level == "high":
             prompt += "Add emojis throughout for all changes\n\n"
     else:
-        prompt += "**Emoji Level:** none\nDo NOT use any emojis anywhere in the changelog output.\n\n"
+        prompt += "**Emojis:** Do NOT include any emoji characters (e.g. ✨🐛🔧📌💡🎯🔐) in the output. Still use all section headers, categories, and markdown formatting as required by the format above — just no emoji characters.\n\n"
 
     # Add custom instructions
     if custom_instructions:
@@ -357,7 +357,7 @@ def build_changelog_prompt(
     prompt += """
 **OUTPUT INSTRUCTIONS:**
 1. Analyze all changes in the source data
-2. Group related changes into logical categories
+2. Group related changes into logical categories using section headers (e.g. ### Added, ### Fixed, ### Changed)
 3. Write clear, concise descriptions following the format
 4. Match the audience tone precisely
 5. Apply emoji level as specified
