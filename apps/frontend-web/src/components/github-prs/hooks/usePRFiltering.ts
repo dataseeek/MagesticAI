@@ -51,10 +51,12 @@ function getPRComputedStatus(
 
   const result = reviewInfo.result;
   const hasPosted = Boolean(result.reviewId) || Boolean(result.hasPostedFindings);
-  // Use overallStatus from review result as source of truth, fallback to severity check
-  const hasBlockingFindings =
-    result.overallStatus === 'request_changes' ||
-    result.findings?.some(f => f.severity === 'critical' || f.severity === 'high');
+  // For follow-up reviews, check actual remaining findings (overallStatus may be stale)
+  // For initial reviews, use overallStatus as source of truth with severity fallback
+  const hasBlockingFindings = result.isFollowupReview
+    ? Boolean(result.findings?.some(f => f.severity === 'critical' || f.severity === 'high'))
+    : (result.overallStatus === 'request_changes' ||
+       Boolean(result.findings?.some(f => f.severity === 'critical' || f.severity === 'high')));
   const hasNewCommits = reviewInfo.newCommitsCheck?.hasNewCommits;
   // Only count commits that happened AFTER findings were posted for follow-up status
   const hasCommitsAfterPosting = reviewInfo.newCommitsCheck?.hasCommitsAfterPosting;
