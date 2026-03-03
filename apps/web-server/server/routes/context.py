@@ -68,7 +68,7 @@ async def get_project_context(projectId: str = Path(...)):
         return {"success": False, "error": f"Project {projectId} not found"}
 
     project_path = FilePath(projects[projectId]["path"])
-    index_path = project_path / ".magestic-ai" / "project-index.json"
+    index_path = project_path / ".magestic-ai" / "project_index.json"
     specs_dir = project_path / ".magestic-ai" / "specs"
 
     project_index = None
@@ -176,7 +176,7 @@ async def refresh_project_index(projectId: str = Path(...)):
                 index["languages"][ext] = index["languages"].get(ext, 0) + 1
 
         # Save index
-        index_path = project_path / ".magestic-ai" / "project-index.json"
+        index_path = project_path / ".magestic-ai" / "project_index.json"
         index_path.parent.mkdir(parents=True, exist_ok=True)
         import json
         index_path.write_text(json.dumps(index, indent=2))
