@@ -191,6 +191,10 @@ const githubAPI: API['github'] = {
     const result = await post(`/projects/${projectId}/github/prs/${prNumber}/comment`, { body });
     return result.success;
   },
+  approvePR: async (projectId, prNumber, body) => {
+    const result = await post(`/projects/${projectId}/github/prs/${prNumber}/approve`, { body });
+    return result.success;
+  },
   mergePR: async (projectId, prNumber, mergeMethod) => {
     const result = await post(`/projects/${projectId}/github/prs/${prNumber}/merge`, {
       mergeMethod: mergeMethod ?? 'squash',
