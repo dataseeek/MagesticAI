@@ -285,6 +285,7 @@ function AuthenticatedApp() {
                 onAddProject={handleAddProject}
                 onProjectAdded={handleProjectAdded}
                 onSettingsClick={() => setIsSettingsDialogOpen(true)}
+                onOpenOnboarding={() => setIsOnboardingOpen(true)}
               />
             )}
 
