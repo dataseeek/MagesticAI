@@ -1,0 +1,18 @@
+  [x] 1.1: Locate the side-menu component file that contains the Claude, Codex, and Gemini CLI status icon buttons (including their SVG icons, status indicators, and popover logic) (09474023)
+  [x] 1.2: Locate the top header component file and identify where the theme switch icons are placed (to use as a positioning reference) (09474023)
+  [x] 1.3: Identify existing CLI status icon/popover sub-components and assess whether they can be reused directly in the header or need adaptation (09474023)
+  [x] 1.4: Investigate whether a local LLM icon exists or can be created following the same icon + status + popover pattern (481f716b)
+  [x] 2.1: Remove or hide the Claude, Codex, and Gemini status icon buttons from the side-menu component (preserve the underlying state/logic if shared) (6f9c6a12)
+  [x] 2.2: Add the 3 CLI status icons (Claude, Codex, Gemini) to the top header component in icon-only mode (no text labels), positioned before the theme switch icons (c17ce4d3)
+  [x] 2.3: Verify and adjust styling: icon size, spacing, alignment, and popover positioning within the header context (64a04951)
+  [x] 2.3: Verify and adjust styling: icon size, spacing, alignment, and popover positioning within the header context (7f422fd1)
+  [x] 2.4: Add local LLM (Ollama) icon to header using the same icon + status + popover pattern (277d0c4)
+  [x] 2.4: If feasible, add local LLM icon to header using the same icon + status + popover pattern (277d0c4f)
+  [x] 3.1: Verify all 3 CLI status icons display correctly in the header (icon + status dot visible, text labels absent)
+  [x] 3.1: Verify all 3 CLI status icons display correctly in the header (icon + status dot visible, text labels absent) (b9a9e0d2)
+  [x] 3.2: Verify popover interactions work correctly for each icon in the new header location
+  [x] 3.2: Verify popover interactions work correctly for each icon in the new header location (2891eef9)
+  [x] 3.3: Verify the header layout is not broken and is responsive; confirm theme switch remains accessible (f6ec7218)
+  [x] 3.4: Run the existing test suite and confirm all tests pass
+      Results: 324 passed, 6 skipped, 5 pre-existing failures in OnboardingWizard.test.tsx (unrelated to this task - confirmed by running tests on unmodified codebase)
+      Test files: 11 passed / 1 failed (pre-existing) - 12 total

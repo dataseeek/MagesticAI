@@ -61,6 +61,18 @@
     "noTokenConfigured": "Aucun jeton d'authentification configuré",
     "setupAuth": "Configurer l'auth"
   },
+  "localLLM": {
+    "running": "En cours d'exécution",
+    "notRunning": "Arrêté",
+    "notInstalled": "Non installé",
+    "version": "Version",
+    "models": "Modèles",
+    "lastChecked": "Dernière vérification",
+    "availableModels": "Modèles disponibles",
+    "more": "de plus",
+    "startHint": "Ollama est installé mais n'est pas en cours d'exécution. Démarrez-le avec : ollama serve",
+    "install": "Installer Ollama"
+  },
   "cliTools": {
     "authenticated": "Authentifié",
     "needsAuth": "Authentification requise",

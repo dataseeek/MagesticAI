@@ -24,11 +24,13 @@ import {
   AlertDialogTitle
 } from './ui/alert-dialog';
 import { cn } from '../lib/utils';
+import { StatusBadgeButton } from './ui/StatusBadgeButton';
 import type { ClaudeCodeVersionInfo } from '../shared/types/cli';
 
 interface ClaudeCodeStatusBadgeProps {
   className?: string;
   onOpenOnboarding?: () => void;
+  iconOnly?: boolean;
 }
 
 type StatusType = 'loading' | 'installed' | 'outdated' | 'not-found' | 'error';
@@ -40,7 +42,7 @@ const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
  * Claude Code CLI status badge for the sidebar.
  * Shows installation status, auth token status, and provides quick access to install/update.
  */
-export function ClaudeCodeStatusBadge({ className, onOpenOnboarding }: ClaudeCodeStatusBadgeProps) {
+export function ClaudeCodeStatusBadge({ className, onOpenOnboarding, iconOnly = false }: ClaudeCodeStatusBadgeProps) {
   const { t } = useTranslation(['common', 'navigation']);
   const [status, setStatus] = useState<StatusType>('loading');
   const [versionInfo, setVersionInfo] = useState<ClaudeCodeVersionInfo | null>(null);
@@ -229,24 +231,17 @@ export function ClaudeCodeStatusBadge({ className, onOpenOnboarding }: ClaudeCod
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
+            <StatusBadgeButton
+              iconOnly={iconOnly}
+              icon={<AnthropicIcon className="h-4 w-4" />}
+              label="Claude Code"
+              dotColor={getStatusColor()}
               className={cn(
-                'w-full justify-start gap-2 text-xs',
                 overallHealth === 'bad' ? 'text-destructive' : '',
                 overallHealth === 'partial' ? 'text-yellow-600 dark:text-yellow-500' : '',
                 className
               )}
             >
-              <div className="relative">
-                <AnthropicIcon className="h-4 w-4" />
-                <span className={cn(
-                  'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full',
-                  getStatusColor()
-                )} />
-              </div>
-              <span className="truncate">Claude Code</span>
               {status === 'outdated' && (
                 <span className="ml-auto text-[10px] bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded">
                   {t('common:update', 'Update')}
@@ -262,15 +257,15 @@ export function ClaudeCodeStatusBadge({ className, onOpenOnboarding }: ClaudeCod
                   {t('navigation:claudeCode.noAuth', 'No Auth')}
                 </span>
               )}
-            </Button>
+            </StatusBadgeButton>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="right">
+        <TooltipContent side={iconOnly ? 'bottom' : 'right'}>
           {getTooltipText()}
         </TooltipContent>
       </Tooltip>
 
-      <PopoverContent side="right" align="end" className="w-72">
+      <PopoverContent side={iconOnly ? 'bottom' : 'right'} align="end" className="w-72">
         <div className="space-y-3">
           {/* Header */}
           <div className="flex items-center gap-2">

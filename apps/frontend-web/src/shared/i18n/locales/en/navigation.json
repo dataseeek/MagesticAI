@@ -61,6 +61,18 @@
     "noTokenConfigured": "No auth token configured",
     "setupAuth": "Set Up Auth"
   },
+  "localLLM": {
+    "running": "Running",
+    "notRunning": "Not Running",
+    "notInstalled": "Not Installed",
+    "version": "Version",
+    "models": "Models",
+    "lastChecked": "Last checked",
+    "availableModels": "Available models",
+    "more": "more",
+    "startHint": "Ollama is installed but not running. Start it with: ollama serve",
+    "install": "Install Ollama"
+  },
   "cliTools": {
     "authenticated": "Authenticated",
     "needsAuth": "Needs Authentication",
