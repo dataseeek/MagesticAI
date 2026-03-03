@@ -5,10 +5,14 @@ Git Validators
 Validators for git operations (commit with secret scanning).
 """
 
+import logging
 import shlex
+import subprocess
 from pathlib import Path
 
 from .validation_models import ValidationResult
+
+logger = logging.getLogger(__name__)
 
 
 def _format_secret_error(matches: list) -> ValidationResult:
@@ -63,12 +67,55 @@ def _format_secret_error(matches: list) -> ValidationResult:
     return False, "\n".join(error_lines)
 
 
+def _unstage_spec_artifacts() -> list[str]:
+    """
+    Check for and unstage any .magestic-ai/ files from the git staging area.
+
+    Returns:
+        List of file paths that were unstaged.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--cached", "--name-only"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode != 0:
+            return []
+
+        staged_files = [f for f in result.stdout.strip().split("\n") if f]
+        spec_files = [f for f in staged_files if f.startswith(".magestic-ai/")]
+
+        if not spec_files:
+            return []
+
+        # Unstage spec artifacts
+        subprocess.run(
+            ["git", "reset", "HEAD", "--"] + spec_files,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        logger.warning(
+            "Auto-unstaged .magestic-ai/ spec artifacts from commit: %s",
+            spec_files,
+        )
+        return spec_files
+    except Exception as e:
+        logger.error("Failed to check/unstage spec artifacts: %s", e)
+        return []
+
+
 def validate_git_commit(command_string: str) -> ValidationResult:
     """
     Validate git commit commands - run secret scan before allowing commit.
 
     This provides autonomous feedback to the AI agent if secrets are detected,
     with actionable instructions on how to fix the issue.
+
+    Also auto-unstages any .magestic-ai/ spec artifacts that the agent may
+    have staged (defense-in-depth against spec files leaking into commits).
 
     Args:
         command_string: The full git command string
@@ -83,6 +130,8 @@ def validate_git_commit(command_string: str) -> ValidationResult:
         # "git commit", allow it (secret scanning runs on staged files anyway)
         stripped = command_string.strip()
         if stripped.startswith("git commit") or stripped.startswith("git -c"):
+            # Unstage spec artifacts before scanning/committing
+            _unstage_spec_artifacts()
             # Still scan staged files for secrets
             try:
                 from scan_secrets import get_staged_files, scan_files
@@ -102,6 +151,13 @@ def validate_git_commit(command_string: str) -> ValidationResult:
     # Only intercept 'git commit' commands (not git add, git push, etc.)
     if len(tokens) < 2 or tokens[1] != "commit":
         return True, ""
+
+    # Defense-in-depth: auto-unstage any .magestic-ai/ spec artifacts
+    unstaged = _unstage_spec_artifacts()
+    if unstaged:
+        logger.info(
+            "Removed %d spec artifact(s) from staging before commit", len(unstaged)
+        )
 
     # Import the secret scanner
     try:
