@@ -55,6 +55,7 @@ lerna-debug.log*
 # MagesticAI Generated
 # ===========================
 .magestic-ai/
+.auto-claude/
 .magestic-ai-security.json
 .magestic-ai-status
 .claude_settings.json
