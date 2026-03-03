@@ -1283,6 +1283,32 @@ async def post_pr_comment(
     return result
 
 
+@project_router.post("/prs/{prNumber}/approve")
+async def approve_pr(
+    projectId: str,
+    prNumber: int,
+    request: PostPRCommentRequest | None = None,
+):
+    """Approve a PR via gh pr review --approve."""
+    project_path = _resolve_project_path(projectId)
+    if not project_path:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": f"Project {projectId} not found"},
+        )
+
+    from ..services.pr_data_service import get_pr_data_service
+
+    service = get_pr_data_service()
+    body = request.body if request else ""
+    result = service.approve_pr(project_path, prNumber, body=body)
+
+    if not result["success"]:
+        return JSONResponse(status_code=500, content=result)
+
+    return result
+
+
 @project_router.post("/prs/{prNumber}/merge")
 async def merge_pr(
     projectId: str,
