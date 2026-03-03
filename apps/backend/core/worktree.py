@@ -553,7 +553,7 @@ class WorktreeManager:
         if not worktree_path.exists():
             return False
 
-        self._run_git(["add", "."], cwd=worktree_path)
+        self._run_git(["add", ".", ":!.magestic-ai"], cwd=worktree_path)
         result = self._run_git(["commit", "-m", message], cwd=worktree_path)
 
         if result.returncode == 0:
