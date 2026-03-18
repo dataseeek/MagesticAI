@@ -611,9 +611,9 @@ curl -X [method] [url] -H "Content-Type: application/json" -d '[body]'
 **Browser Verification:**
 ```
 # For verification.type = "browser"
-# Use puppeteer tools:
-1. puppeteer_navigate to verification.url
-2. puppeteer_screenshot to capture state
+# Use playwright tools:
+1. browser_navigate to verification.url
+2. browser_take_screenshot to capture state
 3. Check all items in verification.checks
 ```
 

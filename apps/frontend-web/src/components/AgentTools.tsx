@@ -174,20 +174,20 @@ const AGENT_CONFIGS: Record<string, AgentConfig> = {
   // QA Phases
   qa_reviewer: {
     label: 'QA Reviewer',
-    description: 'Validates acceptance criteria. Can use Puppeteer for web frontend testing.',
+    description: 'Validates acceptance criteria. Can use Playwright for web frontend testing.',
     category: 'qa',
     tools: ['Read', 'Glob', 'Grep', 'Bash', 'WebFetch', 'WebSearch'],
     mcp_servers: ['context7', 'graphiti-memory', 'magestic-ai'],
-    mcp_optional: ['puppeteer'],
+    mcp_optional: ['playwright'],
     settingsSource: { type: 'phase', phase: 'qa' },
   },
   qa_fixer: {
     label: 'QA Fixer',
-    description: 'Fixes QA-reported issues. Can use Puppeteer for web frontend testing.',
+    description: 'Fixes QA-reported issues. Can use Playwright for web frontend testing.',
     category: 'qa',
     tools: ['Read', 'Glob', 'Grep', 'Write', 'Edit', 'Bash', 'WebFetch', 'WebSearch'],
     mcp_servers: ['context7', 'graphiti-memory', 'magestic-ai'],
-    mcp_optional: ['puppeteer'],
+    mcp_optional: ['playwright'],
     settingsSource: { type: 'phase', phase: 'qa_fixer' },
   },
 
@@ -278,19 +278,24 @@ const MCP_SERVERS: Record<string, { name: string; description: string; icon: Rea
       'mcp__magestic-ai__update_qa_status',
     ],
   },
-  puppeteer: {
-    name: 'Puppeteer MCP',
-    description: 'Web browser automation for web frontends.',
+  playwright: {
+    name: 'Playwright MCP',
+    description: 'Web browser automation for web frontends (headless Chromium).',
     icon: Globe,
     tools: [
-      'mcp__puppeteer__puppeteer_connect_active_tab',
-      'mcp__puppeteer__puppeteer_navigate',
-      'mcp__puppeteer__puppeteer_screenshot',
-      'mcp__puppeteer__puppeteer_click',
-      'mcp__puppeteer__puppeteer_fill',
-      'mcp__puppeteer__puppeteer_select',
-      'mcp__puppeteer__puppeteer_hover',
-      'mcp__puppeteer__puppeteer_evaluate',
+      'mcp__playwright__browser_navigate',
+      'mcp__playwright__browser_take_screenshot',
+      'mcp__playwright__browser_click',
+      'mcp__playwright__browser_fill_form',
+      'mcp__playwright__browser_select_option',
+      'mcp__playwright__browser_hover',
+      'mcp__playwright__browser_evaluate',
+      'mcp__playwright__browser_snapshot',
+      'mcp__playwright__browser_console_messages',
+      'mcp__playwright__browser_press_key',
+      'mcp__playwright__browser_wait_for',
+      'mcp__playwright__browser_navigate_back',
+      'mcp__playwright__browser_close',
     ],
   },
 };
@@ -299,7 +304,7 @@ const MCP_SERVERS: Record<string, { name: string; description: string; icon: Rea
 const ALL_MCP_SERVERS = [
   'context7',
   'graphiti-memory',
-  'puppeteer',
+  'playwright',
   'magestic-ai'
 ] as const;
 
@@ -358,7 +363,7 @@ function AgentCard({ id, config, modelLabel, thinkingLabel, overrides, mcpServer
       switch (mcp) {
         case 'context7': return mcpServerStates.context7Enabled !== false;
         case 'graphiti-memory': return mcpServerStates.graphitiEnabled !== false;
-        case 'puppeteer': return mcpServerStates.puppeteerEnabled !== false;
+        case 'playwright': return mcpServerStates.playwrightEnabled !== false;
         default: return true;
       }
     });
@@ -934,7 +939,7 @@ export function AgentTools() {
   const enabledCount = [
     mcpServers.context7Enabled !== false,
     mcpServers.graphitiEnabled && envConfig?.graphitiProviderConfig,
-    mcpServers.puppeteerEnabled,
+    mcpServers.playwrightEnabled,
     true, // magestic-ai always enabled
   ].filter(Boolean).length;
 
@@ -1099,18 +1104,18 @@ export function AgentTools() {
                     </span>
                   </div>
 
-                  {/* Puppeteer */}
+                  {/* Playwright */}
                   <div className="flex items-center justify-between py-2">
                     <div className="flex items-center gap-3">
                       <Globe className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <span className="text-sm font-medium">{t('settings:mcp.servers.puppeteer.name')}</span>
-                        <p className="text-xs text-muted-foreground">{t('settings:mcp.servers.puppeteer.description')}</p>
+                        <span className="text-sm font-medium">{t('settings:mcp.servers.playwright.name')}</span>
+                        <p className="text-xs text-muted-foreground">{t('settings:mcp.servers.playwright.description')}</p>
                       </div>
                     </div>
                     <Switch
-                      checked={mcpServers.puppeteerEnabled === true}
-                      onCheckedChange={(checked) => updateMcpServer('puppeteerEnabled', checked)}
+                      checked={mcpServers.playwrightEnabled === true}
+                      onCheckedChange={(checked) => updateMcpServer('playwrightEnabled', checked)}
                     />
                   </div>
                 </div>

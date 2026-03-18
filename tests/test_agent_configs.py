@@ -142,35 +142,56 @@ class TestGetRequiredMcpServers:
         from agents.tools_pkg.models import get_required_mcp_servers
 
         servers = get_required_mcp_servers(
-            "planner", mcp_config={"AGENT_MCP_planner_ADD": "puppeteer"}
+            "planner", mcp_config={"AGENT_MCP_planner_ADD": "playwright"}
         )
-        assert "puppeteer" in servers
+        assert "playwright" in servers
 
-    def test_browser_resolved_to_puppeteer_for_web_frontend(self):
-        """Browser should resolve to 'puppeteer' for web frontend projects when enabled."""
+    def test_browser_resolved_to_playwright_for_web_frontend(self):
+        """Browser should resolve to 'playwright' for web frontend projects when enabled."""
         from agents.tools_pkg.models import get_required_mcp_servers
 
-        # Puppeteer requires explicit opt-in via project config
+        # Playwright requires explicit opt-in via project config
+        servers = get_required_mcp_servers(
+            "qa_reviewer",
+            project_capabilities={"is_web_frontend": True, "is_electron": False},
+            mcp_config={"PLAYWRIGHT_MCP_ENABLED": "true"},
+        )
+        assert "playwright" in servers
+        assert "browser" not in servers
+        assert "electron" not in servers
+
+    def test_playwright_not_included_when_disabled(self):
+        """Playwright should NOT be included when not explicitly enabled (default)."""
+        from agents.tools_pkg.models import get_required_mcp_servers
+
+        # Default behavior: playwright is NOT auto-enabled for web frontends
+        servers = get_required_mcp_servers(
+            "qa_reviewer",
+            project_capabilities={"is_web_frontend": True, "is_electron": False},
+        )
+        assert "playwright" not in servers
+        assert "browser" not in servers
+
+    def test_legacy_puppeteer_env_resolves_to_playwright(self):
+        """Legacy PUPPETEER_MCP_ENABLED=true should still resolve to playwright."""
+        from agents.tools_pkg.models import get_required_mcp_servers
+
         servers = get_required_mcp_servers(
             "qa_reviewer",
             project_capabilities={"is_web_frontend": True, "is_electron": False},
             mcp_config={"PUPPETEER_MCP_ENABLED": "true"},
         )
-        assert "puppeteer" in servers
-        assert "browser" not in servers
-        assert "electron" not in servers
-
-    def test_puppeteer_not_included_when_disabled(self):
-        """Puppeteer should NOT be included when not explicitly enabled (default)."""
-        from agents.tools_pkg.models import get_required_mcp_servers
-
-        # Default behavior: puppeteer is NOT auto-enabled for web frontends
-        servers = get_required_mcp_servers(
-            "qa_reviewer",
-            project_capabilities={"is_web_frontend": True, "is_electron": False},
-        )
+        assert "playwright" in servers
         assert "puppeteer" not in servers
-        assert "browser" not in servers
+
+    def test_playwright_tools_have_correct_prefix(self):
+        """All PLAYWRIGHT_TOOLS should have mcp__playwright__ prefix."""
+        from agents.tools_pkg.models import PLAYWRIGHT_TOOLS
+
+        for tool in PLAYWRIGHT_TOOLS:
+            assert tool.startswith("mcp__playwright__"), (
+                f"Tool '{tool}' missing mcp__playwright__ prefix"
+            )
 
 
 class TestGetDefaultThinkingLevel:

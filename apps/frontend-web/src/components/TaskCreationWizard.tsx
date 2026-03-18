@@ -915,7 +915,7 @@ export function TaskCreationWizard({
                 type="button"
                 onClick={() => {
                   setMode('quick');
-                  setRequireReviewBeforeCoding(true); // Auto-enable for Quick Mode
+                  setRequireReviewBeforeCoding(false); // Quick Mode skips review by default
                 }}
                 disabled={isCreating}
                 className={cn(
@@ -955,7 +955,7 @@ export function TaskCreationWizard({
             </div>
             {mode === 'quick' && (
               <p className="text-xs text-info bg-info/10 p-2 rounded-md">
-                Quick Mode uses simplified prompts and auto-enables human review before coding.
+                Quick Mode uses simplified prompts and skips human review before coding for faster execution.
               </p>
             )}
           </div>

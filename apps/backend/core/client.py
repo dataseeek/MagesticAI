@@ -195,7 +195,7 @@ from agents.tools_pkg import (
     MAGESTIC_AI_TOOLS,
     CONTEXT7_TOOLS,
     GRAPHITI_MCP_TOOLS,
-    PUPPETEER_TOOLS,
+    PLAYWRIGHT_TOOLS,
     create_magestic_ai_mcp_server,
     get_allowed_tools,
     get_required_mcp_servers,
@@ -375,7 +375,7 @@ def load_project_mcp_config(project_dir: Path) -> dict:
 
     Returns a dict of MCP-related env vars:
     - CONTEXT7_ENABLED (default: true)
-    - PUPPETEER_MCP_ENABLED (default: false)
+    - PLAYWRIGHT_MCP_ENABLED (default: false) [also accepts legacy PUPPETEER_MCP_ENABLED]
     - AGENT_MCP_<agent>_ADD (per-agent MCP additions)
     - AGENT_MCP_<agent>_REMOVE (per-agent MCP removals)
     - CUSTOM_MCP_SERVERS (JSON array of custom server configs)
@@ -393,7 +393,8 @@ def load_project_mcp_config(project_dir: Path) -> dict:
     config = {}
     mcp_keys = {
         "CONTEXT7_ENABLED",
-        "PUPPETEER_MCP_ENABLED",
+        "PLAYWRIGHT_MCP_ENABLED",
+        "PUPPETEER_MCP_ENABLED",  # backward compat: mapped to PLAYWRIGHT_MCP_ENABLED
     }
 
     try:
@@ -447,7 +448,7 @@ def is_graphiti_mcp_enabled() -> bool:
     """
     Check if Graphiti MCP server integration is enabled.
 
-    Requires GRAPHITI_MCP_URL to be set (e.g., http://localhost:8000/mcp/)
+    Requires GRAPHITI_MCP_URL to be set (e.g., http://localhost:3101/mcp/)
     This is separate from GRAPHITI_ENABLED which controls the Python library integration.
     """
     return bool(os.environ.get("GRAPHITI_MCP_URL"))
@@ -455,7 +456,7 @@ def is_graphiti_mcp_enabled() -> bool:
 
 def get_graphiti_mcp_url() -> str:
     """Get the Graphiti MCP server URL."""
-    return os.environ.get("GRAPHITI_MCP_URL", "http://localhost:8000/mcp/")
+    return os.environ.get("GRAPHITI_MCP_URL", "http://localhost:3101/mcp/")
 
 
 def should_use_claude_md() -> bool:
@@ -605,8 +606,8 @@ def create_client(
 
     # Determine browser tools for permissions (already in allowed_tools_list)
     browser_tools_permissions = []
-    if "puppeteer" in required_servers:
-        browser_tools_permissions = PUPPETEER_TOOLS
+    if "playwright" in required_servers:
+        browser_tools_permissions = PLAYWRIGHT_TOOLS
 
     # Create comprehensive security settings
     # Note: Using both relative paths ("./**") and absolute paths to handle
@@ -730,8 +731,8 @@ def create_client(
     mcp_servers_list = []
     if "context7" in required_servers:
         mcp_servers_list.append("context7 (documentation)")
-    if "puppeteer" in required_servers:
-        mcp_servers_list.append("puppeteer (browser automation)")
+    if "playwright" in required_servers:
+        mcp_servers_list.append("playwright (browser automation)")
     if graphiti_mcp_enabled:
         mcp_servers_list.append("graphiti-memory (knowledge graph)")
     if "magestic-ai" in required_servers and magestic_ai_tools_enabled:
@@ -761,11 +762,16 @@ def create_client(
             "args": ["-y", "@upstash/context7-mcp"],
         }
 
-    if "puppeteer" in required_servers:
-        # Puppeteer for web frontends
-        mcp_servers["puppeteer"] = {
+    if "playwright" in required_servers:
+        # Playwright for web frontends (headless Chromium)
+        mcp_servers["playwright"] = {
             "command": "npx",
-            "args": ["puppeteer-mcp-server"],
+            "args": [
+                "@playwright/mcp@latest",
+                "--headless",
+                "--browser", "chromium",
+                "--viewport-size", "1280x720",
+            ],
         }
 
     # Graphiti MCP server for knowledge graph memory

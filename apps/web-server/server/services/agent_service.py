@@ -1225,8 +1225,9 @@ class AgentService:
                     if previous_status != current_status:
                         has_changes = True
                         # Subtask status changed - emit granular event
+                        # Use task_id (projectId:specId format) so frontend can match
                         await emit_subtask_update(
-                            task_id=spec_id,
+                            task_id=task_id or spec_id,
                             subtask_id=subtask_id,
                             status=current_status,
                             previous_status=previous_status
@@ -1239,8 +1240,8 @@ class AgentService:
                 if has_changes or synced_count > 0:
                     # Use the actual current execution phase from phase event tracking
                     actual_phase = self._task_current_phases.get(task_id, TaskPhase.PLANNING).value if task_id else "coding"
-                    # Emit task update
-                    await emit_task_update(spec_id, {
+                    # Emit task update — use task_id (projectId:specId) so frontend can match
+                    await emit_task_update(task_id or spec_id, {
                         "executionProgress": {
                             "phase": actual_phase,
                             "phaseProgress": progress,
