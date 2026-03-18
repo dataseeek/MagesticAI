@@ -572,8 +572,8 @@ _MCP_CATALOG = [
     },
     {
         "id": "mcp-puppeteer",
-        "name": "Puppeteer",
-        "description": "Browser automation for web testing and scraping",
+        "name": "Puppeteer (legacy)",
+        "description": "Browser automation via Puppeteer (use Playwright instead)",
         "category": "browser",
         "type": "command",
         "command": "npx",
@@ -674,7 +674,7 @@ _MCP_CATALOG = [
 
 
 # Templates that overlap with built-in app features (skip in detect results)
-_HIDDEN_TEMPLATE_IDS = {"mcp-puppeteer"}
+_HIDDEN_TEMPLATE_IDS = {"mcp-puppeteer", "mcp-playwright"}
 
 
 def _check_binary(binary: str) -> bool:

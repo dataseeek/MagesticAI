@@ -6,7 +6,7 @@ Manages which tools are allowed for each agent type to prevent context
 pollution and accidental misuse.
 
 Supports dynamic tool filtering based on project capabilities to optimize
-context window usage. For example, Puppeteer tools are only included for
+context window usage. For example, Playwright tools are only included for
 web projects that need browser automation.
 
 This module now uses AGENT_CONFIGS from models.py as the single source of truth
@@ -18,7 +18,7 @@ from .models import (
     AGENT_CONFIGS,
     CONTEXT7_TOOLS,
     GRAPHITI_MCP_TOOLS,
-    PUPPETEER_TOOLS,
+    PLAYWRIGHT_TOOLS,
     get_agent_config,
     get_required_mcp_servers,
 )
@@ -82,7 +82,7 @@ def _get_mcp_tools_for_servers(servers: list[str]) -> list[str]:
     Maps server names to their corresponding tool lists.
 
     Args:
-        servers: List of MCP server names (e.g., ['context7', 'puppeteer'])
+        servers: List of MCP server names (e.g., ['context7', 'playwright'])
 
     Returns:
         List of MCP tool names for all specified servers
@@ -94,8 +94,8 @@ def _get_mcp_tools_for_servers(servers: list[str]) -> list[str]:
             tools.extend(CONTEXT7_TOOLS)
         elif server == "graphiti":
             tools.extend(GRAPHITI_MCP_TOOLS)
-        elif server == "puppeteer":
-            tools.extend(PUPPETEER_TOOLS)
+        elif server == "playwright":
+            tools.extend(PLAYWRIGHT_TOOLS)
         # magestic-ai tools are already added via config["magestic_ai_tools"]
 
     return tools
