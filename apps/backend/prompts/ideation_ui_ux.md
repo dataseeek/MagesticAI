@@ -79,22 +79,19 @@ If `graph_hints.json` exists and contains hints for your ideation type (`ui_ux_i
 
 ## PHASE 1: LAUNCH BROWSER AND CAPTURE INITIAL STATE
 
-Use Puppeteer MCP to navigate to the application:
+Use Playwright MCP to navigate to the application:
 
 ```
-<puppeteer_navigate>
+<browser_navigate>
 url: http://localhost:3000
-wait_until: networkidle2
-</puppeteer_navigate>
+</browser_navigate>
 ```
 
 Take a screenshot of the landing page:
 
 ```
-<puppeteer_screenshot>
-path: ideation/screenshots/landing_page.png
-full_page: true
-</puppeteer_screenshot>
+<browser_take_screenshot>
+</browser_take_screenshot>
 ```
 
 Analyze:
@@ -112,10 +109,8 @@ Navigate through the main user flows and capture screenshots:
 
 ### 2.1 Navigation and Layout
 ```
-<puppeteer_screenshot>
-path: ideation/screenshots/navigation.png
-selector: nav, header, .sidebar
-</puppeteer_screenshot>
+<browser_take_screenshot>
+</browser_take_screenshot>
 ```
 
 Look for:
@@ -127,13 +122,12 @@ Look for:
 Click on buttons, forms, and interactive elements:
 
 ```
-<puppeteer_click>
+<browser_click>
 selector: button, .btn, [type="submit"]
-</puppeteer_click>
+</browser_click>
 
-<puppeteer_screenshot>
-path: ideation/screenshots/interactive_state.png
-</puppeteer_screenshot>
+<browser_take_screenshot>
+</browser_take_screenshot>
 ```
 
 Look for:
@@ -147,10 +141,8 @@ Look for:
 If forms exist, analyze them:
 
 ```
-<puppeteer_screenshot>
-path: ideation/screenshots/forms.png
-selector: form, .form-container
-</puppeteer_screenshot>
+<browser_take_screenshot>
+</browser_take_screenshot>
 ```
 
 Look for:
@@ -164,9 +156,8 @@ Look for:
 Check for empty state handling:
 
 ```
-<puppeteer_screenshot>
-path: ideation/screenshots/empty_state.png
-</puppeteer_screenshot>
+<browser_take_screenshot>
+</browser_take_screenshot>
 ```
 
 Look for:
@@ -178,15 +169,12 @@ Look for:
 Resize viewport and check responsive behavior:
 
 ```
-<puppeteer_set_viewport>
-width: 375
-height: 812
-</puppeteer_set_viewport>
+<browser_evaluate>
+expression: "window.innerWidth = 375; window.innerHeight = 812;"
+</browser_evaluate>
 
-<puppeteer_screenshot>
-path: ideation/screenshots/mobile_view.png
-full_page: true
-</puppeteer_screenshot>
+<browser_take_screenshot>
+</browser_take_screenshot>
 ```
 
 Look for:
@@ -202,18 +190,21 @@ Look for:
 Check for accessibility issues:
 
 ```
-<puppeteer_evaluate>
-// Check for accessibility basics
-const audit = {
+<browser_evaluate>
+expression: "JSON.stringify({
   images_without_alt: document.querySelectorAll('img:not([alt])').length,
   buttons_without_text: document.querySelectorAll('button:empty').length,
   inputs_without_labels: document.querySelectorAll('input:not([aria-label]):not([id])').length,
-  low_contrast_text: 0, // Would need more complex check
   missing_lang: !document.documentElement.lang,
   missing_title: !document.title
-};
-return JSON.stringify(audit);
-</puppeteer_evaluate>
+})"
+</browser_evaluate>
+```
+
+You can also use the accessibility snapshot tool for a structured page tree:
+```
+<browser_snapshot>
+</browser_snapshot>
 ```
 
 Also check:
@@ -417,9 +408,9 @@ Next phase: [Low-Hanging Fruit or High-Value or Complete]
 
 ---
 
-## FALLBACK IF PUPPETEER UNAVAILABLE
+## FALLBACK IF PLAYWRIGHT UNAVAILABLE
 
-If Puppeteer MCP is not available, analyze components statically:
+If Playwright MCP is not available, analyze components statically:
 
 ```bash
 # Analyze component files directly

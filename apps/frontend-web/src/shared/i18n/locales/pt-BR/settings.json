@@ -485,9 +485,9 @@
         "name": "Electron",
         "description": "Automação de app desktop via Chrome DevTools"
       },
-      "puppeteer": {
-        "name": "Puppeteer",
-        "description": "Automação de navegador web para testes"
+      "playwright": {
+        "name": "Playwright",
+        "description": "Automação de navegador web para testes (Chromium headless)"
       },
       "autoClaude": {
         "name": "Magestic AI Tools",
