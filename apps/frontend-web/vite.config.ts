@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: 5173,
+      port: 3100,
       host: true, // Listen on all network interfaces for remote access
       allowedHosts: ['dev.example.com'],
       ...(hasSSL && {
@@ -37,12 +37,12 @@ export default defineConfig(({ mode }) => {
       }),
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:8000',
+          target: env.VITE_API_URL || 'http://localhost:3101',
           changeOrigin: true,
           secure: false,
         },
         '/ws': {
-          target: env.VITE_WS_URL || 'ws://localhost:8000',
+          target: env.VITE_WS_URL || 'ws://localhost:3101',
           ws: true,
           secure: false,
         },

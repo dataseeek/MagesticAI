@@ -4,12 +4,12 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Info,
   ExternalLink,
   Terminal,
   Copy,
   Check,
-  Clock
+  Clock,
+  Download
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
@@ -34,12 +34,19 @@ function debugLog(message: string, data?: unknown) {
 }
 
 // Authentication timeout in milliseconds (5 minutes)
-// GitHub device codes typically expire after 15 minutes, but 5 minutes is a reasonable UX timeout
 const AUTH_TIMEOUT_MS = 5 * 60 * 1000;
+// Poll interval for checking auth completion (3 seconds)
+const POLL_INTERVAL_MS = 3000;
 
 /**
- * GitHub OAuth flow component using gh CLI
- * Guides users through authenticating with GitHub using the gh CLI
+ * GitHub OAuth flow component using gh CLI device code flow.
+ *
+ * Flow:
+ * 1. Check if gh CLI is installed → offer install if not
+ * 2. Check if already authenticated → skip to success
+ * 3. Start auth → backend returns device code + URL immediately
+ * 4. User opens URL on any device, enters code
+ * 5. Frontend polls /auth/status until complete
  */
 export function GitHubOAuthFlow({ projectId, onSuccess, onCancel }: GitHubOAuthFlowProps) {
   const [status, setStatus] = useState<'checking' | 'need-install' | 'need-auth' | 'authenticating' | 'success' | 'error'>('checking');
@@ -48,101 +55,52 @@ export function GitHubOAuthFlow({ projectId, onSuccess, onCancel }: GitHubOAuthF
   const [cliVersion, setCliVersion] = useState<string | undefined>();
   const [username, setUsername] = useState<string | undefined>();
 
-  // Device flow state for displaying code and auth URL
+  // Device flow state
   const [deviceCode, setDeviceCode] = useState<string | null>(null);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
-  const [browserOpened, setBrowserOpened] = useState<boolean>(false);
   const [codeCopied, setCodeCopied] = useState<boolean>(false);
-  const [urlCopied, setUrlCopied] = useState<boolean>(false);
   const [isTimeout, setIsTimeout] = useState<boolean>(false);
 
-  // Ref to track authentication timeout
-  const authTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Refs to track copy feedback timeouts
-  const codeCopyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const urlCopyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Install state
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [installError, setInstallError] = useState<string | null>(null);
 
-  // Check gh CLI installation and authentication status on mount
-  // Use a ref to prevent double-execution in React Strict Mode
+  // Refs for timers
+  const authTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const codeCopyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasCheckedRef = useRef(false);
 
-  // Clear the authentication timeout
-  const clearAuthTimeout = useCallback(() => {
+  // Cleanup all timers
+  const cleanupTimers = useCallback(() => {
     if (authTimeoutRef.current) {
-      debugLog('Clearing auth timeout');
       clearTimeout(authTimeoutRef.current);
       authTimeoutRef.current = null;
     }
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
   }, []);
 
-  // Cleanup copy feedback timeouts on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
+      cleanupTimers();
       if (codeCopyTimeoutRef.current) {
         clearTimeout(codeCopyTimeoutRef.current);
       }
-      if (urlCopyTimeoutRef.current) {
-        clearTimeout(urlCopyTimeoutRef.current);
-      }
     };
-  }, []);
+  }, [cleanupTimers]);
 
-  // Handle authentication timeout
-  const handleAuthTimeout = useCallback(() => {
-    debugLog('Authentication timeout triggered after 5 minutes');
-    setIsTimeout(true);
-    setError('Authentication timed out. The authentication window was open for too long. Please try again.');
-    setStatus('error');
-    authTimeoutRef.current = null;
-  }, []);
-
+  // Initial check on mount
   useEffect(() => {
-    if (hasCheckedRef.current) {
-      debugLog('Skipping duplicate check (Strict Mode)');
-      return;
-    }
+    if (hasCheckedRef.current) return;
     hasCheckedRef.current = true;
     debugLog('Component mounted, checking GitHub status...');
     checkGitHubStatus();
-
-    // Cleanup timeout on unmount
-    return () => {
-      clearAuthTimeout();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run once on mount, checkGitHubStatus is intentionally excluded
-  }, [clearAuthTimeout]);
-
-  // Listen for device code events from the main process
-  // This allows us to display the code IMMEDIATELY when extracted, not after the auth completes
-  useEffect(() => {
-    if (status !== 'authenticating') {
-      return;
-    }
-
-    debugLog('Setting up device code event listener');
-
-    // Listen for device code from main process (sent immediately when extracted)
-    const cleanup = window.API.onGitHubAuthDeviceCode((data) => {
-      debugLog('Received device code from main process:', {
-        hasCode: !!data.deviceCode,
-        authUrl: data.authUrl,
-        browserOpened: data.browserOpened
-      });
-
-      if (data.deviceCode) {
-        setDeviceCode(data.deviceCode);
-      }
-      if (data.authUrl) {
-        setAuthUrl(data.authUrl);
-      }
-      setBrowserOpened(data.browserOpened);
-    });
-
-    return () => {
-      debugLog('Cleaning up device code event listener');
-      cleanup();
-    };
-  }, [status]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const checkGitHubStatus = async () => {
     debugLog('checkGitHubStatus() called');
@@ -150,20 +108,16 @@ export function GitHubOAuthFlow({ projectId, onSuccess, onCancel }: GitHubOAuthF
     setError(null);
 
     try {
-      // Check if gh CLI is installed
-      debugLog('Calling checkGitHubCli...');
       const cliResult = await window.API.checkGitHubCli();
       debugLog('checkGitHubCli result:', cliResult);
 
       if (!cliResult.success) {
-        debugLog('checkGitHubCli failed:', cliResult.error);
         setError(cliResult.error || 'Failed to check GitHub CLI');
         setStatus('error');
         return;
       }
 
       if (!cliResult.data?.installed) {
-        debugLog('GitHub CLI not installed');
         setStatus('need-install');
         setCliInstalled(false);
         return;
@@ -171,20 +125,16 @@ export function GitHubOAuthFlow({ projectId, onSuccess, onCancel }: GitHubOAuthF
 
       setCliInstalled(true);
       setCliVersion(cliResult.data.version);
-      debugLog('GitHub CLI installed, version:', cliResult.data.version);
 
       // Check if already authenticated
-      debugLog('Calling checkGitHubAuth...');
       const authResult = await window.API.checkGitHubAuth();
       debugLog('checkGitHubAuth result:', authResult);
 
       if (authResult.success && authResult.data?.authenticated) {
         debugLog('Already authenticated as:', authResult.data.username);
         setUsername(authResult.data.username);
-        // Get the token and notify parent
         await fetchAndNotifyToken();
       } else {
-        debugLog('Not authenticated, showing auth prompt');
         setStatus('need-auth');
       }
     } catch (err) {
@@ -198,140 +148,153 @@ export function GitHubOAuthFlow({ projectId, onSuccess, onCancel }: GitHubOAuthF
     debugLog('fetchAndNotifyToken() called');
     try {
       if (projectId) {
-        // Persist token server-side — never expose in response
-        debugLog('Calling persistGitHubToken...');
         const persistResult = await window.API.persistGitHubToken(projectId);
-        debugLog('persistGitHubToken result:', persistResult);
-
         if (persistResult.success && persistResult.data?.tokenPersisted) {
-          debugLog('Token persisted successfully, calling onSuccess with username:', username);
           setStatus('success');
           onSuccess(username);
         } else {
-          debugLog('Failed to persist token:', persistResult.error);
           setError(persistResult.error || 'Failed to persist token');
           setStatus('error');
         }
       } else {
-        // No projectId — just check auth status and notify
-        debugLog('No projectId, checking auth status...');
         const authResult = await window.API.checkGitHubAuth();
         if (authResult.success && authResult.data?.authenticated) {
-          debugLog('Auth confirmed, calling onSuccess with username:', username);
           setStatus('success');
-          onSuccess(username);
+          onSuccess(authResult.data.username);
         } else {
-          debugLog('Auth check failed');
           setError('Authentication could not be confirmed');
           setStatus('error');
         }
       }
     } catch (err) {
-      debugLog('Error in fetchAndNotifyToken:', err);
       setError(err instanceof Error ? err.message : 'Failed to persist token');
       setStatus('error');
     }
   };
 
+  // Poll for auth completion
+  const startPolling = useCallback(() => {
+    debugLog('Starting auth status polling');
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const result = await window.API.checkGitHubAuthStatus();
+        debugLog('Auth status poll:', result);
+
+        if (result.success && result.data?.complete) {
+          cleanupTimers();
+
+          if (result.data.success) {
+            debugLog('Auth completed successfully');
+            await fetchAndNotifyToken();
+          } else {
+            setError(result.data.error || 'Authentication failed');
+            setStatus('error');
+          }
+        }
+      } catch (err) {
+        debugLog('Polling error:', err);
+        // Don't stop polling on transient errors
+      }
+    }, POLL_INTERVAL_MS);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cleanupTimers, projectId]);
+
   const handleStartAuth = async () => {
     debugLog('handleStartAuth() called');
     setStatus('authenticating');
     setError(null);
-
-    // Reset device flow state
     setDeviceCode(null);
     setAuthUrl(null);
-    setBrowserOpened(false);
     setCodeCopied(false);
-    setUrlCopied(false);
     setIsTimeout(false);
+    cleanupTimers();
 
-    // Clear any existing timeout and start a new one
-    clearAuthTimeout();
-    debugLog(`Starting auth timeout (${AUTH_TIMEOUT_MS / 1000 / 60} minutes)`);
-    authTimeoutRef.current = setTimeout(handleAuthTimeout, AUTH_TIMEOUT_MS);
+    // Set timeout
+    authTimeoutRef.current = setTimeout(() => {
+      debugLog('Authentication timeout triggered');
+      cleanupTimers();
+      setIsTimeout(true);
+      setError('Authentication timed out after 5 minutes. Please try again.');
+      setStatus('error');
+    }, AUTH_TIMEOUT_MS);
 
     try {
       debugLog('Calling startGitHubAuth...');
       const result = await window.API.startGitHubAuth();
       debugLog('startGitHubAuth result:', result);
 
-      // Clear timeout since we got a response
-      clearAuthTimeout();
+      if (!result.success || !result.data?.success) {
+        cleanupTimers();
+        // Check if already authenticated
+        if (result.data?.message?.includes('Already authenticated')) {
+          await fetchAndNotifyToken();
+          return;
+        }
+        setError(result.data?.message || result.error || 'Failed to start authentication');
+        setStatus('error');
+        return;
+      }
 
-      // Capture device flow info if available
-      if (result.data?.deviceCode) {
-        debugLog('Device code received:', result.data.deviceCode);
+      // Got device code — show it and start polling
+      if (result.data.deviceCode) {
         setDeviceCode(result.data.deviceCode);
       }
-      if (result.data?.authUrl) {
-        debugLog('Auth URL received:', result.data.authUrl);
+      if (result.data.authUrl) {
         setAuthUrl(result.data.authUrl);
       }
-      if (result.data?.browserOpened !== undefined) {
-        debugLog('Browser opened status:', result.data.browserOpened);
-        setBrowserOpened(result.data.browserOpened);
-      }
 
-      if (result.success && result.data?.success) {
-        debugLog('Auth successful, fetching token...');
-        // Fetch the token and notify parent
-        await fetchAndNotifyToken();
+      // Start polling for completion
+      if (result.data.awaiting) {
+        startPolling();
       } else {
-        debugLog('Auth failed:', result.error);
-        // Include fallback URL info in error message if available
-        const errorMessage = result.error || 'Authentication failed';
-        setError(errorMessage);
-        // Keep authUrl from response for fallback display
-        if (result.data?.fallbackUrl) {
-          setAuthUrl(result.data.fallbackUrl);
-        }
-        setStatus('error');
+        // Auth completed immediately (shouldn't happen but handle it)
+        cleanupTimers();
+        await fetchAndNotifyToken();
       }
     } catch (err) {
-      // Clear timeout on error
-      clearAuthTimeout();
+      cleanupTimers();
       debugLog('Error in handleStartAuth:', err);
       setError(err instanceof Error ? err.message : 'Authentication failed');
       setStatus('error');
     }
   };
 
-  const handleOpenGhInstall = () => {
-    debugLog('Opening gh CLI install page');
-    window.open('https://cli.github.com/', '_blank');
+  const handleInstallGhCli = async () => {
+    debugLog('Installing GitHub CLI...');
+    setIsInstalling(true);
+    setInstallError(null);
+
+    try {
+      const result = await window.API.installGitHubCli();
+      if (result.success) {
+        checkGitHubStatus();
+      } else {
+        setInstallError(result.error || 'Installation failed');
+      }
+    } catch (err) {
+      setInstallError(err instanceof Error ? err.message : 'Installation failed');
+    } finally {
+      setIsInstalling(false);
+    }
   };
 
   const handleRetry = () => {
-    debugLog('Retry clicked');
+    cleanupTimers();
+    hasCheckedRef.current = false;
     checkGitHubStatus();
   };
 
   const handleCopyDeviceCode = async () => {
     if (!deviceCode) return;
-    debugLog('Copying device code to clipboard');
     try {
       await navigator.clipboard.writeText(deviceCode);
       setCodeCopied(true);
-      // Clear any existing timeout before setting a new one
-      if (codeCopyTimeoutRef.current) {
-        clearTimeout(codeCopyTimeoutRef.current);
-      }
-      // Reset the copied state after 2 seconds
+      if (codeCopyTimeoutRef.current) clearTimeout(codeCopyTimeoutRef.current);
       codeCopyTimeoutRef.current = setTimeout(() => setCodeCopied(false), 2000);
     } catch (err) {
       debugLog('Failed to copy device code:', err);
     }
   };
-
-  const handleOpenAuthUrl = () => {
-    if (authUrl) {
-      debugLog('Opening auth URL manually:', authUrl);
-      window.open(authUrl, '_blank');
-    }
-  };
-
-  debugLog('Rendering with status:', status);
 
   return (
     <div className="space-y-4">
@@ -354,34 +317,32 @@ export function GitHubOAuthFlow({ projectId, onSuccess, onCancel }: GitHubOAuthF
                     GitHub CLI Required
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    The GitHub CLI (gh) is required for OAuth authentication. This provides a secure
-                    way to authenticate without manually creating tokens.
+                    The GitHub CLI (gh) is required for OAuth authentication. Click below to
+                    install it automatically.
                   </p>
+                  {installError && (
+                    <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
+                      {installError}
+                    </div>
+                  )}
                   <div className="flex gap-3">
-                    <Button onClick={handleOpenGhInstall} className="gap-2">
-                      <ExternalLink className="h-4 w-4" />
-                      Install GitHub CLI
+                    <Button onClick={handleInstallGhCli} disabled={isInstalling} className="gap-2">
+                      {isInstalling ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Installing...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4" />
+                          Install GitHub CLI
+                        </>
+                      )}
                     </Button>
-                    <Button variant="outline" onClick={handleRetry}>
+                    <Button variant="outline" onClick={handleRetry} disabled={isInstalling}>
                       I've Installed It
                     </Button>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border border-info/30 bg-info/10">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-info shrink-0 mt-0.5" />
-                <div className="flex-1 text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground mb-2">Installation instructions:</p>
-                  <ul className="space-y-1 list-disc list-inside">
-                    <li>macOS: <code className="px-1.5 py-0.5 bg-muted rounded font-mono text-xs">brew install gh</code></li>
-                    <li>Windows: <code className="px-1.5 py-0.5 bg-muted rounded font-mono text-xs">winget install GitHub.cli</code></li>
-                    <li>Linux: Visit <a href="https://cli.github.com/" target="_blank" rel="noopener noreferrer" className="text-info hover:underline">cli.github.com</a></li>
-                  </ul>
                 </div>
               </div>
             </CardContent>
@@ -401,8 +362,8 @@ export function GitHubOAuthFlow({ projectId, onSuccess, onCancel }: GitHubOAuthF
                     Connect to GitHub
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Click the button below to authenticate with GitHub. This will open your browser
-                    where you can authorize the application.
+                    Click the button below to start the GitHub device code authentication flow.
+                    You'll receive a code to enter at github.com from any device.
                   </p>
                   {cliVersion && (
                     <p className="text-xs text-muted-foreground">
@@ -423,29 +384,10 @@ export function GitHubOAuthFlow({ projectId, onSuccess, onCancel }: GitHubOAuthF
         </div>
       )}
 
-      {/* Authenticating */}
+      {/* Authenticating — device code display */}
       {status === 'authenticating' && (
         <div className="space-y-4">
-          <Card className="border border-info/30 bg-info/10">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <Loader2 className="h-6 w-6 animate-spin text-info shrink-0" />
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-foreground">
-                    Authenticating...
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {browserOpened
-                      ? 'Please complete the authentication in your browser. This window will update automatically.'
-                      : 'Waiting for authentication flow to start...'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Device Code Display */}
-          {deviceCode && (
+          {deviceCode ? (
             <Card className="border border-primary/30 bg-primary/5">
               <CardContent className="p-6">
                 <div className="text-center space-y-4">
@@ -478,22 +420,41 @@ export function GitHubOAuthFlow({ projectId, onSuccess, onCancel }: GitHubOAuthF
                     </div>
                   </div>
 
-                  <div className="text-sm text-muted-foreground space-y-2">
+                  <div className="text-sm text-muted-foreground space-y-3">
                     <p>
-                      {browserOpened
-                        ? 'Enter this code in your browser to complete authentication.'
-                        : 'Copy this code, then open the link below to authenticate.'}
+                      Open the link below on any device and enter this code to authenticate.
                     </p>
-                    {!browserOpened && authUrl && (
+                    {authUrl && (
                       <Button
-                        variant="link"
-                        onClick={handleOpenAuthUrl}
-                        className="text-info hover:text-info/80 p-0 h-auto gap-1"
+                        variant="secondary"
+                        onClick={() => window.open(authUrl, '_blank')}
+                        className="gap-2"
                       >
                         <ExternalLink className="h-4 w-4" />
                         Open {authUrl}
                       </Button>
                     )}
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground pt-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>Waiting for authentication to complete...</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border border-info/30 bg-info/10">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-info shrink-0" />
+                  <div className="flex-1">
+                    <h3 className="text-lg font-medium text-foreground">
+                      Starting authentication...
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Requesting device code from GitHub...
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -541,86 +502,6 @@ export function GitHubOAuthFlow({ projectId, onSuccess, onCancel }: GitHubOAuthF
               </div>
             </CardContent>
           </Card>
-
-          {/* Fallback URL display when browser failed to open */}
-          {authUrl && (
-            <Card className="border border-warning/30 bg-warning/10">
-              <CardContent className="p-5">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <Info className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <h3 className="text-base font-medium text-foreground">
-                        Complete Authentication Manually
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        The browser couldn't be opened automatically. Please visit the URL below to complete authentication:
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                      <code className="text-sm font-mono text-foreground flex-1 break-all">
-                        {authUrl}
-                      </code>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          try {
-                            await navigator.clipboard.writeText(authUrl);
-                            setUrlCopied(true);
-                            // Clear any existing timeout before setting a new one
-                            if (urlCopyTimeoutRef.current) {
-                              clearTimeout(urlCopyTimeoutRef.current);
-                            }
-                            urlCopyTimeoutRef.current = setTimeout(() => setUrlCopied(false), 2000);
-                          } catch (err) {
-                            debugLog('Failed to copy URL:', err);
-                          }
-                        }}
-                        className="shrink-0"
-                      >
-                        {urlCopied ? (
-                          <>
-                            <Check className="h-4 w-4 mr-1 text-success" />
-                            Copied
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-4 w-4 mr-1" />
-                            Copy
-                          </>
-                        )}
-                      </Button>
-                    </div>
-
-                    <Button
-                      variant="secondary"
-                      onClick={handleOpenAuthUrl}
-                      className="gap-2"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      Open URL in Browser
-                    </Button>
-                  </div>
-
-                  {/* Device code reminder if available */}
-                  {deviceCode && (
-                    <div className="pt-2 border-t border-warning/20">
-                      <p className="text-sm text-muted-foreground">
-                        When prompted, enter this code:{' '}
-                        <code className="font-mono font-bold text-primary px-2 py-0.5 bg-primary/10 rounded">
-                          {deviceCode}
-                        </code>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           <div className="flex justify-center gap-3">
             <Button onClick={handleStartAuth} variant="outline">

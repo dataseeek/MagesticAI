@@ -7,7 +7,6 @@ import {
   Loader2,
   Download,
   RefreshCw,
-  LogIn,
   KeyRound,
 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -41,7 +40,7 @@ interface CLIToolPopoverProps {
   Icon: React.ComponentType<{ className?: string }>;
   label: string;
   lastChecked: Date | null;
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<void>;
   iconOnly?: boolean;
 }
 
@@ -49,7 +48,6 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh, icon
   const { t } = useTranslation(['navigation', 'common']);
   const [isOpen, setIsOpen] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
-  const [isLoginPolling, setIsLoginPolling] = useState(false);
   const installed = status?.installed ?? false;
   const authenticated = status?.authenticated ?? false;
   const hasUpdate = installed && status?.latestVersion && status?.version !== status?.latestVersion;
@@ -75,13 +73,6 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh, icon
       ? t('navigation:cliTools.viaGoogleLogin')
       : t('navigation:cliTools.viaApiKey');
   };
-
-  // Reset login polling when auth succeeds
-  useEffect(() => {
-    if (isLoginPolling && authenticated) {
-      setIsLoginPolling(false);
-    }
-  }, [isLoginPolling, authenticated]);
 
   // Tooltip text
   const tooltipText = (() => {
@@ -116,29 +107,11 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh, icon
     setIsInstalling(true);
     try {
       await window.API.installCLI(cli);
-      setTimeout(onRefresh, 3000);
+      await onRefresh();
     } catch (err) {
       console.error(`Failed to install/update ${cli} CLI:`, err);
     } finally {
       setIsInstalling(false);
-    }
-  };
-
-  const handleLogin = () => {
-    if (!window.API?.startCLILogin) return;
-    setIsLoginPolling(true);
-    window.API.startCLILogin(cli);
-    // Auto-reset after 3 min timeout
-    setTimeout(() => setIsLoginPolling(false), 180000);
-  };
-
-  const handleImport = async () => {
-    if (!window.API?.importCLICredentials) return;
-    try {
-      await window.API.importCLICredentials(cli);
-      onRefresh();
-    } catch (err) {
-      console.error(`Failed to import ${cli} credentials:`, err);
     }
   };
 
@@ -253,16 +226,6 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh, icon
             </div>
           )}
 
-          {/* Login hint when polling */}
-          {isLoginPolling && (
-            <div className="bg-muted/30 rounded-lg p-2 text-xs text-muted-foreground">
-              {cli === 'codex'
-                ? t('navigation:cliTools.loginHintCodex')
-                : t('navigation:cliTools.loginHintGemini')
-              }
-            </div>
-          )}
-
           {/* Actions */}
           <div className="space-y-2">
             <div className="flex gap-2 flex-wrap">
@@ -286,27 +249,6 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh, icon
                 </Button>
               )}
 
-              {/* Login */}
-              {installed && !authenticated && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-1"
-                  onClick={handleLogin}
-                  disabled={isLoginPolling}
-                >
-                  {isLoginPolling ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <LogIn className="h-3 w-3" />
-                  )}
-                  {isLoginPolling
-                    ? t('navigation:cliTools.waitingForAuth')
-                    : t('navigation:cliTools.loginInTerminal')
-                  }
-                </Button>
-              )}
-
               {/* Refresh */}
               <Button
                 variant="outline"
@@ -318,19 +260,6 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh, icon
                 {t('common:refresh', 'Refresh')}
               </Button>
             </div>
-
-            {/* Import Credentials */}
-            {installed && !authenticated && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full gap-1 text-xs"
-                onClick={handleImport}
-              >
-                <Download className="h-3 w-3" />
-                {t('navigation:cliTools.importCredentials')}
-              </Button>
-            )}
 
           </div>
         </div>

@@ -34,6 +34,7 @@ import {
 import { cn } from '../../lib/utils';
 import { calculateProgress } from '../../lib/utils';
 import { startTask, stopTask, submitReview, recoverStuckTask, deleteTask, persistTaskStatus } from '../../stores/task-store';
+import { useProjectStore } from '../../stores/project-store';
 import { TASK_STATUS_LABELS } from '../../shared/constants';
 import { TaskEditDialog } from '../TaskEditDialog';
 import { useTaskDetail } from './hooks/useTaskDetail';
@@ -44,6 +45,7 @@ import { TaskLogs } from './TaskLogs';
 import { TaskFiles } from './TaskFiles';
 import { TaskReview } from './TaskReview';
 import { PlanReviewSection } from './PlanReviewSection';
+import { CreatePRDialog } from './task-review/CreatePRDialog';
 import type { Task } from '../../shared/types';
 
 interface TaskDetailModalProps {
@@ -263,30 +265,11 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
   };
 
   const [isCreatingPR, setIsCreatingPR] = useState(false);
+  const [showCreatePRDialog, setShowCreatePRDialog] = useState(false);
+  const selectedProject = useProjectStore((s) => s.getSelectedProject());
 
-  const handleCreatePR = async () => {
-    setIsCreatingPR(true);
-    state.setWorkspaceError(null);
-    try {
-      const result = await window.API.createPRFromTask(task.id);
-      if (result.success && result.data) {
-        toast({
-          title: 'Pull Request Created',
-          description: result.data.prUrl
-            ? `PR #${result.data.prNumber} created successfully`
-            : 'PR created successfully',
-        });
-        if (result.data.prUrl) {
-          window.API.openExternal(result.data.prUrl);
-        }
-      } else {
-        state.setWorkspaceError(result.error || 'Failed to create PR');
-      }
-    } catch (err) {
-      state.setWorkspaceError(`Failed to create PR: ${err}`);
-    } finally {
-      setIsCreatingPR(false);
-    }
+  const handleCreatePR = () => {
+    setShowCreatePRDialog(true);
   };
 
   const handleDiscard = async () => {
@@ -674,6 +657,23 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
         open={state.isEditDialogOpen}
         onOpenChange={state.setIsEditDialogOpen}
       />
+
+      {/* Create PR Dialog */}
+      {selectedProject && (
+        <CreatePRDialog
+          open={showCreatePRDialog}
+          task={task}
+          projectPath={selectedProject.path}
+          onOpenChange={setShowCreatePRDialog}
+          onSuccess={() => {
+            setIsCreatingPR(false);
+          }}
+          onError={(error) => {
+            state.setWorkspaceError(error);
+            setIsCreatingPR(false);
+          }}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={state.showDeleteDialog} onOpenChange={state.setShowDeleteDialog}>

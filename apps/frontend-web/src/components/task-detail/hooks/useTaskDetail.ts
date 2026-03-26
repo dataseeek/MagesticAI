@@ -424,8 +424,8 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
   const loadMergePreview = useCallback(async () => {
     setIsLoadingPreview(true);
     try {
-      // Use specId (e.g., "004-kanban-border-color") not the UUID
-      const result = await window.API.mergeWorktreePreview(task.specId);
+      // Use task.id (format: "project_id:spec_id") so backend can resolve the project
+      const result = await window.API.mergeWorktreePreview(task.id);
       if (result.success && result.data?.preview) {
         setMergePreview(result.data.preview);
       }
@@ -451,11 +451,11 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
         // Use the new git merge conflict resolution endpoint
         // This handles files that already have <<<<<<< conflict markers
         console.log('[useTaskDetail] Using git merge conflict resolution (merge in progress)');
-        result = await window.API.resolveGitMergeConflicts(task.specId);
+        result = await window.API.resolveGitMergeConflicts(task.id);
       } else {
         // Use the standard three-way merge conflict resolution
         console.log('[useTaskDetail] Using standard worktree conflict resolution');
-        result = await window.API.resolveWorktreeConflicts(task.specId, { useAI: true });
+        result = await window.API.resolveWorktreeConflicts(task.id, { useAI: true });
       }
 
       if (result.success && result.data) {
@@ -477,13 +477,13 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
     } finally {
       setIsResolvingConflicts(false);
     }
-  }, [task.specId, loadMergePreview, loadWorktreeStatus, mergePreview?.gitConflicts?.mergeInProgress]);
+  }, [task.id, loadMergePreview, loadWorktreeStatus, mergePreview?.gitConflicts?.mergeInProgress]);
 
   // Abort a stuck merge
   const abortMerge = useCallback(async () => {
     setIsAbortingMerge(true);
     try {
-      const result = await window.API.abortWorktreeMerge(task.specId);
+      const result = await window.API.abortWorktreeMerge(task.id);
       if (result.success && result.data) {
         console.log('[useTaskDetail] Merge abort result:', result.data);
         // Reset cache and reload both merge preview and worktree status
@@ -502,13 +502,13 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
     } finally {
       setIsAbortingMerge(false);
     }
-  }, [task.specId, loadMergePreview, loadWorktreeStatus]);
+  }, [task.id, loadMergePreview, loadWorktreeStatus]);
 
   // Resolve uncommitted conflicts with AI
   const resolveUncommittedConflicts = useCallback(async () => {
     setIsResolvingUncommitted(true);
     try {
-      const result = await window.API.resolveUncommittedConflicts(task.specId);
+      const result = await window.API.resolveUncommittedConflicts(task.id);
       if (result.success && result.data) {
         console.log('[useTaskDetail] Uncommitted conflict resolution result:', result.data);
         // Reset cache and reload both merge preview and worktree status
@@ -527,7 +527,7 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
     } finally {
       setIsResolvingUncommitted(false);
     }
-  }, [task.specId, loadMergePreview, loadWorktreeStatus]);
+  }, [task.id, loadMergePreview, loadWorktreeStatus]);
 
   // Unified merge orchestrator — resolves uncommitted, git conflicts, then merges in sequence
   const unifiedMerge = useCallback(async (stageOnlyParam: boolean) => {
@@ -539,7 +539,7 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
       const hasUncommittedConflicts = mergePreview?.uncommittedChanges?.hasConflicts;
       if (hasUncommittedConflicts) {
         setMergeStep('resolving_uncommitted');
-        const result = await window.API.resolveUncommittedConflicts(task.specId);
+        const result = await window.API.resolveUncommittedConflicts(task.id);
         if (!result.success || !result.data) {
           setWorkspaceError(result.error || 'Failed to resolve uncommitted conflicts');
           return { success: false };
@@ -553,7 +553,7 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
       // Only resolve when there are actual file conflicts or AI-resolvable conflicts.
       // needsRebase alone (branch behind but no conflicting files) is handled by the
       // merge endpoint itself — no need to call resolve first.
-      const freshPreviewResult = await window.API.mergeWorktreePreview(task.specId);
+      const freshPreviewResult = await window.API.mergeWorktreePreview(task.id);
       const freshPreview = freshPreviewResult.success ? freshPreviewResult.data?.preview : null;
       const hasGitConflictsNow = freshPreview?.gitConflicts?.hasConflicts;
       const hasAIConflictsNow = freshPreview && freshPreview.conflicts && freshPreview.conflicts.length > 0;
@@ -563,9 +563,9 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
         setMergeStep('resolving_git_conflicts');
         let resolveResult;
         if (freshPreview?.gitConflicts?.mergeInProgress) {
-          resolveResult = await window.API.resolveGitMergeConflicts(task.specId);
+          resolveResult = await window.API.resolveGitMergeConflicts(task.id);
         } else {
-          resolveResult = await window.API.resolveWorktreeConflicts(task.specId, { useAI: true });
+          resolveResult = await window.API.resolveWorktreeConflicts(task.id, { useAI: true });
         }
         if (!resolveResult.success || !resolveResult.data) {
           setWorkspaceError(resolveResult.error || 'Failed to resolve git conflicts');
@@ -575,7 +575,7 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
 
       // Step 3: Perform the actual merge
       setMergeStep('merging');
-      const mergeResult = await window.API.mergeWorktree(task.specId, { noCommit: stageOnlyParam });
+      const mergeResult = await window.API.mergeWorktree(task.id, { noCommit: stageOnlyParam });
       if (mergeResult.success && mergeResult.data?.success) {
         mergeSucceeded = true;
         return { success: true, data: mergeResult.data, stageOnly: stageOnlyParam };
@@ -606,7 +606,7 @@ export function useTaskDetail({ task }: UseTaskDetailOptions) {
         ]).catch(() => { /* worktree may already be gone */ });
       }
     }
-  }, [task.specId, mergePreview?.uncommittedChanges?.hasConflicts, loadMergePreview, loadWorktreeStatus]);
+  }, [task.id, mergePreview?.uncommittedChanges?.hasConflicts, loadMergePreview, loadWorktreeStatus]);
 
   // Auto-load merge preview when worktree is ready (eliminates need to click "Check Conflicts")
   // NOTE: This must be placed AFTER loadMergePreview definition since it depends on that callback

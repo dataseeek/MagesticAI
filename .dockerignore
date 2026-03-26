@@ -22,6 +22,19 @@ apps/backend/.env
 apps/web-server/.env
 apps/frontend-web/.env
 
+# GitHub metadata (not needed at runtime)
+.github/
+
+# Legacy data
+.auto-claude/
+
+# Documentation & AI instruction files
+*.md
+!apps/**/*.md
+guides/
+shared_docs/
+LICENSE
+
 # Tests and docs
 tests/
 _bmad/

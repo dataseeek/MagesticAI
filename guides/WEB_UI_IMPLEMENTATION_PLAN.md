@@ -281,8 +281,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://localhost:8000',
-      '/ws': { target: 'ws://localhost:8000', ws: true }
+      '/api': 'http://localhost:3101',
+      '/ws': { target: 'ws://localhost:3101', ws: true }
     }
   },
   build: {
@@ -449,7 +449,7 @@ const headers = { Authorization: `Bearer ${token}` };
 **Development:**
 ```bash
 # Terminal 1: Backend server
-cd apps/web-server && uvicorn server.main:app --reload --port 8000
+cd apps/web-server && uvicorn server.main:app --reload --port 3101
 
 # Terminal 2: Frontend dev server
 cd apps/frontend-web && npm run dev
@@ -461,12 +461,12 @@ cd apps/frontend-web && npm run dev
 cd apps/frontend-web && npm run build
 
 # Run server (serves static files + API)
-cd apps/web-server && uvicorn server.main:app --host 0.0.0.0 --port 8000
+cd apps/web-server && uvicorn server.main:app --host 0.0.0.0 --port 3101
 ```
 
 **Remote Access:**
 - Run behind nginx/caddy reverse proxy with HTTPS
-- Or use SSH tunnel: `ssh -L 8000:localhost:8000 your-server`
+- Or use SSH tunnel: `ssh -L 3101:localhost:3101 your-server`
 - Or use Cloudflare Tunnel / ngrok for quick access
 
 ---

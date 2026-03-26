@@ -296,7 +296,7 @@ export function LLMAccountsSettings({ isOpen }: LLMAccountsSettingsProps) {
 
   const handleCLIStartLogin = async (cli: 'codex' | 'gemini') => {
     try {
-      await window.API.startCLILogin(cli);
+      await window.API.startCLILoginTerminal(cli);
     } catch (err) {
       console.error(`Failed to start ${cli} login:`, err);
     }
@@ -773,6 +773,7 @@ export function LLMAccountsSettings({ isOpen }: LLMAccountsSettingsProps) {
             onStartLogin={() => handleCLIStartLogin('codex')}
             onRemove={() => handleCLIRemove('codex')}
             onInstall={() => handleCLIInstall('codex')}
+            onRefresh={detectCLIAccounts}
           />
           <CLIAccountCard
             cli="gemini"
@@ -782,6 +783,7 @@ export function LLMAccountsSettings({ isOpen }: LLMAccountsSettingsProps) {
             onStartLogin={() => handleCLIStartLogin('gemini')}
             onRemove={() => handleCLIRemove('gemini')}
             onInstall={() => handleCLIInstall('gemini')}
+            onRefresh={detectCLIAccounts}
           />
         </div>
       </div>

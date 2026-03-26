@@ -1,22 +1,40 @@
 # =============================================================================
 # MagesticAI - Docker Compose
 # =============================================================================
-# Deploys with a static LAN IP (<gateway>72) via macvlan.
+# Deploys with a static LAN IP via macvlan.
 # No port mapping needed — the container is directly reachable on the LAN.
 #
+# Environment variables (all have defaults):
+#   INSTANCE_NAME  — Container name and disk label  (default: magesticai)
+#   INSTANCE_IP    — LAN IP for this instance        (default: <lan-ip>)
+#
 # Usage:
-#   docker compose up -d
-#   # Access: http://<gateway>72:8000
+#   sudo bash scripts/setup-docker-disk.sh magesticai  # First time: create 2 GB disk
+#   docker compose up -d                                # Default instance
+#
+# Multiple instances (each needs a unique name + IP):
+#   sudo bash scripts/setup-docker-disk.sh client-acme
+#   INSTANCE_NAME=client-acme INSTANCE_IP=<lan-ip> docker compose up -d
+#
+#   sudo bash scripts/setup-docker-disk.sh client-beta
+#   INSTANCE_NAME=client-beta INSTANCE_IP=<lan-ip> docker compose up -d
+#
+# DISK QUOTA:
+#   Each instance gets its own 2 GB loopback ext4 disk at ~/docker-disks/<name>-data.
+#   Uses ~/docker-disks/ (not /opt/) for snap Docker compatibility (/home/ access).
+#   Run scripts/setup-docker-disk.sh <name> to create it (idempotent).
+#   To teardown: sudo bash scripts/setup-docker-disk.sh <name> teardown
 #
 # MACVLAN CAVEAT:
 #   By default, the Docker host (<host-ip>) CANNOT talk to macvlan
 #   containers directly. To enable host-to-container communication,
-#   create a macvlan shim interface on the host:
+#   create a macvlan shim interface on the host (once per instance IP):
 #
 #     sudo ip link add magesticai-shim link <nic> type macvlan mode bridge
 #     sudo ip addr add <host-ip>/32 dev magesticai-shim
 #     sudo ip link set magesticai-shim up
-#     sudo ip route add <gateway>72/32 dev magesticai-shim
+#     sudo ip route add <lan-ip>/32 dev magesticai-shim
+#     sudo ip route add <lan-ip>/32 dev magesticai-shim   # 2nd instance
 #
 #   To make it persistent, add to /etc/networkd-dispatcher or rc.local.
 # =============================================================================
@@ -24,21 +42,45 @@
 services:
   app:
     build: .
-    container_name: magesticai
+    container_name: ${INSTANCE_NAME:-magesticai}
     restart: unless-stopped
     networks:
       magesticai-lan:
-        ipv4_address: <gateway>72
+        ipv4_address: ${INSTANCE_IP:-<lan-ip>}
     volumes:
-      # Persistent data (SQLite DB, tokens, JWT secrets)
-      - magesticai-data:/home/magesticai/.magestic-ai
+      # Persistent data — 2 GB loopback disk (run scripts/setup-docker-disk.sh <name> first)
+      # Uses ~/docker-disks/ for snap Docker compatibility (snap can access /home/)
+      # NOTE: Must use absolute path — snap Docker resolves $HOME to its own snap dir
+      - <home>/docker-disks/${INSTANCE_NAME:-magesticai}-data:/home/magesticai/.magestic-ai
       # Optional: bind-mount a host directory for agent project work
       # - /path/to/host/projects:/home/magesticai/projects
+    cap_add:
+      - NET_ADMIN                       # Required for iptables firewall rules in entrypoint
     environment:
       # All optional — configure via the web UI onboarding wizard
       - APP_DEBUG=false                 # Set to true for Swagger docs at /docs
       # - APP_API_TOKEN=                # Auto-generated if not set
       # - CLAUDE_CODE_OAUTH_TOKEN=      # Set via UI OAuth flow instead
+      # LAN firewall (blocks RFC 1918 egress, preserves internet access)
+      - CONTAINER_LAN_FIREWALL=true
+      - CONTAINER_GATEWAY=<gateway>
+      # - CONTAINER_BLOCKED_RANGES=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 2G                    # Hard memory cap
+        reservations:
+          memory: 512M                  # Guaranteed minimum
+    tmpfs:
+      - /tmp:size=500M                  # Limit temp disk usage
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"                 # Max 50 MB per log file
+        max-file: "3"                   # Keep 3 rotated log files (150 MB total)
+
     # Uncomment for interactive debugging:
     # command: /bin/bash
     # stdin_open: true
@@ -53,7 +95,3 @@ networks:
       config:
         - subnet: 192.168.1.0/24
           gateway: <gateway>
-          ip_range: <gateway>72/32   # Reserve only this IP for Docker
-
-volumes:
-  magesticai-data:

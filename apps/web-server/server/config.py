@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     # Server configuration
     HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    PORT: int = 3101
     DEBUG: bool = False
 
     # SSL configuration
@@ -44,13 +44,13 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: list[str] = [
-        "http://localhost:5173",
+        "http://localhost:3100",
         "http://localhost:3000",
-        "https://localhost:5173",
+        "https://localhost:3100",
         "https://localhost:3000",
-        "https://localhost:8000",
-        "https://dev.example.com:8001",
-        "http://dev.example.com:5173",
+        "https://localhost:3101",
+        "https://dev.example.com:3101",
+        "http://dev.example.com:3100",
     ]
 
     # Terminal

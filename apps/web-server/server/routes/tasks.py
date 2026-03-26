@@ -1584,6 +1584,7 @@ class CreatePRFromTaskOptions(BaseModel):
     body: str | None = None
     draft: bool = False
     baseBranch: str | None = None
+    targetRepo: str | None = None  # "owner/repo" for cross-fork PRs
 
 
 class WorktreeMergeOptions(BaseModel):
@@ -3056,13 +3057,34 @@ async def create_pr_from_task(task_id: str, options: CreatePRFromTaskOptions = N
     # Create the PR using gh CLI
     from .github import run_gh_command
 
+    head_ref = worktree_branch
     gh_args = [
         "pr", "create",
-        "--head", worktree_branch,
+        "--head", head_ref,
         "--base", base_branch,
         "--title", pr_title,
         "--body", pr_body or "",
     ]
+
+    if options.targetRepo:
+        # Cross-fork PR: need owner:branch format for --head
+        try:
+            origin_url_result = subprocess.run(
+                ["git", "remote", "get-url", "origin"],
+                cwd=str(worktree_path), capture_output=True, text=True, timeout=5
+            )
+            if origin_url_result.returncode == 0:
+                import re as _re
+                m = _re.search(r'[:/]([^/]+)/[^/]+?(?:\.git)?$', origin_url_result.stdout.strip())
+                if m:
+                    fork_owner = m.group(1)
+                    # Update --head to owner:branch format required by gh for cross-repo PRs
+                    head_idx = gh_args.index("--head") + 1
+                    gh_args[head_idx] = f"{fork_owner}:{worktree_branch}"
+        except Exception:
+            pass  # Fall back to plain branch name
+        gh_args.extend(["--repo", options.targetRepo])
+
     if options.draft:
         gh_args.append("--draft")
 

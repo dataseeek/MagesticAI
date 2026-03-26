@@ -60,42 +60,37 @@ export const useAuthStore = create<AuthState>()(
       checkAuth: async () => {
         const token = getAuthToken();
 
+        // No token stored — not authenticated, don't even call the backend
+        if (!token) {
+          set({ isAuthenticated: false, isLoading: false });
+          return false;
+        }
+
         set({ isLoading: true });
 
         try {
-          const headers: Record<string, string> = {};
-          if (token) {
-            headers.Authorization = `Bearer ${token}`;
-          }
-
-          const response = await fetch('/api/health', { headers });
+          // Validate token against a protected endpoint (not /api/health which is public)
+          const response = await fetch('/api/settings', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
 
           if (response.ok) {
-            // Backend responded OK — either token is valid or auth is disabled
             set({ isAuthenticated: true, isLoading: false });
             return true;
           }
 
-          // Only clear token on explicit auth failures (401/403)
-          // Keep token on other errors (server issues, etc.)
+          // Token rejected — clear it
           if (response.status === 401 || response.status === 403) {
-            if (!token) {
-              // No token and auth is required — stay unauthenticated
-              set({ isAuthenticated: false, isLoading: false });
-            } else {
-              clearAuthToken();
-              set({ isAuthenticated: false, isLoading: false });
-            }
+            clearAuthToken();
+            set({ isAuthenticated: false, isLoading: false });
           } else {
             // Server error but token might still be valid - keep it
-            // User can try again when server is back
             set({ isAuthenticated: false, isLoading: false });
           }
 
           return false;
         } catch {
           // Network error - don't clear token, backend might just be starting up
-          // Keep token so user doesn't have to re-enter it
           set({ isAuthenticated: false, isLoading: false });
           return false;
         }
