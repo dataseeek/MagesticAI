@@ -7,6 +7,7 @@ Handles reading and writing application configuration.
 import json
 import logging
 import os
+import shutil
 import subprocess
 import threading
 import time
@@ -760,7 +761,7 @@ async def list_ollama_models(ollamaBaseUrl: str = Query(default="http://localhos
 
             return {"models": models}
     except Exception as e:
-        logger.error(f"Failed to list Ollama models: {e}")
+        logger.warning(f"Failed to list Ollama models: {e}")
         return {"success": False, "error": str(e)}
 
 
@@ -792,7 +793,7 @@ async def pull_ollama_model(
 
                 return {"success": True, "message": f"Model {modelName} pulled successfully"}
     except Exception as e:
-        logger.error(f"Failed to pull Ollama model: {e}")
+        logger.warning(f"Failed to pull Ollama model: {e}")
         return {"success": False, "error": str(e)}
 
 
@@ -834,7 +835,7 @@ async def test_ollama_connection(
 
             return {"success": True, "message": "Connection successful!"}
     except Exception as e:
-        logger.error(f"Ollama connection test failed: {e}")
+        logger.warning(f"Ollama connection test failed: {e}")
         return {"success": False, "error": str(e)}
 
 
@@ -1085,6 +1086,23 @@ async def delete_claude_profile(profile_id: str):
         data["activeProfileId"] = None
 
     save_profiles(data)
+
+    # If no profiles remain, clean up the static OAuth fallback file
+    # so ClaudeProvider.detect() doesn't report Claude as still active
+    remaining = data.get("profiles", [])
+    if not remaining:
+        oauth_file = Path.home() / ".claude" / "oauth_token"
+        if oauth_file.exists():
+            try:
+                oauth_file.unlink()
+                logging.getLogger(__name__).info(
+                    "Removed OAuth fallback file after last Claude profile deleted"
+                )
+            except OSError as e:
+                logging.getLogger(__name__).warning(
+                    f"Failed to remove OAuth fallback file: {e}"
+                )
+
     return {"success": True}
 
 
@@ -2176,8 +2194,20 @@ async def get_auth_status():
     # Also check env var fallback
     env_token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
 
+    # Verify Claude CLI is actually installed before reporting hasToken
+    claude_installed = shutil.which("claude") is not None
+    if not claude_installed:
+        try:
+            result = subprocess.run(
+                ["bash", "-l", "-c", "which claude"],
+                capture_output=True, text=True, timeout=5,
+            )
+            claude_installed = result.returncode == 0
+        except Exception:
+            pass
+
     return {
-        "hasToken": has_token or bool(env_token),
+        "hasToken": (has_token or bool(env_token)) and claude_installed,
         "profileCount": profile_count,
         "source": "profile" if has_token else ("env" if env_token else None),
         "email": email,

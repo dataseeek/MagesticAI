@@ -14,7 +14,7 @@ sudo docker compose up -d
 
 ## Access
 
-- **URL:** http://<gateway>67:8000
+- **URL:** http://<lan-ip>:3101
 - **Token:** Auto-generated on first run, retrieve with:
 
 ```bash
@@ -63,9 +63,9 @@ Set in `docker-compose.yml` or `.env` file. Key vars:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `APP_HOST` | `0.0.0.0` | Listen address |
-| `APP_PORT` | `8000` | Server port |
+| `APP_PORT` | `3101` | Server port |
 | `APP_API_TOKEN` | (auto-generated) | Auth token for login |
-| `APP_DEBUG` | `true` | Enable Swagger docs at `/docs` |
+| `APP_DEBUG` | `false` | Enable Swagger docs at `/docs` |
 | `APP_DEFAULT_SHELL` | `/bin/bash` | Default terminal shell |
 | `APP_MAX_TERMINALS` | `20` | Max concurrent terminals |
 

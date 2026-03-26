@@ -62,14 +62,14 @@ MagesticAI is a **three-tier web application** that orchestrates AI-powered codi
                                                  │
                          ┌───────────────────────┼───────────────────────┐
                          │        HTTP/REST      │      WebSocket        │
-                         │       Port 5173       │      Port 5173        │
+                         │       Port 3100       │      Port 3100        │
                          │      (Vite Proxy)     │     (Vite Proxy)      │
                          └───────────────────────┼───────────────────────┘
                                                  │
                                                  ▼
                                  ┌─────────────────────────────────────┐
                                  │         Web Server (FastAPI)         │
-                                 │              Port 8000               │
+                                 │              Port 3101               │
                                  │  ┌─────────────────────────────────┐ │
                                  │  │         REST API Routes         │ │
                                  │  │  /api/projects  /api/tasks      │ │
@@ -745,7 +745,7 @@ WebSocket connections require authentication:
 
 ```javascript
 // Connection with token
-const ws = new WebSocket(`ws://localhost:8000/ws/events?token=${token}`);
+const ws = new WebSocket(`ws://localhost:3101/ws/events?token=${token}`);
 
 // Message format
 {

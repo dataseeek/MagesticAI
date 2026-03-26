@@ -1,21 +1,63 @@
 """
 Skills Service.
 
-Scans <skills-mount>/skills/ to build an in-memory index of skill files,
+Scans the skills directory to build an in-memory index of skill files,
 providing fast lookup by category, keyword search, and auto-suggestion.
+
+Skills path resolution (first match wins):
+1. APP_SKILLS_PATH env var (explicit override)
+2. <project-root>/skills/  (local copy, works on host and in Docker)
+3. <skills-mount>/skills/  (legacy network mount fallback)
+
+Uses a pickle cache (~/.magestic-ai/skills-cache.pkl) to avoid re-scanning
+6,000+ files on every startup.  The cache is invalidated when the skills
+directory's modification time changes.
 """
 
 import logging
+import os
+import pickle
 import re
 import string
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# Default skills database path
-DEFAULT_SKILLS_PATH = Path("<skills-mount>/skills")
+
+def _resolve_skills_path() -> Path:
+    """Resolve the skills directory path.
+
+    Priority:
+    1. APP_SKILLS_PATH env var
+    2. <project-root>/skills/ (local copy)
+    3. <skills-mount>/skills/ (legacy network mount)
+    """
+    # 1. Explicit env var
+    env_path = os.environ.get("APP_SKILLS_PATH")
+    if env_path:
+        return Path(env_path)
+
+    # 2. Local skills/ directory relative to project root
+    # Project root is 4 levels up: services/ -> server/ -> web-server/ -> apps/ -> root
+    project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
+    local_skills = project_root / "skills"
+    if local_skills.is_dir():
+        return local_skills
+
+    # 3. Legacy network mount
+    return Path("<skills-mount>/skills")
+
+
+DEFAULT_SKILLS_PATH = _resolve_skills_path()
+
+# Cache location
+DEFAULT_CACHE_PATH = Path.home() / ".magestic-ai" / "skills-cache.pkl"
+
+# Cache format version — bump when _IndexEntry or SkillSummary fields change
+_CACHE_VERSION = 1
 
 # Stop words excluded from keyword search / suggestion scoring
 STOP_WORDS = frozenset({
@@ -128,8 +170,13 @@ class SkillsService:
     skills path is absent.
     """
 
-    def __init__(self, skills_base_path: Path = DEFAULT_SKILLS_PATH) -> None:
+    def __init__(
+        self,
+        skills_base_path: Path = DEFAULT_SKILLS_PATH,
+        cache_path: Path = DEFAULT_CACHE_PATH,
+    ) -> None:
         self._base_path = skills_base_path
+        self._cache_path = cache_path
         # category name -> list of index entries
         self._index: dict[str, list[_IndexEntry]] = {}
         self._built = False
@@ -140,7 +187,7 @@ class SkillsService:
     # ------------------------------------------------------------------
 
     def build_index(self) -> None:
-        """Scan the skills directory and build the in-memory index."""
+        """Build the in-memory index, loading from cache when possible."""
         if not self._base_path.exists() or not self._base_path.is_dir():
             logger.warning(
                 "Skills directory not found at %s – skills system will return empty results",
@@ -149,6 +196,91 @@ class SkillsService:
             self._built = True
             return
 
+        # Try loading from cache first
+        if self._load_cache():
+            return
+
+        # Cache miss — full scan
+        self._scan_and_build()
+
+        # Persist for next startup
+        self._save_cache()
+
+    def _get_dir_mtime(self) -> float:
+        """Get the newest mtime across the skills base dir and its category subdirs."""
+        newest = os.path.getmtime(self._base_path)
+        try:
+            for entry in os.scandir(self._base_path):
+                if entry.is_dir():
+                    newest = max(newest, entry.stat().st_mtime)
+        except OSError:
+            pass
+        return newest
+
+    def _load_cache(self) -> bool:
+        """Try to load the index from the pickle cache. Returns True on success."""
+        try:
+            if not self._cache_path.exists():
+                logger.info("No skills cache found — will scan directory")
+                return False
+
+            cache_mtime = os.path.getmtime(self._cache_path)
+            dir_mtime = self._get_dir_mtime()
+
+            if dir_mtime > cache_mtime:
+                logger.info(
+                    "Skills cache is stale (dir mtime %.0f > cache mtime %.0f) — rebuilding",
+                    dir_mtime,
+                    cache_mtime,
+                )
+                return False
+
+            t0 = time.monotonic()
+            with open(self._cache_path, "rb") as f:
+                data = pickle.load(f)
+
+            if not isinstance(data, dict) or data.get("version") != _CACHE_VERSION:
+                logger.info("Skills cache version mismatch — rebuilding")
+                return False
+
+            if data.get("base_path") != str(self._base_path):
+                logger.info("Skills cache base path mismatch — rebuilding")
+                return False
+
+            self._index = data["index"]
+            self._built = True
+            total = sum(len(entries) for entries in self._index.values())
+            elapsed = time.monotonic() - t0
+            logger.info(
+                "SkillsService loaded from cache: %d categories, %d skills in %.2fs",
+                len(self._index),
+                total,
+                elapsed,
+            )
+            return True
+
+        except Exception as exc:
+            logger.warning("Failed to load skills cache: %s — rebuilding", exc)
+            return False
+
+    def _save_cache(self) -> None:
+        """Persist the current index to the pickle cache."""
+        try:
+            self._cache_path.parent.mkdir(parents=True, exist_ok=True)
+            data = {
+                "version": _CACHE_VERSION,
+                "base_path": str(self._base_path),
+                "index": self._index,
+            }
+            with open(self._cache_path, "wb") as f:
+                pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            logger.info("Skills cache saved to %s", self._cache_path)
+        except Exception as exc:
+            logger.warning("Failed to save skills cache: %s", exc)
+
+    def _scan_and_build(self) -> None:
+        """Full scan of the skills directory (the slow path)."""
+        t0 = time.monotonic()
         self._index = {}
         total = 0
 
@@ -170,10 +302,12 @@ class SkillsService:
                 self._index[category] = entries
 
         self._built = True
+        elapsed = time.monotonic() - t0
         logger.info(
-            "SkillsService index built: %d categories, %d skills",
+            "SkillsService index built from scan: %d categories, %d skills in %.1fs",
             len(self._index),
             total,
+            elapsed,
         )
 
     def _parse_skill_file(self, path: Path, category: str) -> _IndexEntry:
@@ -493,12 +627,18 @@ def get_skills_service() -> SkillsService:
     return _skills_service
 
 
-def init_skills_service(skills_base_path: Path = DEFAULT_SKILLS_PATH) -> SkillsService:
+def init_skills_service(
+    skills_base_path: Path = DEFAULT_SKILLS_PATH,
+    cache_path: Path = DEFAULT_CACHE_PATH,
+) -> SkillsService:
     """
     Initialise (or re-initialise) the global SkillsService singleton.
 
     Call this once at application startup to control the base path.
     """
     global _skills_service
-    _skills_service = SkillsService(skills_base_path=skills_base_path)
+    _skills_service = SkillsService(
+        skills_base_path=skills_base_path,
+        cache_path=cache_path,
+    )
     return _skills_service

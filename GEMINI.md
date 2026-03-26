@@ -420,14 +420,14 @@ npm install
 npm run dev
 ```
 
-Access the web UI at `http://localhost:5173` (or your server IP for remote access).
+Access the web UI at `http://localhost:3100` (or your server IP for remote access).
 
 ### Configuration
 
 **Backend (`apps/web-server/.env`):**
 ```bash
 APP_HOST=0.0.0.0      # Listen on all interfaces
-APP_PORT=8000          # API server port
+APP_PORT=3101          # API server port
 APP_DEBUG=true         # Enable Swagger docs at /docs
 # APP_API_TOKEN=xxx    # Optional: Set fixed token (auto-generated if not set)
 ```
@@ -435,24 +435,24 @@ APP_DEBUG=true         # Enable Swagger docs at /docs
 **Frontend (`apps/frontend-web/.env`):**
 ```bash
 VITE_API_BASE_URL=/api                    # API base (proxied to backend)
-VITE_WS_BASE_URL=ws://your-server:8000    # WebSocket URL for remote deployments
-VITE_API_URL=http://localhost:8000        # Backend URL for Vite proxy
+VITE_WS_BASE_URL=ws://your-server:3101    # WebSocket URL for remote deployments
+VITE_API_URL=http://localhost:3101        # Backend URL for Vite proxy
 ```
 
 ### Remote Access
 
 For remote deployments:
-1. Ensure ports 8000 (backend) and 5173 (frontend dev) are accessible
+1. Ensure ports 3101 (backend) and 3100 (frontend dev) are accessible
 2. Set `VITE_WS_BASE_URL` to your server's WebSocket URL
-3. Access via `http://YOUR_SERVER_IP:5173`
+3. Access via `http://YOUR_SERVER_IP:3100`
 
 For production, build the frontend (`npm run build`) and serve from `apps/web-server/static/`.
 
 ### API Documentation
 
 When `APP_DEBUG=true`:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+- Swagger UI: `http://localhost:3101/docs`
+- ReDoc: `http://localhost:3101/redoc`
 
 See `apps/web-server/README.md` and `apps/frontend-web/README.md` for detailed documentation.
 
@@ -547,10 +547,10 @@ python run.py --spec 001
 
 **With the Web interface**:
 ```bash
-# Start backend (port 8000)
+# Start backend (port 3101)
 cd apps/web-server && source .venv/bin/activate && python -m server.main
 
-# Start frontend (port 5173)
+# Start frontend (port 3100)
 cd apps/frontend-web && npm run dev
 ```
 

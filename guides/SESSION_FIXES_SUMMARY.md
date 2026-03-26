@@ -134,7 +134,7 @@ The `WorkspaceStatus` component didn't have access to the task's `reviewReason` 
 ## Backend Server Status
 
 ✅ **Running:** PID 3904782
-✅ **Port:** 8000
+✅ **Port:** 3101
 ✅ **WebSocket:** Active and accepting connections
 ✅ **Logs:** `/tmp/backend.log`
 

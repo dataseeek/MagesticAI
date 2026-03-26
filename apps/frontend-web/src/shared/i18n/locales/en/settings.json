@@ -395,6 +395,8 @@
     "disconnect": "Disconnect",
     "loginInTerminal": "Login in Terminal",
     "waitingForAuth": "Waiting for authentication...",
+    "authenticatingWith": "Authenticating with {{cli}}...",
+    "completeOAuthInBrowser": "Complete the OAuth flow in your browser when prompted.",
     "authSuccess": "Authentication successful!",
     "authFailed": "Authentication timed out. Please try again.",
     "install": "Install",

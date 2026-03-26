@@ -72,7 +72,7 @@ Ran automated fix script that found and fixed:
 ## How to View/Continue
 
 ### Option 1: View in Web UI
-1. Open http://localhost:5173
+1. Open http://localhost:3100
 2. Task should now appear in "Human Review" column
 3. Click to review changes
 4. Approve or provide feedback

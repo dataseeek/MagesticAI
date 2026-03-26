@@ -93,7 +93,7 @@ if return_code != 0 and project_path and spec_id:
 ### Step 1: Restart Servers
 ```bash
 # Kill existing servers
-fuser -k 5173/tcp 8000/tcp
+fuser -k 3100/tcp 3101/tcp
 
 # Start backend
 cd apps/web-server
@@ -106,7 +106,7 @@ npm run dev
 ```
 
 ### Step 2: Create Test Task
-1. Open web UI: http://localhost:5173
+1. Open web UI: http://localhost:3100
 2. Click "New Task"
 3. Fill in:
    - Title: "Test Phase Transition Fix"

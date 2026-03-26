@@ -37,6 +37,11 @@ credentials/
 .settings/
 
 # ===========================
+# Skills database (copied from network mount, ~57 MB)
+# ===========================
+/skills/
+
+# ===========================
 # Logs
 # ===========================
 logs/

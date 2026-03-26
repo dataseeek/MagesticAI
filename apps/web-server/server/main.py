@@ -65,6 +65,17 @@ async def lifespan(app: FastAPI):
     # Ensure data directory exists
     Path(settings.PROJECTS_DATA_DIR).mkdir(parents=True, exist_ok=True)
 
+    # Auto-configure autoBuildPath if the backend directory exists
+    # (enables project initialization without manual settings configuration)
+    backend_path = Path(settings.BACKEND_PATH)
+    if backend_path.exists():
+        from .routes.settings import load_app_settings, save_app_settings
+        app_settings = load_app_settings()
+        if not app_settings.autoBuildPath:
+            app_settings.autoBuildPath = str(backend_path)
+            save_app_settings(app_settings)
+            logger.info(f"Auto-configured autoBuildPath: {backend_path}")
+
     # Initialize database (creates tables if needed)
     await init_db()
 
