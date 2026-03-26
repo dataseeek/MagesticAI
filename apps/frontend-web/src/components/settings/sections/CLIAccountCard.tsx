@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowUpCircle,
@@ -7,6 +7,8 @@ import {
   Loader2,
   LogIn,
   Trash2,
+  Terminal,
+  X,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { cn } from '../../../lib/utils';
@@ -22,6 +24,7 @@ interface CLIAccountCardProps {
   onStartLogin: () => void;
   onRemove: () => void;
   onInstall: () => Promise<void>;
+  onRefresh?: () => void;
 }
 
 export function CLIAccountCard({
@@ -32,11 +35,15 @@ export function CLIAccountCard({
   onStartLogin,
   onRemove,
   onInstall,
+  onRefresh,
 }: CLIAccountCardProps) {
   const { t } = useTranslation('settings');
 
   const [isLoginPolling, setIsLoginPolling] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
+  const [loginTerminalId, setLoginTerminalId] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const terminalRef = useRef<HTMLDivElement>(null);
 
   const Icon = cli === 'codex' ? OpenAIIcon : GeminiIcon;
   const cliName = t(`integrations.${cli}.name`);
@@ -57,11 +64,36 @@ export function CLIAccountCard({
       : t('integrations.gemini.viaApiKey');
   };
 
-  const handleStartLogin = () => {
+  const handleStartLogin = async () => {
     setIsLoginPolling(true);
-    onStartLogin();
+    setLoginError(null);
+    try {
+      const result = await window.API.startCLILoginTerminal(cli);
+      if (result.success && result.data?.terminalId) {
+        setLoginTerminalId(result.data.terminalId);
+      } else {
+        setLoginError(result.error || 'Failed to start login terminal');
+        setIsLoginPolling(false);
+      }
+    } catch (err) {
+      console.error(`Failed to start ${cli} login terminal:`, err);
+      setLoginError('Failed to create login terminal');
+      setIsLoginPolling(false);
+    }
     // Auto-reset after 3 min timeout
-    setTimeout(() => setIsLoginPolling(false), 180000);
+    setTimeout(() => {
+      setIsLoginPolling(false);
+      setLoginTerminalId(null);
+    }, 180000);
+  };
+
+  const handleCancelLogin = () => {
+    if (loginTerminalId) {
+      window.API.destroyTerminal(loginTerminalId).catch(() => {});
+    }
+    setIsLoginPolling(false);
+    setLoginTerminalId(null);
+    setLoginError(null);
   };
 
   const handleInstall = async () => {
@@ -74,9 +106,19 @@ export function CLIAccountCard({
   };
 
   // Reset login polling when auth succeeds
-  if (isLoginPolling && status?.authenticated) {
-    setIsLoginPolling(false);
-  }
+  useEffect(() => {
+    if (isLoginPolling && status?.authenticated) {
+      setIsLoginPolling(false);
+      if (loginTerminalId) {
+        // Clean up terminal after successful auth
+        setTimeout(() => {
+          window.API.destroyTerminal(loginTerminalId).catch(() => {});
+          setLoginTerminalId(null);
+        }, 2000);
+      }
+      onRefresh?.();
+    }
+  }, [isLoginPolling, status?.authenticated]);
 
   // Not installed state
   if (!status || !status.installed) {
@@ -249,11 +291,40 @@ export function CLIAccountCard({
         </div>
       </div>
 
-      {/* Login hint when polling */}
-      {isLoginPolling && (
+      {/* Login terminal session */}
+      {isLoginPolling && loginTerminalId && (
         <div className="px-3 pb-3 pt-0">
-          <div className="bg-muted/30 rounded-lg p-3 text-xs text-muted-foreground">
-            {t(`integrations.${cli}.loginHint`)}
+          <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+                <Terminal className="h-3.5 w-3.5" />
+                {t('integrations.authenticatingWith', { cli: cliName })}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCancelLogin}
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t('integrations.completeOAuthInBrowser')}
+            </p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              {t('integrations.waitingForAuth')}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Login error */}
+      {loginError && (
+        <div className="px-3 pb-3 pt-0">
+          <div className="bg-destructive/10 rounded-lg p-3 text-xs text-destructive">
+            {loginError}
           </div>
         </div>
       )}

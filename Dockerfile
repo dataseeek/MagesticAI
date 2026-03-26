@@ -49,11 +49,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     git \
     curl \
+    wget \
     unzip \
     ca-certificates \
     build-essential \
     libffi-dev \
     libssl-dev \
+    iptables \
+    gosu \
+    gpg \
+    && rm -rf /var/lib/apt/lists/*
+
+# GitHub CLI (gh) — from official apt repository
+RUN wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+        | tee /usr/share/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && apt-get update -qq \
+    && apt-get install -y -qq --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user with tty group (needed for PTY terminal access)
@@ -77,6 +90,10 @@ COPY --from=frontend-build /usr/local/bin/node /usr/local/bin/node
 COPY --from=frontend-build /usr/local/lib/node_modules/ /usr/local/lib/node_modules/
 RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
     ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+
+# Copy entrypoint script (runs as root to set up iptables, then drops to magesticai)
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Switch to non-root user for remaining setup
 USER magesticai
@@ -106,7 +123,7 @@ RUN mkdir -p /home/magesticai/.magestic-ai
 # Environment
 # ---------------------------------------------------------------------------
 ENV APP_HOST=0.0.0.0 \
-    APP_PORT=8000 \
+    APP_PORT=3101 \
     APP_BACKEND_PATH=/home/projects/MagesticAI/apps/backend \
     APP_PROJECTS_DATA_DIR=/home/magesticai/.magestic-ai \
     APP_DEFAULT_SHELL=/bin/bash \
@@ -114,11 +131,15 @@ ENV APP_HOST=0.0.0.0 \
     # npm global bin + venv Python on PATH
     PATH="/home/magesticai/.npm-global/bin:/home/projects/MagesticAI/.venv/bin:$PATH"
 
-EXPOSE 8000
+EXPOSE 3101
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/api/health || exit 1
+    CMD curl -f http://localhost:3101/api/health || exit 1
 
 WORKDIR /home/projects/MagesticAI/apps/web-server
 
+# Switch back to root for firewall setup; entrypoint drops to magesticai via gosu
+USER root
+
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["python", "-m", "server.main"]

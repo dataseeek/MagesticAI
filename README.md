@@ -62,7 +62,7 @@ cp apps/web-server/.env.example apps/web-server/.env
 cd apps/web-server
 source .venv/bin/activate
 python -m server.main
-# Server runs on http://localhost:8000
+# Server runs on http://localhost:3101
 # API token printed to console and saved to ~/.magestic-ai/.token
 ```
 
@@ -70,7 +70,7 @@ python -m server.main
 ```bash
 cd apps/frontend-web
 npm run dev
-# UI available at http://localhost:5173
+# UI available at http://localhost:3100
 ```
 
 ### Docker Deployment
@@ -88,7 +88,7 @@ docker compose up -d
 docker exec magesticai cat /home/magesticai/.magestic-ai/.token
 ```
 
-Access the web UI at `http://YOUR_HOST:8000` after the container starts.
+Access the web UI at `http://YOUR_HOST:3101` after the container starts.
 
 See [ContainerAPP.md](ContainerAPP.md) for detailed Docker deployment instructions.
 
@@ -101,7 +101,7 @@ See [ContainerAPP.md](ContainerAPP.md) for detailed Docker deployment instructio
 │                   MagesticAI                        │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│   Browser (React 19 + Vite)           Port 5173                 │
+│   Browser (React 19 + Vite)           Port 3100                 │
 │   ├── Kanban Board                                               │
 │   ├── Terminal Grid (xterm.js)                                   │
 │   ├── Code Editor (Monaco)                                       │
@@ -110,7 +110,7 @@ See [ContainerAPP.md](ContainerAPP.md) for detailed Docker deployment instructio
 │                                                                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│   Web Server (FastAPI)                Port 8000                 │
+│   Web Server (FastAPI)                Port 3101                 │
 │   ├── REST API (/api/*)                                          │
 │   ├── WebSocket Endpoints (/ws/*)                                │
 │   ├── PTY Session Management                                     │
@@ -267,7 +267,7 @@ GRAPHITI_ENABLED=true
 **Web Server (`apps/web-server/.env`):**
 ```bash
 APP_HOST=0.0.0.0
-APP_PORT=8000
+APP_PORT=3101
 APP_DEBUG=true
 # APP_API_TOKEN=xxx  # Auto-generated if not set
 ```
@@ -275,7 +275,7 @@ APP_DEBUG=true
 **Frontend (`apps/frontend-web/.env`):**
 ```bash
 VITE_API_BASE_URL=/api
-VITE_WS_BASE_URL=ws://localhost:8000
+VITE_WS_BASE_URL=ws://localhost:3101
 ```
 
 ---
@@ -343,7 +343,7 @@ npm run build            # Build frontend for production
 
 | Issue | Solution |
 |-------|----------|
-| Cannot connect to backend | Ensure web-server running on port 8000 |
+| Cannot connect to backend | Ensure web-server running on port 3101 |
 | Invalid token | Get token from `~/.magestic-ai/.token` |
 | WebSocket failed | Check token in URL, verify ports accessible |
 | Task stuck | Check agent logs in Settings → Logs |

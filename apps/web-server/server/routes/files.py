@@ -140,6 +140,17 @@ LANGUAGE_MAP = {
 }
 
 
+def _is_app_internal_path(resolved_path: Path) -> bool:
+    """Block access to the MagesticAI application directory itself."""
+    settings = get_settings()
+    app_root = Path(settings.BACKEND_PATH).resolve().parent.parent  # MagesticAI root
+    try:
+        resolved_path.resolve().relative_to(app_root)
+        return True
+    except ValueError:
+        return False
+
+
 def detect_language(path: str) -> str | None:
     """Detect programming language from file extension."""
     ext = Path(path).suffix.lower()
@@ -258,6 +269,9 @@ async def discover_projects(
 
                 # If it looks like a project, add it
                 if has_git or has_package or has_requirements:
+                    # Skip the MagesticAI app itself
+                    if _is_app_internal_path(entry):
+                        continue
                     projects.append(DiscoveredProject(
                         name=entry.name,
                         path=str(entry),
@@ -286,6 +300,9 @@ async def list_directory_direct(
 ):
     """List contents of a directory by absolute path."""
     full_path = Path(path).expanduser().resolve()
+
+    if _is_app_internal_path(full_path):
+        return {"success": False, "error": "Access denied", "data": None}
 
     if not full_path.exists():
         return {"success": False, "error": "Directory not found", "data": None}
@@ -333,6 +350,9 @@ async def read_file_direct(
 ):
     """Read file contents by absolute path."""
     full_path = Path(path).expanduser().resolve()
+
+    if _is_app_internal_path(full_path):
+        return {"success": False, "error": "Access denied", "data": None}
 
     if not full_path.exists():
         return {"success": False, "error": "File not found", "data": None}

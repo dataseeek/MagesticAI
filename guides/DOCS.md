@@ -79,14 +79,14 @@ MagesticAI is a web-based platform for managing AI-powered coding tasks through 
 │                              │                                   │
 │              ┌───────────────┴───────────────┐                  │
 │              │ HTTP/REST     │ WebSocket     │                  │
-│              │ :5173→:8000   │ :5173→:8000   │                  │
+│              │ :3100→:3101   │ :3100→:3101   │                  │
 │              └───────────────┬───────────────┘                  │
 └──────────────────────────────┼──────────────────────────────────┘
                                │
 ┌──────────────────────────────┼──────────────────────────────────┐
 │                        Web Server                                │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │  FastAPI + Uvicorn (Port 8000)                          │    │
+│  │  FastAPI + Uvicorn (Port 3101)                          │    │
 │  │  ├── Routes (/api/*)                                     │    │
 │  │  ├── WebSockets (/ws/*)                                  │    │
 │  │  ├── PTY Manager                                         │    │
@@ -264,7 +264,7 @@ cp apps/web-server/.env.example apps/web-server/.env
 #
 # apps/web-server/.env:
 #   APP_HOST=0.0.0.0
-#   APP_PORT=8000
+#   APP_PORT=3101
 ```
 
 ### Running the Application
@@ -283,7 +283,7 @@ cd apps/frontend-web
 npm run dev
 ```
 
-**Access:** http://localhost:5173
+**Access:** http://localhost:3100
 
 ---
 
@@ -306,7 +306,7 @@ npm run dev
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `APP_HOST` | No | `0.0.0.0` | Server bind address |
-| `APP_PORT` | No | `8000` | Server port |
+| `APP_PORT` | No | `3101` | Server port |
 | `APP_DEBUG` | No | `false` | Enable debug mode |
 | `APP_API_TOKEN` | No | Auto-generated | Fixed API token |
 | `APP_SSL_ENABLED` | No | `false` | Enable HTTPS |
@@ -316,8 +316,8 @@ npm run dev
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `VITE_API_BASE_URL` | No | `/api` | API base path |
-| `VITE_WS_BASE_URL` | No | `ws://localhost:8000` | WebSocket URL |
-| `VITE_API_URL` | No | `http://localhost:8000` | Backend URL |
+| `VITE_WS_BASE_URL` | No | `ws://localhost:3101` | WebSocket URL |
+| `VITE_API_URL` | No | `http://localhost:3101` | Backend URL |
 
 ### Configuration Files
 
@@ -834,7 +834,7 @@ type EventType =
 
 ```typescript
 // Connect
-const ws = new WebSocket('ws://localhost:8000/ws/events?token=xxx');
+const ws = new WebSocket('ws://localhost:3101/ws/events?token=xxx');
 
 // Receive events
 ws.onmessage = (event) => {
@@ -847,7 +847,7 @@ ws.onmessage = (event) => {
 
 ```typescript
 // Connect
-const ws = new WebSocket(`ws://localhost:8000/ws/terminal/${terminalId}?token=xxx`);
+const ws = new WebSocket(`ws://localhost:3101/ws/terminal/${terminalId}?token=xxx`);
 
 // Send input
 ws.send('ls -la\r');
@@ -1107,10 +1107,10 @@ APP_DEBUG=false python -m server.main
 
 ### Remote Access
 
-1. Ensure ports 8000 accessible
+1. Ensure ports 3101 accessible
 2. Set `APP_HOST=0.0.0.0`
 3. Configure `VITE_WS_BASE_URL` for remote WebSocket
-4. Access via `http://YOUR_SERVER_IP:8000`
+4. Access via `http://YOUR_SERVER_IP:3101`
 
 ### HTTPS (Optional)
 
@@ -1128,7 +1128,7 @@ APP_SSL_ENABLED=true
 
 | Issue | Solution |
 |-------|----------|
-| Cannot connect to backend | Verify web-server on port 8000 |
+| Cannot connect to backend | Verify web-server on port 3101 |
 | Invalid token | Get from `~/.magestic-ai/.token` |
 | WebSocket fails | Check token, verify ports |
 | Task stuck | Check logs: Settings → Logs |
@@ -1154,7 +1154,7 @@ Enable debug logging:
 APP_DEBUG=true python -m server.main
 
 # Check Swagger docs
-http://localhost:8000/docs
+http://localhost:3101/docs
 ```
 
 ### Getting Help

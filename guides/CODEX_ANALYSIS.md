@@ -449,14 +449,14 @@ def save_token_securely(token: str, path: Path):
 
 ```typescript
 // Current: Token in URL
-new WebSocket(`ws://localhost:8000/ws/events?token=${token}`)
+new WebSocket(`ws://localhost:3101/ws/events?token=${token}`)
 ```
 
 **Recommendation:**
 
 ```typescript
 // Preferred: Token in protocol header
-const ws = new WebSocket('ws://localhost:8000/ws/events', [
+const ws = new WebSocket('ws://localhost:3101/ws/events', [
   `bearer-${token}`  // Custom protocol for auth
 ]);
 ```

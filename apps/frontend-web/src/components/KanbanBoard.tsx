@@ -216,7 +216,7 @@ const DroppableColumn = memo(function DroppableColumn({ status, tasks, onTaskCli
     <div
       ref={setNodeRef}
       className={cn(
-        'flex min-w-72 max-w-[30rem] flex-1 flex-col rounded-xl border border-white/5 bg-linear-to-b from-secondary/30 to-transparent backdrop-blur-sm transition-all duration-200',
+        'flex min-w-52 max-w-[22rem] flex-1 flex-col rounded-xl border border-white/5 bg-linear-to-b from-secondary/30 to-transparent backdrop-blur-sm transition-all duration-200',
         getColumnBorderColor(),
         'border-t-2',
         isOver && 'drop-zone-highlight'
@@ -496,7 +496,7 @@ export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick, onRefresh, isR
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex flex-1 gap-4 overflow-x-auto p-6">
+        <div className="flex flex-1 gap-3 overflow-x-auto p-4">
           {TASK_STATUS_COLUMNS.map((status) => (
             <DroppableColumn
               key={status}

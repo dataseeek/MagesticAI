@@ -587,6 +587,72 @@ async def start_cli_login(cli: str):
         }
 
 
+@router.post("/cli-accounts/{cli}/start-login-terminal")
+async def start_cli_login_terminal(cli: str):
+    """Start an interactive terminal session that runs the CLI login command.
+
+    Creates a PTY session, sends the auth command, and starts credential
+    polling in the background. Returns the terminal ID so the frontend
+    can connect via WebSocket to show the interactive session.
+    """
+    _validate_cli(cli)
+    cfg = CLI_CONFIG[cli]
+
+    # Verify CLI is installed
+    version = _detect_cli_version(cli)
+    if not version:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{cli} CLI is not installed. Please install it first.",
+        )
+
+    # Determine the auth command
+    if cli == "codex":
+        auth_command = "codex auth login"
+    else:
+        auth_command = "gemini auth login"
+
+    # Create a PTY terminal session
+    from ..pty.manager import get_pty_manager
+
+    manager = get_pty_manager()
+    terminal_id = manager.create_session(
+        cwd=str(Path.home()),
+        shell=None,
+        env=None,
+    )
+
+    # Send the auth command to the terminal after a brief delay
+    # to let the shell initialize
+    def _send_auth_command():
+        time.sleep(0.5)
+        manager.write(terminal_id, auth_command + "\n")
+
+    threading.Thread(target=_send_auth_command, daemon=True).start()
+
+    # Start credential file polling in background
+    credentials_path = cfg["credentials_file"]
+    mtime_before = credentials_path.stat().st_mtime if credentials_path.exists() else 0
+
+    if cli == "codex":
+        threading.Thread(
+            target=_poll_codex_token, args=(mtime_before,), daemon=True
+        ).start()
+    else:
+        threading.Thread(
+            target=_poll_gemini_token, args=(mtime_before,), daemon=True
+        ).start()
+
+    return {
+        "success": True,
+        "data": {
+            "terminalId": terminal_id,
+            "command": auth_command,
+            "message": f"Terminal created. Running '{auth_command}'...",
+        },
+    }
+
+
 @router.post("/cli-accounts/{cli}/install")
 def install_or_update_cli(cli: str):
     """Install or update a CLI tool via npm.

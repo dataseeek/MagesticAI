@@ -334,7 +334,124 @@ def _parse_ai_analysis_response(response_content: str) -> dict:
 async def check_github_cli():
     """Check if GitHub CLI is installed."""
     result = run_gh_command(["--version"])
-    return {"success": True, "data": {"installed": result["success"]}}
+    version = None
+    if result["success"]:
+        # Parse version from "gh version 2.x.x (2024-...)"
+        output = result.get("output", "")
+        import re as _re
+        m = _re.search(r"(\d+\.\d+\.\d+)", output)
+        if m:
+            version = m.group(1)
+    return {"success": True, "data": {"installed": result["success"], "version": version}}
+
+
+@router.post("/cli/install")
+def install_github_cli():
+    """Install GitHub CLI (gh) from the official GitHub repository.
+
+    Uses the official install script from https://cli.github.com/ which:
+    1. Adds the GitHub CLI apt repository
+    2. Installs the gh package
+
+    Requires root access (runs in Docker container as root entrypoint).
+    Uses sync def to avoid blocking the event loop with subprocess.run.
+    """
+    import logging
+    import shlex
+
+    log = logging.getLogger(__name__)
+
+    def _run(args: list[str], timeout: int = 30) -> subprocess.CompletedProcess:
+        """Run a command inside a login shell."""
+        safe_cmd = " ".join(shlex.quote(a) for a in args)
+        return subprocess.run(
+            ["bash", "-l", "-c", safe_cmd],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+
+    # Step 1: Check if gh is already installed
+    try:
+        result = _run(["gh", "--version"], timeout=10)
+        if result.returncode == 0:
+            return {
+                "success": True,
+                "data": {
+                    "message": "GitHub CLI is already installed",
+                    "version": result.stdout.strip(),
+                    "steps_completed": ["already-installed"],
+                },
+            }
+    except Exception:
+        pass
+
+    # Step 2: Install gh using the official apt repository method
+    # This works in the Docker container (Ubuntu-based)
+    steps_completed: list[str] = []
+
+    try:
+        log.info("Installing GitHub CLI via official apt repository...")
+
+        # Add GitHub CLI apt repo and install
+        install_script = (
+            "apt-get update -qq"
+            " && apt-get install -y -qq --no-install-recommends"
+            " gpg wget"
+            " && wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg"
+            " | tee /usr/share/keyrings/githubcli-archive-keyring.gpg > /dev/null"
+            " && echo 'deb [arch=$(dpkg --print-architecture)"
+            " signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg]"
+            " https://cli.github.com/packages stable main'"
+            " | tee /etc/apt/sources.list.d/github-cli.list > /dev/null"
+            " && apt-get update -qq"
+            " && apt-get install -y -qq --no-install-recommends gh"
+            " && rm -rf /var/lib/apt/lists/*"
+        )
+
+        result = subprocess.run(
+            ["bash", "-c", install_script],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode != 0:
+            return {
+                "success": False,
+                "error": f"Failed to install GitHub CLI: {result.stderr.strip()[-500:]}",
+            }
+        steps_completed.append("gh-installed")
+        log.info("GitHub CLI installed successfully")
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": "Installation timed out (120s)"}
+    except Exception as e:
+        return {"success": False, "error": f"Installation failed: {e}"}
+
+    # Step 3: Verify installation
+    version_str = "unknown"
+    try:
+        result = _run(["gh", "--version"], timeout=10)
+        if result.returncode == 0:
+            version_str = result.stdout.strip()
+        else:
+            return {
+                "success": False,
+                "error": f"Installation completed but verification failed: {result.stderr.strip()}",
+            }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Installation completed but verification failed: {e}",
+        }
+
+    return {
+        "success": True,
+        "data": {
+            "message": "GitHub CLI installed successfully",
+            "version": version_str,
+            "steps_completed": steps_completed,
+        },
+    }
 
 
 @router.get("/auth/check")
@@ -390,18 +507,76 @@ async def auto_detect_github(projectId: str | None = Query(None)):
     }
 
 
+# Background state for GitHub auth flow
+_gh_auth_proc: asyncio.subprocess.Process | None = None
+_gh_auth_status: dict | None = None
+
+
+async def _monitor_gh_auth(proc: asyncio.subprocess.Process):
+    """Monitor gh auth login process in background and broadcast result."""
+    global _gh_auth_status, _gh_auth_proc
+    import logging
+    log = logging.getLogger(__name__)
+
+    try:
+        await asyncio.wait_for(proc.wait(), timeout=300)
+
+        if proc.returncode == 0:
+            _gh_auth_status = {"complete": True, "success": True}
+            log.info("[GitHub Auth] Authentication completed successfully")
+        else:
+            _gh_auth_status = {"complete": True, "success": False,
+                               "error": "Authentication flow did not complete. Please try again."}
+            log.warning(f"[GitHub Auth] Process exited with code {proc.returncode}")
+    except asyncio.TimeoutError:
+        _gh_auth_status = {"complete": True, "success": False,
+                           "error": "Authentication timed out after 5 minutes."}
+        try:
+            proc.kill()
+        except Exception:
+            pass
+    except Exception as e:
+        _gh_auth_status = {"complete": True, "success": False,
+                           "error": f"Authentication failed: {e}"}
+    finally:
+        _gh_auth_proc = None
+
+    # Broadcast completion via WebSocket
+    try:
+        from ..websockets.events import broadcast_event
+        await broadcast_event("github:auth-complete", _gh_auth_status)
+    except Exception:
+        pass
+
+
 @router.post("/auth/start")
 async def start_github_auth():
-    """Start GitHub CLI authentication flow using device code."""
+    """Start GitHub CLI authentication flow using device code.
+
+    Returns the device code and URL immediately so the user can complete
+    auth on any device. The gh process continues running in the background.
+    Poll GET /auth/status or listen for the github:auth-complete WebSocket event.
+    """
+    global _gh_auth_proc, _gh_auth_status
     gh_path = shutil.which("gh")
     if not gh_path:
         return {
             "success": True,
             "data": {
                 "success": False,
-                "message": "GitHub CLI (gh) is not installed. Install it from https://cli.github.com/"
+                "message": "GitHub CLI (gh) is not installed."
             }
         }
+
+    # Kill any existing auth process
+    if _gh_auth_proc is not None:
+        try:
+            _gh_auth_proc.kill()
+        except Exception:
+            pass
+        _gh_auth_proc = None
+
+    _gh_auth_status = None
 
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -413,90 +588,95 @@ async def start_github_auth():
             stderr=asyncio.subprocess.PIPE,
             stdin=asyncio.subprocess.PIPE,
         )
+        _gh_auth_proc = proc
 
         device_code = None
         auth_url = None
 
-        # Read stderr where gh outputs the device code prompt
-        async def read_output(stream):
+        # Read stderr line by line until we get the device code + URL
+        # gh outputs to stderr: "First, copy your one-time code: XXXX-XXXX"
+        # then "... open ... https://github.com/login/device"
+        async def extract_device_code():
             nonlocal device_code, auth_url
-            while True:
-                line = await stream.readline()
-                if not line:
-                    break
-                text = line.decode("utf-8", errors="replace").strip()
-                # gh outputs: "First, copy your one-time code: XXXX-XXXX"
-                code_match = re.search(r"one-time code:\s*([A-Z0-9]+-[A-Z0-9]+)", text)
-                if code_match:
-                    device_code = code_match.group(1)
-                # gh outputs the URL on a line like "https://github.com/login/device"
-                url_match = re.search(r"(https://github\.com/login/device\S*)", text)
-                if url_match:
-                    auth_url = url_match.group(1)
-                # Also broadcast via WebSocket when we have both
-                if device_code and auth_url:
+            for stream in [proc.stderr, proc.stdout]:
+                if stream is None:
+                    continue
+                while True:
                     try:
-                        from ..websockets.events import broadcast_event
-                        await broadcast_event("github:device-code", {
-                            "deviceCode": device_code,
-                            "authUrl": auth_url,
-                            "browserOpened": False,
-                        })
-                    except Exception:
-                        pass
+                        line = await asyncio.wait_for(stream.readline(), timeout=15)
+                    except asyncio.TimeoutError:
+                        break
+                    if not line:
+                        break
+                    text = line.decode("utf-8", errors="replace").strip()
+                    code_match = re.search(r"one-time code:\s*([A-Z0-9]+-[A-Z0-9]+)", text)
+                    if code_match:
+                        device_code = code_match.group(1)
+                    url_match = re.search(r"(https://github\.com/login/device\S*)", text)
+                    if url_match:
+                        auth_url = url_match.group(1)
+                    if device_code and auth_url:
+                        return
 
-        # Read both stdout and stderr (gh uses stderr for prompts)
-        await asyncio.gather(
-            read_output(proc.stdout),
-            read_output(proc.stderr),
-        )
+        await extract_device_code()
 
-        # Send enter to confirm if process is waiting
-        try:
-            proc.stdin.write(b"\n")
-            await proc.stdin.drain()
-        except Exception:
-            pass
-
-        await asyncio.wait_for(proc.wait(), timeout=120)
-
-        if proc.returncode == 0:
-            return {
-                "success": True,
-                "data": {
+        if not device_code:
+            # Process may have exited already (e.g., already authenticated)
+            if proc.returncode is not None and proc.returncode == 0:
+                _gh_auth_status = {"complete": True, "success": True}
+                return {
                     "success": True,
-                    "deviceCode": device_code,
-                    "authUrl": auth_url or "https://github.com/login/device",
-                    "browserOpened": False,
+                    "data": {
+                        "success": True,
+                        "message": "Already authenticated with GitHub.",
+                    }
                 }
-            }
-        else:
             return {
                 "success": True,
                 "data": {
                     "success": False,
-                    "message": "Authentication flow did not complete. Please try again.",
-                    "deviceCode": device_code,
-                    "authUrl": auth_url or "https://github.com/login/device",
-                    "browserOpened": False,
+                    "message": "Could not extract device code from gh CLI output.",
                 }
             }
-    except asyncio.TimeoutError:
+
+        # Start background monitor for process completion
+        asyncio.create_task(_monitor_gh_auth(proc))
+
         return {
             "success": True,
             "data": {
-                "success": False,
-                "message": "Authentication timed out after 120 seconds."
+                "success": True,
+                "deviceCode": device_code,
+                "authUrl": auth_url or "https://github.com/login/device",
+                "awaiting": True,
             }
         }
+
     except Exception as e:
+        _gh_auth_proc = None
         return {
             "success": True,
             "data": {
                 "success": False,
-                "message": f"Authentication failed: {str(e)}"
+                "message": f"Failed to start authentication: {e}"
             }
         }
+
+
+@router.get("/auth/status")
+async def check_github_auth_status():
+    """Poll for GitHub auth flow completion.
+
+    Returns the current status of the background gh auth login process.
+    """
+    global _gh_auth_status
+
+    if _gh_auth_status and _gh_auth_status.get("complete"):
+        result = {**_gh_auth_status}
+        _gh_auth_status = None  # Clear after reading
+        return {"success": True, "data": result}
+
+    return {"success": True, "data": {"complete": False}}
 
 
 @router.get("/token")
@@ -1468,3 +1648,31 @@ async def create_github_release(projectId: str, request: CreateReleaseRequest):
     # gh release create outputs the release URL
     release_url = result.get("output", "")
     return {"success": True, "data": {"url": release_url}}
+
+
+@router.get("/fork-info")
+async def get_fork_info(project_path: str = Query(..., description="Absolute path to the project")):
+    """Detect if repo is a fork and return origin + upstream info."""
+    result = run_gh_command(
+        ["repo", "view", "--json", "nameWithOwner,parent,isFork,defaultBranchRef"],
+        cwd=project_path
+    )
+    if not result["success"]:
+        return {"success": False, "error": result.get("error")}
+
+    try:
+        data = json.loads(result["output"])
+    except (json.JSONDecodeError, TypeError):
+        return {"success": False, "error": "Failed to parse repository info"}
+
+    info = {
+        "isFork": data.get("isFork", False),
+        "origin": data.get("nameWithOwner"),
+        "defaultBranch": data.get("defaultBranchRef", {}).get("name", "main"),
+    }
+    if info["isFork"] and data.get("parent"):
+        parent = data["parent"]
+        info["upstream"] = parent.get("nameWithOwner")
+        info["upstreamDefaultBranch"] = parent.get("defaultBranchRef", {}).get("name", "main")
+
+    return {"success": True, "data": info}

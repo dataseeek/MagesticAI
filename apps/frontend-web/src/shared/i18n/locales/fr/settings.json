@@ -395,6 +395,8 @@
     "disconnect": "Déconnecter",
     "loginInTerminal": "Connexion dans le terminal",
     "waitingForAuth": "En attente d'authentification...",
+    "authenticatingWith": "Authentification avec {{cli}}...",
+    "completeOAuthInBrowser": "Complétez le flux OAuth dans votre navigateur lorsque vous y êtes invité.",
     "authSuccess": "Authentification réussie !",
     "authFailed": "L'authentification a expiré. Veuillez réessayer.",
     "install": "Installer",
