@@ -729,6 +729,71 @@ class AgentService:
         except Exception as e:
             logger.error(f"[AgentService] Failed to update active profile: {e}")
 
+    async def _retry_task_with_fallback_model(
+        self,
+        task_id: str,
+        project_path: Path,
+        spec_id: str,
+        cmd: list[str],
+        env: dict,
+    ) -> asyncio.subprocess.Process | None:
+        """Retry task execution with Claude Sonnet as fallback model.
+
+        Called when a non-Claude model (Codex, Gemini, Ollama) fails.
+        Swaps the --model flag in the command to 'sonnet'.
+
+        Returns:
+            New subprocess or None if retry not possible
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        profile_info = self._task_profiles.get(task_id, {})
+        failed_model = profile_info.get("model", "unknown")
+
+        # Build new command with sonnet model
+        new_cmd = list(cmd)
+        if "--model" in new_cmd:
+            model_idx = new_cmd.index("--model")
+            if model_idx + 1 < len(new_cmd):
+                new_cmd[model_idx + 1] = "sonnet"
+        else:
+            new_cmd.extend(["--model", "sonnet"])
+
+        logger.info(f"[AgentService] [Model: sonnet] Fallback triggered for {task_id} (original: {failed_model})")
+
+        # Emit WebSocket event for model fallback
+        from ..websockets.events import broadcast_event
+        await broadcast_event("task:log", {
+            "taskId": task_id,
+            "type": "model_fallback",
+            "message": f"Model '{failed_model}' failed. Falling back to Claude Sonnet.",
+        })
+
+        # Update tracking
+        if task_id in self._task_profiles:
+            self._task_profiles[task_id]["model"] = "sonnet"
+            self._task_profiles[task_id]["attempt"] = 2
+            self._task_profiles[task_id]["fallbackFrom"] = failed_model
+
+        # Relaunch subprocess
+        import pty
+        master_fd, slave_fd = pty.openpty()
+
+        proc = await asyncio.create_subprocess_exec(
+            *new_cmd,
+            stdin=slave_fd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=str(project_path),
+            env=env,
+        )
+
+        os.close(slave_fd)
+        os.close(master_fd)
+
+        return proc
+
     async def _retry_task_with_profile(
         self,
         task_id: str,
@@ -1364,7 +1429,54 @@ class AgentService:
             if project_path and spec_id:
                 await self._sync_worktree_files(project_path, spec_id, task_id)
 
-            logger.info(f"[AgentService] Task {task_id} process exited with code {return_code}")
+            exit_model = self._task_profiles.get(task_id, {}).get("model", "unknown")
+            logger.info(f"[AgentService] [Model: {exit_model}] Task {task_id} process exited with code {return_code}")
+
+            # Early model fallback: if a non-Claude model failed, retry with Sonnet
+            # before any other processing (spec detection, plan status, etc.)
+            if return_code != 0 and cmd and env:
+                _fb_info = self._task_profiles.get(task_id, {})
+                _fb_model = _fb_info.get("model", "")
+                _fb_attempt = _fb_info.get("attempt", 1)
+                _fb_is_non_claude = (
+                    _fb_model
+                    and not _fb_model.startswith("claude-")
+                    and _fb_model not in ("haiku", "sonnet", "opus", "opus-1m")
+                )
+                logger.info(f"[AgentService] Fallback check: model={_fb_model!r}, attempt={_fb_attempt}, is_non_claude={_fb_is_non_claude}, cmd={'yes' if cmd else 'no'}, env={'yes' if env else 'no'}")
+                if _fb_is_non_claude and _fb_attempt <= 1:
+                    new_proc = await self._retry_task_with_fallback_model(
+                        task_id, project_path, spec_id, cmd, env
+                    )
+                    if new_proc:
+                        self._task_rate_limits.pop(task_id, None)
+                        self.running_tasks[task_id] = new_proc
+
+                        log_writer = None
+                        main_log_writer = None
+                        if task_id in self._task_log_writers:
+                            log_writer, main_log_writer = self._task_log_writers[task_id]
+
+                        asyncio.create_task(
+                            self._process_output(
+                                task_id, new_proc.stdout, is_stderr=False,
+                                log_writer=log_writer, spec_id=spec_id,
+                            )
+                        )
+                        asyncio.create_task(
+                            self._process_output(
+                                task_id, new_proc.stderr, is_stderr=True,
+                                log_writer=log_writer, spec_id=spec_id,
+                            )
+                        )
+                        asyncio.create_task(
+                            self._monitor_process(
+                                task_id, new_proc, project_path, spec_id,
+                                cmd=None, env=None
+                            )
+                        )
+                        logger.info(f"[AgentService] Task {task_id} restarted with fallback model (sonnet)")
+                        return
 
             # Special case: Spec creation (project_path provided, spec_id is None)
             # Need to detect the created spec_id and check if it requires review
@@ -1602,7 +1714,8 @@ class AgentService:
                         logger.info(f"[AgentService] Task {task_id} restarted with alternate profile")
                         return  # Exit this monitor instance
                     else:
-                        logger.warning(f"[AgentService] No alternate profile available for task {task_id}, surfacing failure")
+                        logger.warning(f"[AgentService] No alternate profile available for task {task_id}, trying model fallback")
+
 
             # If stop_task() already handled cleanup, skip duplicate processing
             if task_id in self._task_stopped:
@@ -1964,7 +2077,9 @@ class AgentService:
         # Pass spec phase model if configured (multi-model support)
         if spec_phase_model:
             cmd.extend(["--model", spec_phase_model])
-            logger.info(f"[AgentService] Using spec phase model: {spec_phase_model}")
+            logger.info(f"[AgentService] [Model: {spec_phase_model}] Starting spec creation for {task_id}")
+        else:
+            logger.info(f"[AgentService] [Model: sonnet] Starting spec creation for {task_id} (default)")
 
         # Fix 1: Only auto-approve if task doesn't require manual review
         if should_auto_approve:
@@ -2037,9 +2152,11 @@ class AgentService:
                 "profileId": profile_id,
                 "profileName": profile_name,
                 "attempt": 1,
+                "model": spec_phase_model or "sonnet",
             }
         else:
             logger.warning("[AgentService] No Claude OAuth token available for spec creation")
+            self._task_profiles[task_id] = {"attempt": 1, "model": spec_phase_model or "sonnet"}
 
         # Start subprocess with a pseudo-TTY to prevent "Stream closed" errors
         # Claude Code CLI expects a TTY for permission handling
@@ -2083,7 +2200,8 @@ class AgentService:
 
         # Start process monitor to clean up when finished
         # Pass project_path so monitor can detect created spec and check for review state
-        asyncio.create_task(self._monitor_process(task_id, proc, project_path=project_path))
+        # Pass cmd and env so model fallback can retry with a different model on failure
+        asyncio.create_task(self._monitor_process(task_id, proc, project_path=project_path, cmd=cmd, env=env))
 
         return proc
 
@@ -2236,15 +2354,27 @@ class AgentService:
         if token:
             env["CLAUDE_CODE_OAUTH_TOKEN"] = token
             logger.info(f"[AgentService] Using Claude profile: {profile_name} ({profile_id})")
-            # Store for potential retry
+            # Store for potential retry — read model from task_metadata.json
+            exec_model = "sonnet"  # default
+            exec_spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
+            exec_metadata_file = exec_spec_dir / "task_metadata.json"
+            if exec_metadata_file.exists():
+                try:
+                    exec_metadata = json.loads(exec_metadata_file.read_text())
+                    exec_model = exec_metadata.get("model", "sonnet")
+                except (json.JSONDecodeError, OSError):
+                    pass
             self._task_profiles[task_id] = {
                 "profileId": profile_id,
                 "profileName": profile_name,
-                "attempt": 1
+                "attempt": 1,
+                "model": exec_model,
             }
         else:
             logger.warning("[AgentService] No Claude OAuth token available")
 
+        exec_model_display = self._task_profiles.get(task_id, {}).get("model", "sonnet")
+        logger.info(f"[AgentService] [Model: {exec_model_display}] Starting task execution for {task_id}")
         logger.info(f"[AgentService] Command: {' '.join(cmd)}")
 
         # Start subprocess with a pseudo-TTY to prevent "Stream closed" errors

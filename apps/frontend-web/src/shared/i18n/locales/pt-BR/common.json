@@ -256,6 +256,21 @@
       "creating": "Criando..."
     }
   },
+  "clarificationWizard": {
+    "title": "Esclarecimentos da Tarefa",
+    "description": "Vamos garantir que sua tarefa tem todos os detalhes necessários.",
+    "analyzing": "Analisando tarefa para perguntas de esclarecimento...",
+    "noQuestionsTitle": "Tarefa Criada com Sucesso",
+    "noQuestionsMessage": "Sua tarefa já está detalhada o suficiente — nenhum esclarecimento adicional necessário.",
+    "submitAnswers": "Enviar Respostas",
+    "submitting": "Enviando...",
+    "skipClarifications": "Pular",
+    "close": "Fechar",
+    "answerPlaceholder": "Sua resposta...",
+    "errorGenerating": "Falha ao gerar perguntas de esclarecimento.",
+    "errorSubmitting": "Falha ao enviar respostas.",
+    "retry": "Tentar novamente"
+  },
   "downloads": {
     "toggleExpand": "Expandir detalhes do download",
     "downloading": "Baixando {{count}} modelo",

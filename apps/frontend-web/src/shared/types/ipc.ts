@@ -143,6 +143,8 @@ export interface API {
   // Task operations
   getTasks: (projectId: string) => Promise<IPCResult<Task[]>>;
   createTask: (projectId: string, title: string, description: string, metadata?: TaskMetadata) => Promise<IPCResult<Task>>;
+  generateClarifications: (taskId: string) => Promise<IPCResult<{ questions: Array<{ id: string; question: string; options: string[] }>; skip: boolean; skipReason: string }>>;
+  submitClarificationAnswers: (taskId: string, answers: Array<{ questionId: string; question: string; answer: string }>) => Promise<IPCResult<Task>>;
   deleteTask: (taskId: string) => Promise<IPCResult>;
   updateTask: (taskId: string, updates: { title?: string; description?: string; metadata?: Partial<TaskMetadata> }) => Promise<IPCResult<Task>>;
   startTask: (taskId: string, options?: TaskStartOptions) => void;
