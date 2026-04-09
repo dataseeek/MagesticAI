@@ -64,8 +64,9 @@ _TEXT_REGISTRY: dict[str, tuple[str, str]] = {
 }
 
 # Phases that need agentic capability (file ops, code execution)
-_AGENTIC_PHASES = {"spec", "planning", "coding", "qa_fixer"}
-_TEXT_PHASES = {"qa"}
+# QA needs agentic capability to update implementation_plan.json with qa_signoff
+_AGENTIC_PHASES = {"spec", "planning", "coding", "qa_fixer", "qa"}
+_TEXT_PHASES: set[str] = set()  # All phases now use agentic providers
 
 # Human-readable aliases (normalised to canonical names)
 _PROVIDER_ALIASES: dict[str, str] = {
