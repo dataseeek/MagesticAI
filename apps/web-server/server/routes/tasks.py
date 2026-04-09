@@ -182,6 +182,40 @@ class TaskUpdate(BaseModel):
     metadata: TaskMetadataUpdate | None = None
 
 
+class ClarificationQuestion(BaseModel):
+    """A single clarification question with multiple-choice options."""
+
+    id: str
+    question: str
+    options: list[str] = Field(default_factory=list)
+
+
+class ClarificationResponse(BaseModel):
+    """Response from clarification question generation."""
+
+    questions: list[ClarificationQuestion] = Field(default_factory=list)
+    skip: bool = False
+    skip_reason: str = Field("", alias="skipReason")
+
+    model_config = {"populate_by_name": True}
+
+
+class ClarificationAnswer(BaseModel):
+    """A single answered clarification question."""
+
+    question_id: str = Field(..., alias="questionId")
+    question: str
+    answer: str
+
+    model_config = {"populate_by_name": True}
+
+
+class ClarificationAnswersRequest(BaseModel):
+    """Request to submit clarification answers."""
+
+    answers: list[ClarificationAnswer]
+
+
 # --------------------------------------------------------------------------
 # Helper Functions
 # --------------------------------------------------------------------------
@@ -196,15 +230,37 @@ def get_spec_dirs(project_path: Path) -> list[Path]:
 
 
 def get_next_spec_id(project_path: Path, title: str) -> str:
-    """Generate the next spec ID (e.g., '003-feature-name')."""
-    existing = get_spec_dirs(project_path)
+    """Generate the next spec ID (e.g., '003-feature-name').
 
-    # Find highest number
-    max_num = 0
+    Uses a counter file (.magestic-ai/specs/.counter) to ensure IDs
+    never get reused after deletion.
+    """
+    specs_dir = project_path / ".magestic-ai" / "specs"
+    counter_file = specs_dir / ".counter"
+
+    # Read persisted counter (highest ID ever assigned)
+    persisted_max = 0
+    if counter_file.exists():
+        try:
+            persisted_max = int(counter_file.read_text().strip())
+        except (ValueError, OSError):
+            pass
+
+    # Also check existing directories in case counter file is missing
+    existing = get_spec_dirs(project_path)
+    dir_max = 0
     for spec_dir in existing:
         match = re.match(r"(\d+)-", spec_dir.name)
         if match:
-            max_num = max(max_num, int(match.group(1)))
+            dir_max = max(dir_max, int(match.group(1)))
+
+    # Use the higher of persisted counter and directory scan
+    max_num = max(persisted_max, dir_max)
+    next_num = max_num + 1
+
+    # Persist the new counter
+    specs_dir.mkdir(parents=True, exist_ok=True)
+    counter_file.write_text(str(next_num))
 
     # Generate slug from title
     slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:30]
@@ -213,7 +269,7 @@ def get_next_spec_id(project_path: Path, title: str) -> str:
     if not slug:
         slug = "untitled-task"
 
-    return f"{max_num + 1:03d}-{slug}"
+    return f"{next_num:03d}-{slug}"
 
 
 def get_worktree_spec_dir(project_path: Path, spec_id: str) -> Path | None:
@@ -993,6 +1049,96 @@ Created via Magestic AI Web UI
     (spec_dir / "requirements.json").write_text(json.dumps(requirements, indent=2))
 
     return spec_to_task(task.project_id, spec_dir)
+
+
+# --------------------------------------------------------------------------
+# Clarification Endpoints
+# --------------------------------------------------------------------------
+
+
+def _resolve_task(task_id: str) -> tuple[str, str, Path, Path]:
+    """Resolve task_id (projectId:specId) to project_id, spec_id, project_path, spec_dir.
+
+    Raises HTTPException on invalid input or missing resources.
+    """
+    if ":" not in task_id:
+        raise HTTPException(status_code=400, detail="Invalid task_id format (expected projectId:specId)")
+
+    project_id, spec_id = task_id.split(":", 1)
+    projects = load_projects()
+
+    if project_id not in projects:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    project_path = Path(projects[project_id]["path"])
+    spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
+
+    if not spec_dir.exists():
+        raise HTTPException(status_code=404, detail="Task spec not found")
+
+    return project_id, spec_id, project_path, spec_dir
+
+
+@router.post("/{task_id}/clarifications", response_model=ClarificationResponse)
+async def generate_clarifications(task_id: str):
+    """Generate clarification questions for a task using an LLM."""
+    from ..services.clarification_service import generate_clarification_questions
+
+    project_id, spec_id, project_path, spec_dir = _resolve_task(task_id)
+
+    # Load task title and description from requirements.json
+    req_file = spec_dir / "requirements.json"
+    if not req_file.exists():
+        return ClarificationResponse(skip=True, skipReason="No requirements found.")
+
+    requirements = json.loads(req_file.read_text())
+    title = requirements.get("title", "")
+    description = requirements.get("description", "")
+
+    result = await generate_clarification_questions(title, description, project_path)
+
+    return ClarificationResponse(
+        questions=[ClarificationQuestion(**q) for q in result.get("questions", [])],
+        skip=result.get("skip", False),
+        skipReason=result.get("skipReason", ""),
+    )
+
+
+@router.post("/{task_id}/clarifications/answers", response_model=Task)
+async def submit_clarification_answers(task_id: str, request: ClarificationAnswersRequest):
+    """Submit answers to clarification questions and append them to the task."""
+    project_id, spec_id, project_path, spec_dir = _resolve_task(task_id)
+
+    if not request.answers:
+        return spec_to_task(project_id, spec_dir)
+
+    # Build clarification appendix
+    lines = ["\n\n## Clarifications\n"]
+    for answer in request.answers:
+        if answer.answer.strip():
+            lines.append(f"**Q: {answer.question}**")
+            lines.append(f"A: {answer.answer.strip()}\n")
+    appendix = "\n".join(lines)
+
+    # Update requirements.json description
+    req_file = spec_dir / "requirements.json"
+    if req_file.exists():
+        requirements = json.loads(req_file.read_text())
+        requirements["description"] = requirements.get("description", "") + appendix
+        req_file.write_text(json.dumps(requirements, indent=2))
+
+    # Append to spec.md
+    spec_file = spec_dir / "spec.md"
+    if spec_file.exists():
+        content = spec_file.read_text()
+        # Insert before ## Notes section if it exists, otherwise append
+        if "\n## Notes\n" in content:
+            content = content.replace("\n## Notes\n", f"{appendix}\n## Notes\n")
+        else:
+            content += appendix
+        spec_file.write_text(content)
+
+    return spec_to_task(project_id, spec_dir)
 
 
 def _try_close_github_issue(project_path: Path, spec_dir: Path) -> None:

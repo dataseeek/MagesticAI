@@ -94,19 +94,20 @@ class ArchitecturePhaseMixin:
 
         # Run architecture agent
         success, response_text = await self.run_agent_fn(
-            prompt_file="architecture",
+            prompt_file="architecture.md",
             additional_context=architecture_prompt,
             phase_name="architecture",
         )
 
         if not success:
-            self.ui.print_status("Architecture generation failed", "error")
+            error_detail = response_text[:500] if response_text else "No error details"
+            self.ui.print_status(f"Architecture generation failed: {error_detail}", "error")
             self.task_logger.log(
-                "Architecture generation failed",
+                f"Architecture generation failed: {error_detail}",
                 LogEntryType.ERROR,
                 LogPhase.PLANNING,
             )
-            return PhaseResult("architecture", False, [], ["Agent execution failed"], 1)
+            return PhaseResult("architecture", False, [], [f"Agent execution failed: {error_detail}"], 1)
 
         # Verify architecture.md was created
         if not architecture_file.exists():

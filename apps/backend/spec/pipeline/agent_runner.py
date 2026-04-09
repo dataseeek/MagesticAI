@@ -150,11 +150,14 @@ class AgentRunner:
                 max_thinking_tokens=thinking_budget,
             )
         else:
+            # Non-Claude providers run in spec_dir so relative file writes
+            # (cat > spec.md) land in the correct directory.
+            self.spec_dir.mkdir(parents=True, exist_ok=True)
             client = get_provider(
                 provider_name,
                 phase="spec",
                 model=self.model,
-                working_dir=self.project_dir,
+                working_dir=self.spec_dir,
             )
 
         current_tool = None

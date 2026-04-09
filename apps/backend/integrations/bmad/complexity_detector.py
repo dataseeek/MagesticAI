@@ -81,10 +81,10 @@ class ComplexityDetector:
     # Keyword patterns from BMad project-levels.yaml
     LEVEL_KEYWORDS = {
         0: ["fix", "bug", "typo", "small change", "quick update", "patch"],
-        1: ["simple", "basic", "small feature", "add", "minor"],
-        2: ["dashboard", "several features", "admin panel", "medium"],
-        3: ["platform", "integration", "complex", "system", "architecture"],
-        4: ["enterprise", "multi-tenant", "multiple products", "ecosystem", "scale"],
+        1: ["simple", "basic", "small feature", "add", "minor", "game", "script", "tool", "util"],
+        2: ["dashboard", "several features", "admin panel", "medium", "crud", "form"],
+        3: ["platform", "integration", "complex system", "microservice", "distributed", "multi-service architecture"],
+        4: ["enterprise", "multi-tenant", "multiple products", "ecosystem", "large scale"],
     }
 
     # Story count ranges from BMad project-levels.yaml
@@ -199,9 +199,17 @@ class ComplexityDetector:
         Returns level (0-4) if keywords found, None otherwise.
         """
         task_lower = task_description.lower()
+        word_count = len(task_description.split())
 
-        # Check from highest to lowest level (prioritize more complex)
-        for level in [4, 3, 2, 1, 0]:
+        # For short descriptions (<30 words), check simple levels first
+        # to avoid over-classification of brief tasks
+        if word_count < 30:
+            level_order = [0, 1, 2, 3, 4]
+        else:
+            # For longer descriptions, check complex levels first
+            level_order = [4, 3, 2, 1, 0]
+
+        for level in level_order:
             keywords = self.LEVEL_KEYWORDS[level]
             for keyword in keywords:
                 if re.search(r'\b' + re.escape(keyword) + r'\b', task_lower):
