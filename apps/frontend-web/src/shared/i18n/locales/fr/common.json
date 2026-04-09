@@ -260,6 +260,21 @@
       "creating": "Création..."
     }
   },
+  "clarificationWizard": {
+    "title": "Clarifications de la tâche",
+    "description": "Vérifions que votre tâche contient tous les détails nécessaires.",
+    "analyzing": "Analyse de la tâche pour les questions de clarification...",
+    "noQuestionsTitle": "Tâche créée avec succès",
+    "noQuestionsMessage": "Votre tâche est suffisamment détaillée — aucune clarification supplémentaire nécessaire.",
+    "submitAnswers": "Soumettre les réponses",
+    "submitting": "Envoi en cours...",
+    "skipClarifications": "Ignorer",
+    "close": "Fermer",
+    "answerPlaceholder": "Votre réponse...",
+    "errorGenerating": "Échec de la génération des questions de clarification.",
+    "errorSubmitting": "Échec de l'envoi des réponses.",
+    "retry": "Réessayer"
+  },
   "downloads": {
     "toggleExpand": "Afficher/masquer les détails",
     "downloading": "Téléchargement de {{count}} modèle",

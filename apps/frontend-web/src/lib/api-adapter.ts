@@ -286,6 +286,10 @@ export const webAPI: API & { _isWebMode: boolean } = {
   getTasks: (projectId: string) => get<Task[]>(`/projects/${projectId}/tasks`),
   createTask: (projectId: string, title: string, description: string, metadata?: TaskMetadata) =>
     post<Task>(`/projects/${projectId}/tasks`, { title, description, metadata }),
+  generateClarifications: (taskId: string) =>
+    post<{ questions: Array<{ id: string; question: string; options: string[] }>; skip: boolean; skipReason: string }>(`/tasks/${taskId}/clarifications`),
+  submitClarificationAnswers: (taskId: string, answers: Array<{ questionId: string; question: string; answer: string }>) =>
+    post<Task>(`/tasks/${taskId}/clarifications/answers`, { answers }),
   deleteTask: (taskId: string) => del(`/tasks/${taskId}`),
   updateTask: (taskId: string, updates: { title?: string; description?: string; metadata?: Partial<TaskMetadata> }) =>
     patch<Task>(`/tasks/${taskId}`, updates),

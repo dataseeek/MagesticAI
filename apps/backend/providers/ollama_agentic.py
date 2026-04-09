@@ -119,6 +119,9 @@ class OllamaAgenticProvider(BaseLLMProvider):
         self._working_dir = Path(working_dir).resolve()
         self._max_turns = max_turns
         self._extra_options: dict[str, Any] = extra_options or {}
+        # Default to 32K context for complex tasks
+        if "num_ctx" not in self._extra_options:
+            self._extra_options["num_ctx"] = 32768
         self._pending_prompt: str | None = None
 
         # Tool setup

@@ -120,6 +120,9 @@ class OllamaProvider(BaseLLMProvider):
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout
         self._extra_options: dict[str, Any] = extra_options or {}
+        # Default to 32K context for QA review of large codebases
+        if "num_ctx" not in self._extra_options:
+            self._extra_options["num_ctx"] = 32768
         self._pending_prompt: str | None = None
 
         logger.debug(
