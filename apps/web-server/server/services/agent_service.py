@@ -1531,13 +1531,10 @@ class AgentService:
                                     return  # Exit early - not a failure
 
                             # If we reach here, spec was created but doesn't need review
-                            # Emit completion event
-                            logger.info(f"[AgentService] Spec {detected_spec_id} created successfully (no review required)")
+                            # Auto-start task execution immediately
+                            logger.info(f"[AgentService] Spec {detected_spec_id} created successfully (no review required) — auto-starting execution")
 
-                            # Persist status to implementation_plan.json
-                            await self._update_plan_status(project_path, detected_spec_id, "completed", task_id)
-
-                            # Clean up tracking data
+                            # Clean up tracking data from spec creation
                             if task_id in self.running_tasks:
                                 del self.running_tasks[task_id]
                             self._task_sequence_numbers.pop(task_id, None)
@@ -1547,18 +1544,19 @@ class AgentService:
                             self._task_rate_limits.pop(task_id, None)
                             self._task_subtask_states.pop(task_id, None)
 
-                            # Emit completion (20% overall = planning complete, override scaling
-                            # since COMPLETED phase would normally scale to 95-100%)
-                            await self._emit_progress(
-                                TaskProgress(
+                            # Auto-start task execution
+                            try:
+                                await self.start_task_execution(
                                     task_id=task_id,
-                                    phase=TaskPhase.COMPLETED,
-                                    message="Spec created successfully",
-                                    percentage=100,
-                                    overall_progress=20,
-                                ),
-                                previous_phase=TaskPhase.SPEC_CREATION,
-                            )
+                                    project_path=project_path,
+                                    spec_id=detected_spec_id,
+                                    auto_continue=True,
+                                )
+                                logger.info(f"[AgentService] Task execution auto-started for {detected_spec_id}")
+                            except Exception as exec_err:
+                                logger.error(f"[AgentService] Failed to auto-start execution for {detected_spec_id}: {exec_err}")
+                                # Fall back to human_review status so user can start manually
+                                await self._update_plan_status(project_path, detected_spec_id, "completed", task_id)
                             return  # Exit early
                 except Exception as e:
                     logger.warning(f"[AgentService] Failed to detect created spec: {e}")
@@ -1740,6 +1738,80 @@ class AgentService:
 
                 del self._task_log_writers[task_id]
                 logger.debug(f"[AgentService] Finalized task logs for {task_id}")
+
+            # Auto-continuation: if process exited successfully but subtasks remain,
+            # restart execution instead of marking as completed (max 10 continuation rounds)
+            if return_code == 0 and spec_id and project_path and cmd and env:
+                plan_file = project_path / ".magestic-ai" / "specs" / spec_id / "implementation_plan.json"
+                if plan_file.exists():
+                    try:
+                        plan_data = json.loads(plan_file.read_text())
+                        pending_count = 0
+                        completed_count = 0
+                        total_count = 0
+                        for phase in plan_data.get("phases", []):
+                            for subtask in phase.get("subtasks", []):
+                                total_count += 1
+                                st = subtask.get("status", "pending")
+                                if st in ("pending", "in_progress"):
+                                    pending_count += 1
+                                elif st == "completed":
+                                    completed_count += 1
+
+                        # Track continuation rounds to prevent infinite loops
+                        continuation_key = f"_continuation_{task_id}"
+                        round_num = getattr(self, continuation_key, 0) + 1
+
+                        if pending_count > 0 and round_num <= 10:
+                            setattr(self, continuation_key, round_num)
+                            logger.info(
+                                f"[AgentService] Auto-continuation round {round_num}: "
+                                f"{completed_count}/{total_count} subtasks done, "
+                                f"{pending_count} remaining for {spec_id}"
+                            )
+
+                            # Clean up current run tracking
+                            if task_id in self.running_tasks:
+                                del self.running_tasks[task_id]
+                            self._task_sequence_numbers.pop(task_id, None)
+                            self._task_start_times.pop(task_id, None)
+                            self._task_current_phases.pop(task_id, None)
+                            self._task_profiles.pop(task_id, None)
+                            self._task_rate_limits.pop(task_id, None)
+                            self._task_subtask_states.pop(task_id, None)
+                            if task_id in self._task_log_writers:
+                                log_writer, main_log_writer = self._task_log_writers[task_id]
+                                if spec_id:
+                                    actual_phase_for_logs = self._get_current_phase(task_id)
+                                    log_writer.finalize(spec_id, actual_phase_for_logs)
+                                    main_log_writer.finalize(spec_id, actual_phase_for_logs)
+                                del self._task_log_writers[task_id]
+
+                            # Restart execution
+                            try:
+                                await self.start_task_execution(
+                                    task_id=task_id,
+                                    project_path=project_path,
+                                    spec_id=spec_id,
+                                    auto_continue=True,
+                                )
+                                logger.info(f"[AgentService] Auto-continuation started for {spec_id} (round {round_num})")
+                                return  # Exit this monitor — new monitor will take over
+                            except Exception as e:
+                                logger.error(f"[AgentService] Auto-continuation failed for {spec_id}: {e}")
+                                # Fall through to normal completion
+                        elif pending_count > 0 and round_num > 10:
+                            logger.warning(
+                                f"[AgentService] Auto-continuation limit reached (10 rounds) for {spec_id}, "
+                                f"{pending_count} subtasks still pending"
+                            )
+                        else:
+                            # All subtasks done — clean up continuation tracker
+                            if hasattr(self, continuation_key):
+                                delattr(self, continuation_key)
+                            logger.info(f"[AgentService] All {total_count} subtasks completed for {spec_id}")
+                    except (json.JSONDecodeError, OSError) as e:
+                        logger.warning(f"[AgentService] Could not check subtask status for auto-continuation: {e}")
 
             # Update implementation_plan.json status for frontend display
             if spec_id and project_path:
