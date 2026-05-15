@@ -5,10 +5,10 @@
 # No port mapping needed — the container is directly reachable on the LAN.
 #
 # Required environment variables (set in .env or shell — see .env.example):
-#   INSTANCE_IP    — LAN IP for this instance (e.g. <gateway>00)
-#   HOST_NIC       — Host's physical NIC name (e.g. eth0, eno1, <nic>)
+#   INSTANCE_IP    — LAN IP for this instance (e.g. 192.168.1.100)
+#   HOST_NIC       — Host's physical NIC name (e.g. eth0, eno1, enp0s31f6)
 #   LAN_SUBNET     — Your LAN subnet      (e.g. 192.168.1.0/24)
-#   LAN_GATEWAY    — Your LAN gateway IP  (e.g. <gateway>)
+#   LAN_GATEWAY    — Your LAN gateway IP  (e.g. 192.168.1.1)
 #
 # Optional environment variables (have defaults):
 #   INSTANCE_NAME      — Container name and disk label   (default: magesticai)
@@ -21,7 +21,7 @@
 #
 # Multiple instances (each needs a unique INSTANCE_NAME + INSTANCE_IP):
 #   sudo bash scripts/setup-docker-disk.sh client-acme
-#   INSTANCE_NAME=client-acme INSTANCE_IP=<gateway>01 docker compose up -d
+#   INSTANCE_NAME=client-acme INSTANCE_IP=192.168.1.101 docker compose up -d
 #
 # DISK QUOTA:
 #   Each instance gets its own 2 GB loopback ext4 disk at
