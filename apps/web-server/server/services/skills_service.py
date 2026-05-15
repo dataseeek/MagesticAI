@@ -7,7 +7,6 @@ providing fast lookup by category, keyword search, and auto-suggestion.
 Skills path resolution (first match wins):
 1. APP_SKILLS_PATH env var (explicit override)
 2. <project-root>/skills/  (local copy, works on host and in Docker)
-3. <skills-mount>/skills/  (legacy network mount fallback)
 
 Uses a pickle cache (~/.magestic-ai/skills-cache.pkl) to avoid re-scanning
 6,000+ files on every startup.  The cache is invalidated when the skills
@@ -31,9 +30,11 @@ def _resolve_skills_path() -> Path:
     """Resolve the skills directory path.
 
     Priority:
-    1. APP_SKILLS_PATH env var
+    1. APP_SKILLS_PATH env var (explicit override)
     2. <project-root>/skills/ (local copy)
-    3. <skills-mount>/skills/ (legacy network mount)
+
+    If neither resolves, returns the local path anyway — the caller will
+    log a warning when scanning finds no files.
     """
     # 1. Explicit env var
     env_path = os.environ.get("APP_SKILLS_PATH")
@@ -43,12 +44,7 @@ def _resolve_skills_path() -> Path:
     # 2. Local skills/ directory relative to project root
     # Project root is 4 levels up: services/ -> server/ -> web-server/ -> apps/ -> root
     project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
-    local_skills = project_root / "skills"
-    if local_skills.is_dir():
-        return local_skills
-
-    # 3. Legacy network mount
-    return Path("<skills-mount>/skills")
+    return project_root / "skills"
 
 
 DEFAULT_SKILLS_PATH = _resolve_skills_path()

@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "apps" / "web-server"))
 from server.routes.tasks import SelectedSkill, TaskMetadata, TaskMetadataUpdate
 from server.services.skills_service import SkillsService, init_skills_service
 
-# Fixture skills directory — no <skills-mount> required
+# Fixture skills directory — fully isolated from the real skills/ dir
 FIXTURES_PATH = Path(__file__).parent / "fixtures" / "skills"
 
 
@@ -245,7 +245,8 @@ class TestWriteSkillContext:
 
     Uses a temporary spec directory and a fixture-backed SkillsService.
     Patches server.services.skills_service._skills_service (the singleton)
-    so the method picks up our fixture service without touching <skills-mount>.
+    so the method picks up our fixture service without touching the real
+    on-disk skills directory.
     """
 
     @pytest.fixture(autouse=True)

@@ -8,7 +8,7 @@ set -euo pipefail
 # then drops to the magesticai user via gosu.
 # =============================================================================
 
-GATEWAY_IP="${CONTAINER_GATEWAY:-<gateway>}"
+GATEWAY_IP="${CONTAINER_GATEWAY:?CONTAINER_GATEWAY is required (set via docker-compose .env LAN_GATEWAY)}"
 BLOCKED_RANGES="${CONTAINER_BLOCKED_RANGES:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"
 ENABLE_LAN_FIREWALL="${CONTAINER_LAN_FIREWALL:-true}"
 
