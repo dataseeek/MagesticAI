@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+
+# Cancel superseded runs on the same ref
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend-lint-test:
+    name: backend (ruff + pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Create venv + install deps
+        working-directory: apps/backend
+        run: |
+          uv venv
+          uv pip install -r requirements.txt
+          uv pip install -r ../../tests/requirements-test.txt
+          uv pip install ruff
+
+      - name: Ruff lint
+        run: apps/backend/.venv/bin/ruff check apps/backend tests
+
+      - name: Pytest (skip slow)
+        env:
+          GRAPHITI_ENABLED: "false"
+        run: apps/backend/.venv/bin/pytest tests/ -m "not slow" -q
+
+  frontend-lint-test:
+    name: frontend (lint + typecheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: apps/frontend-web/package-lock.json
+
+      - name: Install deps
+        working-directory: apps/frontend-web
+        run: npm ci
+
+      - name: Lint
+        working-directory: apps/frontend-web
+        run: npm run lint
+
+      - name: Type-check
+        working-directory: apps/frontend-web
+        run: npm run typecheck
