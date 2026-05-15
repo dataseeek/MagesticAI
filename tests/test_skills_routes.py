@@ -4,7 +4,8 @@ Tests for Skills API Routes
 ============================
 
 Tests the /api/skills/* FastAPI endpoints using a minimal TestClient that
-patches the SkillsService singleton so no access to <skills-mount> is needed.
+patches the SkillsService singleton so it never touches the real skills
+directory on disk.
 
 Endpoints under test:
   GET /api/skills/categories
@@ -28,7 +29,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "apps" / "web-server"))
 from server.routes.skills import router as skills_router
 from server.services.skills_service import SkillsService
 
-# Fixture skills directory — no <skills-mount> required
+# Fixture skills directory — fully isolated from the real skills/ dir
 FIXTURES_PATH = Path(__file__).parent / "fixtures" / "skills"
 
 
@@ -56,8 +57,8 @@ def client(_app: FastAPI, fixture_service: SkillsService):
     """
     TestClient whose skills endpoints use the fixture-backed service.
 
-    Patches ``get_skills_service`` in the routes module so the global
-    <skills-mount> singleton is never touched.
+    Patches ``get_skills_service`` in the routes module so the real
+    on-disk skills singleton is never touched.
     """
     with patch(
         "server.routes.skills.get_skills_service",

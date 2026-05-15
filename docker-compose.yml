@@ -4,37 +4,40 @@
 # Deploys with a static LAN IP via macvlan.
 # No port mapping needed — the container is directly reachable on the LAN.
 #
-# Environment variables (all have defaults):
-#   INSTANCE_NAME  — Container name and disk label  (default: magesticai)
-#   INSTANCE_IP    — LAN IP for this instance        (default: <lan-ip>)
+# Required environment variables (set in .env or shell — see .env.example):
+#   INSTANCE_IP    — LAN IP for this instance (e.g. 192.168.1.100)
+#   HOST_NIC       — Host's physical NIC name (e.g. eth0, eno1, enp0s31f6)
+#   LAN_SUBNET     — Your LAN subnet      (e.g. 192.168.1.0/24)
+#   LAN_GATEWAY    — Your LAN gateway IP  (e.g. 192.168.1.1)
+#
+# Optional environment variables (have defaults):
+#   INSTANCE_NAME      — Container name and disk label   (default: magesticai)
+#   MAGESTIC_DATA_DIR  — Host directory for persistent data (default: ./data)
 #
 # Usage:
-#   sudo bash scripts/setup-docker-disk.sh magesticai  # First time: create 2 GB disk
-#   docker compose up -d                                # Default instance
+#   cp .env.example .env && $EDITOR .env       # set the required vars above
+#   sudo bash scripts/setup-docker-disk.sh ${INSTANCE_NAME:-magesticai}
+#   docker compose up -d
 #
-# Multiple instances (each needs a unique name + IP):
+# Multiple instances (each needs a unique INSTANCE_NAME + INSTANCE_IP):
 #   sudo bash scripts/setup-docker-disk.sh client-acme
-#   INSTANCE_NAME=client-acme INSTANCE_IP=<lan-ip> docker compose up -d
-#
-#   sudo bash scripts/setup-docker-disk.sh client-beta
-#   INSTANCE_NAME=client-beta INSTANCE_IP=<lan-ip> docker compose up -d
+#   INSTANCE_NAME=client-acme INSTANCE_IP=192.168.1.101 docker compose up -d
 #
 # DISK QUOTA:
-#   Each instance gets its own 2 GB loopback ext4 disk at ~/docker-disks/<name>-data.
-#   Uses ~/docker-disks/ (not /opt/) for snap Docker compatibility (/home/ access).
+#   Each instance gets its own 2 GB loopback ext4 disk at
+#   ${MAGESTIC_DATA_DIR}/<INSTANCE_NAME>-data.
 #   Run scripts/setup-docker-disk.sh <name> to create it (idempotent).
 #   To teardown: sudo bash scripts/setup-docker-disk.sh <name> teardown
 #
 # MACVLAN CAVEAT:
-#   By default, the Docker host (<host-ip>) CANNOT talk to macvlan
-#   containers directly. To enable host-to-container communication,
-#   create a macvlan shim interface on the host (once per instance IP):
+#   By default, the Docker host CANNOT talk to macvlan containers directly.
+#   To enable host-to-container communication, create a macvlan shim
+#   interface on the host (once per instance IP):
 #
-#     sudo ip link add magesticai-shim link <nic> type macvlan mode bridge
-#     sudo ip addr add <host-ip>/32 dev magesticai-shim
+#     sudo ip link add magesticai-shim link "${HOST_NIC}" type macvlan mode bridge
+#     sudo ip addr add <HOST_LAN_IP>/32 dev magesticai-shim
 #     sudo ip link set magesticai-shim up
-#     sudo ip route add <lan-ip>/32 dev magesticai-shim
-#     sudo ip route add <lan-ip>/32 dev magesticai-shim   # 2nd instance
+#     sudo ip route add "${INSTANCE_IP}/32" dev magesticai-shim
 #
 #   To make it persistent, add to /etc/networkd-dispatcher or rc.local.
 # =============================================================================
@@ -46,12 +49,12 @@ services:
     restart: unless-stopped
     networks:
       magesticai-lan:
-        ipv4_address: ${INSTANCE_IP:-<lan-ip>}
+        ipv4_address: ${INSTANCE_IP:?INSTANCE_IP is required — see .env.example}
     volumes:
       # Persistent data — 2 GB loopback disk (run scripts/setup-docker-disk.sh <name> first)
-      # Uses ~/docker-disks/ for snap Docker compatibility (snap can access /home/)
-      # NOTE: Must use absolute path — snap Docker resolves $HOME to its own snap dir
-      - <home>/docker-disks/${INSTANCE_NAME:-magesticai}-data:/home/magesticai/.magestic-ai
+      # MAGESTIC_DATA_DIR must be an absolute path if you use snap Docker
+      # (snap resolves $HOME to its own snap dir).
+      - ${MAGESTIC_DATA_DIR:-./data}/${INSTANCE_NAME:-magesticai}-data:/home/magesticai/.magestic-ai
       # Optional: bind-mount a host directory for agent project work
       # - /path/to/host/projects:/home/magesticai/projects
     cap_add:
@@ -63,7 +66,7 @@ services:
       # - CLAUDE_CODE_OAUTH_TOKEN=      # Set via UI OAuth flow instead
       # LAN firewall (blocks RFC 1918 egress, preserves internet access)
       - CONTAINER_LAN_FIREWALL=true
-      - CONTAINER_GATEWAY=<gateway>
+      - CONTAINER_GATEWAY=${LAN_GATEWAY:?LAN_GATEWAY is required — see .env.example}
       # - CONTAINER_BLOCKED_RANGES=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
 
     # Resource limits
@@ -90,8 +93,8 @@ networks:
   magesticai-lan:
     driver: macvlan
     driver_opts:
-      parent: <nic>                  # Host's physical NIC
+      parent: ${HOST_NIC:?HOST_NIC is required — see .env.example}
     ipam:
       config:
-        - subnet: 192.168.1.0/24
-          gateway: <gateway>
+        - subnet: ${LAN_SUBNET:?LAN_SUBNET is required — see .env.example}
+          gateway: ${LAN_GATEWAY:?LAN_GATEWAY is required — see .env.example}
