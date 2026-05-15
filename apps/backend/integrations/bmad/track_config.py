@@ -8,7 +8,6 @@ phase pipelines and characteristics.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional
 
 # Handle both relative and absolute imports
 try:
@@ -23,10 +22,10 @@ class TrackConfig:
     track: Track
     display_name: str
     description: str
-    phase_pipeline: List[str]
+    phase_pipeline: list[str]
     estimated_time: str
-    use_cases: List[str]
-    includes: List[str]
+    use_cases: list[str]
+    includes: list[str]
 
 
 # Track Configurations
@@ -142,7 +141,7 @@ def get_track_config(track: Track) -> TrackConfig:
     return TRACK_REGISTRY[track]
 
 
-def get_phases_for_track(track: Track, complexity_level: Optional[int]) -> List[str]:
+def get_phases_for_track(track: Track, complexity_level: int | None) -> list[str]:
     """
     Get phase pipeline for a track, adjusted for complexity level.
 
@@ -184,10 +183,10 @@ def describe_track(track: Track) -> str:
     desc = f"**{config.display_name}** ({config.estimated_time})\n"
     desc += f"{config.description}\n\n"
     desc += f"**Phases:** {len(config.phase_pipeline)}\n"
-    desc += f"**Use Cases:**\n"
+    desc += "**Use Cases:**\n"
     for use_case in config.use_cases:
         desc += f"  - {use_case}\n"
-    desc += f"\n**Includes:**\n"
+    desc += "\n**Includes:**\n"
     for item in config.includes:
         desc += f"  - {item}\n"
 

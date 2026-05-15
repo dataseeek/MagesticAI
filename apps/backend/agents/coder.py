@@ -11,8 +11,11 @@ import logging
 from pathlib import Path
 
 from core.client import create_client
-from phase_config import get_phase_model, get_phase_thinking_budget, infer_provider_from_model
-from providers.factory import get_provider
+from phase_config import (
+    get_phase_model,
+    get_phase_thinking_budget,
+    infer_provider_from_model,
+)
 from phase_event import ExecutionPhase, emit_phase
 from progress import (
     count_subtasks,
@@ -31,6 +34,7 @@ from prompt_generator import (
     load_subtask_context,
 )
 from prompts import is_first_run
+from providers.factory import get_provider
 from recovery import RecoveryManager
 from task_logger import (
     LogPhase,
@@ -45,7 +49,6 @@ from ui import (
     highlight,
     icon,
     muted,
-    print_key_value,
     print_status,
 )
 

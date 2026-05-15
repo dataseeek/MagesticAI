@@ -9,9 +9,13 @@ import logging
 from pathlib import Path
 
 from core.client import create_client
-from phase_config import get_phase_model, get_phase_thinking_budget, infer_provider_from_model
-from providers.factory import get_provider
+from phase_config import (
+    get_phase_model,
+    get_phase_thinking_budget,
+    infer_provider_from_model,
+)
 from phase_event import ExecutionPhase, emit_phase
+from providers.factory import get_provider
 from task_logger import (
     LogPhase,
     get_task_logger,

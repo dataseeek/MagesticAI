@@ -19,7 +19,6 @@ Usage:
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent
@@ -127,7 +126,7 @@ CLI_ENDPOINTS["git.py"].extend([
 # =============================================================================
 
 
-def find_endpoint_implementation(file_path: Path, function_name: str) -> Tuple[bool, int, List[str]]:
+def find_endpoint_implementation(file_path: Path, function_name: str) -> tuple[bool, int, list[str]]:
     """
     Find and analyze endpoint implementation.
 
@@ -159,7 +158,7 @@ def find_endpoint_implementation(file_path: Path, function_name: str) -> Tuple[b
     return found, line_number, implementation_lines
 
 
-def is_stub_implementation(implementation_lines: List[str]) -> bool:
+def is_stub_implementation(implementation_lines: list[str]) -> bool:
     """
     Check if implementation is still a stub.
 
@@ -186,7 +185,7 @@ def is_stub_implementation(implementation_lines: List[str]) -> bool:
     return False
 
 
-def has_cli_integration(implementation_lines: List[str], cli_tool: str) -> bool:
+def has_cli_integration(implementation_lines: list[str], cli_tool: str) -> bool:
     """Check if implementation includes CLI command execution"""
     impl_text = '\n'.join(implementation_lines)
 
@@ -198,16 +197,16 @@ def has_cli_integration(implementation_lines: List[str], cli_tool: str) -> bool:
         'run_git_command',
         f'"{cli_tool}"',
         f"'{cli_tool}'",
-        f'glab ',
-        f'gh ',
-        f'git ',
-        f'claude ',
+        'glab ',
+        'gh ',
+        'git ',
+        'claude ',
     ]
 
     return any(indicator in impl_text for indicator in cli_indicators)
 
 
-def verify_endpoint(file_path: Path, endpoint: Dict) -> Dict:
+def verify_endpoint(file_path: Path, endpoint: dict) -> dict:
     """Verify a single endpoint implementation"""
     result = {
         "id": endpoint["id"],

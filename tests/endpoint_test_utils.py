@@ -16,14 +16,12 @@ This module provides:
 """
 
 import json
-import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
-
 
 # =============================================================================
 # FASTAPI TEST CLIENT FIXTURES
@@ -123,7 +121,7 @@ def mock_file_system(temp_dir: Path):
             if filepath.exists():
                 filepath.unlink()
 
-        def list_files(self) -> List[str]:
+        def list_files(self) -> list[str]:
             """List all files in .magestic-ai directory."""
             return [f.name for f in self.magestic_ai_dir.iterdir() if f.is_file()]
 
@@ -271,7 +269,7 @@ def mock_subprocess():
             self.commands = {}
             self.call_history = []
 
-        def configure(self, commands: Dict[str, Dict[str, Any]]):
+        def configure(self, commands: dict[str, dict[str, Any]]):
             """
             Configure mock responses for commands.
 
@@ -522,8 +520,8 @@ class EndpointTestDataFactory:
     @staticmethod
     def gitlab_mr_update_request(
         mr_id: int = 123,
-        title: Optional[str] = None,
-        description: Optional[str] = None
+        title: str | None = None,
+        description: str | None = None
     ) -> dict:
         """Create GitLab MR update request."""
         return {
@@ -538,7 +536,7 @@ class EndpointTestDataFactory:
         return {"issue_number": issue_number}
 
     @staticmethod
-    def success_response(data: Optional[dict] = None) -> dict:
+    def success_response(data: dict | None = None) -> dict:
         """Create standard success response."""
         response = {"success": True}
         if data:
@@ -582,7 +580,7 @@ class EndpointAssertions:
     """
 
     @staticmethod
-    def assert_success_response(response, expected_data: Optional[dict] = None):
+    def assert_success_response(response, expected_data: dict | None = None):
         """Assert response is successful."""
         assert response.status_code == 200
         data = response.json()
@@ -595,7 +593,7 @@ class EndpointAssertions:
     def assert_error_response(
         response,
         expected_status: int = 400,
-        expected_message: Optional[str] = None
+        expected_message: str | None = None
     ):
         """Assert response is an error."""
         assert response.status_code == expected_status
@@ -610,7 +608,7 @@ class EndpointAssertions:
     def assert_file_updated(
         file_system,
         filename: str,
-        expected_content: Optional[dict] = None
+        expected_content: dict | None = None
     ):
         """Assert file was updated correctly."""
         assert file_system.exists(filename)

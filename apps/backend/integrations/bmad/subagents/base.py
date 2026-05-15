@@ -9,7 +9,7 @@ Sub-agents are specialized, focused analysis tools invoked by main agents.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -27,12 +27,12 @@ class SubAgentResult:
     """
 
     success: bool
-    data: Dict[str, Any]
+    data: dict[str, Any]
     reasoning: str = ""
     confidence: float = 1.0
-    issues: List[str] = None
-    recommendations: List[str] = None
-    metadata: Dict[str, Any] = None
+    issues: list[str] = None
+    recommendations: list[str] = None
+    metadata: dict[str, Any] = None
 
     def __post_init__(self):
         """Initialize default values for optional fields."""
@@ -59,7 +59,7 @@ class SubAgent(ABC):
     technical evaluation.
     """
 
-    def __init__(self, project_dir: Path, spec_dir: Optional[Path] = None):
+    def __init__(self, project_dir: Path, spec_dir: Path | None = None):
         """Initialize sub-agent.
 
         Args:
@@ -70,7 +70,7 @@ class SubAgent(ABC):
         self.spec_dir = spec_dir
 
     @abstractmethod
-    def analyze(self, input_data: Dict[str, Any]) -> SubAgentResult:
+    def analyze(self, input_data: dict[str, Any]) -> SubAgentResult:
         """Run the sub-agent's analysis.
 
         Args:

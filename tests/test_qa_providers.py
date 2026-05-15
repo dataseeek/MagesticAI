@@ -20,8 +20,8 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import AsyncIterator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -51,6 +51,16 @@ if str(_BACKEND) not in sys.path:
 # ---------------------------------------------------------------------------
 
 from qa.providers import BaseLLMProvider  # noqa: E402
+from qa.providers.codex import CodexCLIProvider  # noqa: E402
+from qa.providers.factory import (  # noqa: E402
+    _PROVIDER_ALIASES,
+    _PROVIDER_REGISTRY,
+    get_qa_llm_provider,
+    list_provider_aliases,
+    list_providers,
+)
+from qa.providers.gemini import GeminiCLIProvider  # noqa: E402
+from qa.providers.ollama import OllamaProvider  # noqa: E402
 from qa.providers.types import (  # noqa: E402
     AssistantMessage,
     TextBlock,
@@ -58,17 +68,6 @@ from qa.providers.types import (  # noqa: E402
     ToolUseBlock,
     UserMessage,
 )
-from qa.providers.factory import (  # noqa: E402
-    get_qa_llm_provider,
-    list_provider_aliases,
-    list_providers,
-    _PROVIDER_ALIASES,
-    _PROVIDER_REGISTRY,
-)
-from qa.providers.codex import CodexCLIProvider  # noqa: E402
-from qa.providers.gemini import GeminiCLIProvider  # noqa: E402
-from qa.providers.ollama import OllamaProvider  # noqa: E402
-
 
 # ===========================================================================
 # Helpers
@@ -244,7 +243,7 @@ class TestBaseLLMProviderAbstract:
 
                 return _gen()
 
-            async def __aenter__(self) -> "ConcreteProvider":
+            async def __aenter__(self) -> ConcreteProvider:
                 return self
 
             async def __aexit__(self, *args) -> None:
@@ -269,7 +268,7 @@ class TestBaseLLMProviderAbstract:
 
                 return _gen()
 
-            async def __aenter__(self) -> "ConcreteProvider":
+            async def __aenter__(self) -> ConcreteProvider:
                 ConcreteProvider.entered = True
                 return self
 
@@ -298,7 +297,7 @@ class TestBaseLLMProviderAbstract:
 
                 return _gen()
 
-            async def __aenter__(self) -> "ConcreteProvider":
+            async def __aenter__(self) -> ConcreteProvider:
                 return self
 
             async def __aexit__(self, *args) -> None:

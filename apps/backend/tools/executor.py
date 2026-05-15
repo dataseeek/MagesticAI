@@ -27,9 +27,7 @@ from __future__ import annotations
 import asyncio
 import glob as glob_module
 import logging
-import os
 import shutil
-import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -60,7 +58,7 @@ async def _read_with_limit(
     Returns ``(content, was_truncated)``.
     """
     def _do_read() -> tuple[str, bool]:
-        with open(path, "r", encoding=encoding, errors="replace") as f:
+        with open(path, encoding=encoding, errors="replace") as f:
             data = f.read(max_chars + 1)
             truncated = len(data) > max_chars
             if truncated:

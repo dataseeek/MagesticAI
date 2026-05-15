@@ -428,7 +428,7 @@ class WorktreeManager:
                 })
             else:
                 print(f"Warning: Could not remove worktree: {result.stderr}")
-                logger.warning(f"Could not remove worktree via git, falling back to rmtree", extra={
+                logger.warning("Could not remove worktree via git, falling back to rmtree", extra={
                     "worktree_path": str(worktree_path),
                     "error": result.stderr,
                 })

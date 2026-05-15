@@ -35,8 +35,9 @@ import asyncio
 import logging
 import re
 import shutil
+from collections.abc import AsyncGenerator, AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncGenerator, AsyncIterator
+from typing import Any
 
 from providers import BaseLLMProvider
 from providers.types import AssistantMessage, TextBlock
@@ -179,7 +180,7 @@ class GeminiAgenticProvider(BaseLLMProvider):
 
         return cmd
 
-    async def __aenter__(self) -> "GeminiAgenticProvider":
+    async def __aenter__(self) -> GeminiAgenticProvider:
         return self
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:

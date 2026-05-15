@@ -6,11 +6,9 @@ builds prompts, calls the Claude API, and generates changelog content.
 """
 
 import argparse
-import json
 import logging
 import subprocess
 import sys
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -73,7 +71,7 @@ def load_task_specs(project_path: Path, task_ids: list[str]) -> list[dict[str, A
         req_file = task_dir / "requirements.json"
         if req_file.exists():
             try:
-                with open(req_file, "r", encoding="utf-8") as f:
+                with open(req_file, encoding="utf-8") as f:
                     req_content = f.read()
                 # Limit to first 1000 characters
                 if len(req_content) > 1000:
@@ -471,8 +469,8 @@ def generate_changelog(
     emit_phase(4, "GENERATING")
 
     try:
-        import os
         import json
+        import os
 
         # Load LLM provider settings from web server config
         settings_file = Path.home() / ".magestic-ai" / "settings.json"

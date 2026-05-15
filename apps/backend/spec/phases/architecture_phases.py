@@ -5,14 +5,11 @@ Architecture Phase Implementation
 Phase for generating technical architecture documents for complex projects (Level 3-4).
 """
 
-import json
-from datetime import datetime
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from task_logger import LogEntryType, LogPhase
 
-from .models import MAX_RETRIES, PhaseResult
+from .models import PhaseResult
 
 if TYPE_CHECKING:
     pass

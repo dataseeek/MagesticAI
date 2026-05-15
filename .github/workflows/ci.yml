@@ -58,16 +58,13 @@ jobs:
         with:
           node-version: "24"
           cache: "npm"
-          cache-dependency-path: apps/frontend-web/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install deps
-        working-directory: apps/frontend-web
+      - name: Install workspace deps
         run: npm ci
 
-      - name: Lint
-        working-directory: apps/frontend-web
-        run: npm run lint
+      - name: Lint frontend
+        run: npm -w apps/frontend-web run lint
 
-      - name: Type-check
-        working-directory: apps/frontend-web
-        run: npm run typecheck
+      - name: Type-check frontend
+        run: npm -w apps/frontend-web run typecheck

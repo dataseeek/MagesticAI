@@ -4,11 +4,10 @@ Complexity Detection for BMad Method Integration.
 Detects task complexity on a 5-level scale (0-4) and recommends appropriate planning tracks.
 """
 
+import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional
-import re
 
 
 class Track(Enum):
@@ -53,13 +52,13 @@ class ComplexityResult:
     """Result of complexity detection analysis."""
     level: int  # 0-4
     track: Track
-    phases: List[str]
+    phases: list[str]
     estimated_stories: int
-    recommended_docs: List[str]
+    recommended_docs: list[str]
     reasoning: str
     confidence: float  # 0.0-1.0
     track_rationale: str = ""  # Why this track was recommended
-    alternative_tracks: Optional[List[Track]] = None  # Other valid track options
+    alternative_tracks: list[Track] | None = None  # Other valid track options
 
     def __post_init__(self):
         if self.alternative_tracks is None:
@@ -100,7 +99,7 @@ class ComplexityDetector:
         """Initialize complexity detector with BMad configuration."""
         self.levels_config = self._load_levels_config()
 
-    def _load_levels_config(self) -> Dict:
+    def _load_levels_config(self) -> dict:
         """Load complexity levels configuration."""
         return {
             0: {
@@ -140,7 +139,7 @@ class ComplexityDetector:
             },
         }
 
-    def detect(self, task_description: str, project_dir: Optional[Path] = None) -> ComplexityResult:
+    def detect(self, task_description: str, project_dir: Path | None = None) -> ComplexityResult:
         """
         Detect complexity level from task description.
 
@@ -192,7 +191,7 @@ class ComplexityDetector:
             confidence=0.70
         )
 
-    def _detect_by_keywords(self, task_description: str) -> Optional[int]:
+    def _detect_by_keywords(self, task_description: str) -> int | None:
         """
         Detect complexity level using keyword matching.
 
@@ -275,7 +274,7 @@ class ComplexityDetector:
         }
         return story_ranges.get(level, 5)
 
-    def _select_track(self, level: int) -> tuple[Track, str, List[Track]]:
+    def _select_track(self, level: int) -> tuple[Track, str, list[Track]]:
         """
         Select planning track based on complexity level.
 
@@ -313,7 +312,7 @@ class ComplexityDetector:
                 [Track.STANDARD]  # Can opt for Standard if willing to skip some phases
             )
 
-    def _get_phases_for_level(self, level: int, track: Track) -> List[str]:
+    def _get_phases_for_level(self, level: int, track: Track) -> list[str]:
         """
         Get spec creation phase pipeline for complexity level and track.
 
