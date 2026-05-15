@@ -35,11 +35,14 @@ def test_app():
 
     Returns the configured FastAPI app with all routers.
     """
-    # Import here to avoid circular imports
+    # Import here to avoid circular imports.
+    # Insert apps/web-server (parent of server/) so that `server.main` loads
+    # as a package — required for the `from .auth import ...` relative
+    # imports inside server/main.py to resolve.
     import sys
-    sys.path.insert(0, str(Path(__file__).parent.parent / "apps" / "web-server" / "server"))
+    sys.path.insert(0, str(Path(__file__).parent.parent / "apps" / "web-server"))
 
-    from main import create_app
+    from server.main import create_app
     return create_app()
 
 

@@ -35,11 +35,16 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client():
-    """Create FastAPI TestClient"""
-    import sys
-    sys.path.insert(0, str(Path(__file__).parent.parent / "apps" / "web-server" / "server"))
+    """Create FastAPI TestClient.
 
-    from main import create_app
+    Insert apps/web-server (parent of server/) so that `server.main`
+    loads as a package — required for relative imports inside
+    server/main.py (e.g. `from .auth import ...`) to resolve.
+    """
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent / "apps" / "web-server"))
+
+    from server.main import create_app
     app = create_app()
     return TestClient(app)
 
