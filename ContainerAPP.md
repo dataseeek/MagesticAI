@@ -3,7 +3,7 @@
 ## Build & Run
 
 ```bash
-cd <project>/PD/MagesticAI
+cd <your-clone-dir>          # the directory you cloned MagesticAI into
 
 # Build and start (clean)
 sudo docker compose down -v && sudo docker compose build && sudo docker compose up -d
@@ -14,7 +14,7 @@ sudo docker compose up -d
 
 ## Access
 
-- **URL:** http://<lan-ip>:3101
+- **URL:** `http://${INSTANCE_IP}:3101` (from `.env`) — or `http://localhost:3101` if not using macvlan
 - **Token:** Auto-generated on first run, retrieve with:
 
 ```bash

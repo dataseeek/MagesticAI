@@ -28,7 +28,10 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3100,
       host: true, // Listen on all network interfaces for remote access
-      allowedHosts: ['dev.example.com'],
+      // Extra hostnames via VITE_ALLOWED_HOSTS (comma-separated, e.g. "dev.example.com,staging.example.com")
+      allowedHosts: env.VITE_ALLOWED_HOSTS
+        ? env.VITE_ALLOWED_HOSTS.split(',').map((h) => h.trim()).filter(Boolean)
+        : undefined,
       ...(hasSSL && {
         https: {
           cert: fs.readFileSync(certFile),
