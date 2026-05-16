@@ -46,6 +46,7 @@ jobs:
       - name: Pytest (skip slow)
         env:
           GRAPHITI_ENABLED: "false"
+          APP_DISABLE_AUTH: "true"  # endpoint tests use anonymous TestClient
         run: apps/backend/.venv/bin/pytest tests/ -m "not slow" -q
 
   frontend-typecheck:

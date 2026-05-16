@@ -94,7 +94,7 @@ class TestPhase7GitLabCLI:
 
     def test_update_merge_request_success(self, client, mock_projects_file, mock_project_dir):
         """Test update_merge_request with valid inputs"""
-        with patch('apps.web-server.server.routes.gitlab.load_projects') as mock_load:
+        with patch('server.routes.gitlab.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -128,7 +128,7 @@ class TestPhase7GitLabCLI:
 
     def test_update_merge_request_empty_title(self, client, mock_projects_file):
         """Test update_merge_request rejects empty title"""
-        with patch('apps.web-server.server.routes.gitlab.load_projects') as mock_load:
+        with patch('server.routes.gitlab.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             response = client.patch(
@@ -144,7 +144,7 @@ class TestPhase7GitLabCLI:
 
     def test_update_merge_request_project_not_found(self, client):
         """Test update_merge_request with non-existent project"""
-        with patch('apps.web-server.server.routes.gitlab.load_projects') as mock_load:
+        with patch('server.routes.gitlab.load_projects') as mock_load:
             mock_load.return_value = {"projects": []}
 
             response = client.patch(
@@ -156,7 +156,7 @@ class TestPhase7GitLabCLI:
 
     def test_assign_merge_request_success(self, client, mock_projects_file):
         """Test assign_merge_request with valid user IDs"""
-        with patch('apps.web-server.server.routes.gitlab.load_projects') as mock_load:
+        with patch('server.routes.gitlab.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -182,7 +182,7 @@ class TestPhase7GitLabCLI:
 
     def test_assign_merge_request_no_users(self, client, mock_projects_file):
         """Test assign_merge_request rejects empty user list"""
-        with patch('apps.web-server.server.routes.gitlab.load_projects') as mock_load:
+        with patch('server.routes.gitlab.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             response = client.patch(
@@ -194,7 +194,7 @@ class TestPhase7GitLabCLI:
 
     def test_approve_merge_request_success(self, client, mock_projects_file):
         """Test approve_merge_request executes glab command"""
-        with patch('apps.web-server.server.routes.gitlab.load_projects') as mock_load:
+        with patch('server.routes.gitlab.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -220,7 +220,7 @@ class TestPhase7GitLabCLI:
 
     def test_merge_merge_request_success(self, client, mock_projects_file):
         """Test merge_merge_request with valid method"""
-        with patch('apps.web-server.server.routes.gitlab.load_projects') as mock_load:
+        with patch('server.routes.gitlab.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -246,7 +246,7 @@ class TestPhase7GitLabCLI:
 
     def test_merge_merge_request_invalid_method(self, client, mock_projects_file):
         """Test merge_merge_request rejects invalid merge method"""
-        with patch('apps.web-server.server.routes.gitlab.load_projects') as mock_load:
+        with patch('server.routes.gitlab.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             response = client.post(
@@ -258,7 +258,7 @@ class TestPhase7GitLabCLI:
 
     def test_post_merge_request_note_success(self, client, mock_projects_file):
         """Test post_merge_request_note adds comment to MR"""
-        with patch('apps.web-server.server.routes.gitlab.load_projects') as mock_load:
+        with patch('server.routes.gitlab.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -284,7 +284,7 @@ class TestPhase7GitLabCLI:
 
     def test_post_merge_request_note_empty_body(self, client, mock_projects_file):
         """Test post_merge_request_note rejects empty body"""
-        with patch('apps.web-server.server.routes.gitlab.load_projects') as mock_load:
+        with patch('server.routes.gitlab.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             response = client.post(
@@ -305,7 +305,7 @@ class TestPhase9Context:
 
     def test_invoke_claude_setup_authenticated(self, client, mock_projects_file):
         """Test invoke_claude_setup checks authentication status"""
-        with patch('apps.web-server.server.routes.projects.load_projects') as mock_load:
+        with patch('server.routes.projects.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -325,7 +325,7 @@ class TestPhase9Context:
 
     def test_invoke_claude_setup_not_authenticated(self, client, mock_projects_file):
         """Test invoke_claude_setup provides instructions when not authenticated"""
-        with patch('apps.web-server.server.routes.projects.load_projects') as mock_load:
+        with patch('server.routes.projects.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -358,7 +358,7 @@ class TestPhase10GitOperations:
 
     def test_squash_commits_success(self, client, mock_projects_file, mock_project_dir):
         """Test squash_commits with valid commit count"""
-        with patch('apps.web-server.server.routes.projects.load_projects') as mock_load:
+        with patch('server.routes.projects.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -382,7 +382,7 @@ class TestPhase10GitOperations:
 
     def test_squash_commits_invalid_count(self, client, mock_projects_file):
         """Test squash_commits rejects invalid commit count"""
-        with patch('apps.web-server.server.routes.projects.load_projects') as mock_load:
+        with patch('server.routes.projects.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             response = client.post(
@@ -397,7 +397,7 @@ class TestPhase10GitOperations:
 
     def test_squash_commits_uncommitted_changes(self, client, mock_projects_file):
         """Test squash_commits detects uncommitted changes"""
-        with patch('apps.web-server.server.routes.projects.load_projects') as mock_load:
+        with patch('server.routes.projects.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -421,7 +421,7 @@ class TestPhase10GitOperations:
 
     def test_create_worktree_success(self, client, mock_projects_file, mock_project_dir):
         """Test create_worktree with valid inputs"""
-        with patch('apps.web-server.server.routes.projects.load_projects') as mock_load:
+        with patch('server.routes.projects.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -446,7 +446,7 @@ class TestPhase10GitOperations:
 
     def test_create_worktree_invalid_name(self, client, mock_projects_file):
         """Test create_worktree rejects invalid worktree name"""
-        with patch('apps.web-server.server.routes.projects.load_projects') as mock_load:
+        with patch('server.routes.projects.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             response = client.post(
@@ -501,7 +501,7 @@ class TestPhase14GitMaintenance:
 
     def test_create_release_github_success(self, client, mock_projects_file):
         """Test create_release with GitHub platform"""
-        with patch('apps.web-server.server.routes.projects.load_projects') as mock_load:
+        with patch('server.routes.projects.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -531,7 +531,7 @@ class TestPhase14GitMaintenance:
 
     def test_create_release_gitlab_success(self, client, mock_projects_file):
         """Test create_release with GitLab platform"""
-        with patch('apps.web-server.server.routes.projects.load_projects') as mock_load:
+        with patch('server.routes.projects.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -561,7 +561,7 @@ class TestPhase14GitMaintenance:
 
     def test_create_release_invalid_platform(self, client, mock_projects_file):
         """Test create_release rejects invalid platform"""
-        with patch('apps.web-server.server.routes.projects.load_projects') as mock_load:
+        with patch('server.routes.projects.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             response = client.post(
@@ -577,7 +577,7 @@ class TestPhase14GitMaintenance:
 
     def test_create_release_version_prefix(self, client, mock_projects_file):
         """Test create_release adds 'v' prefix to version"""
-        with patch('apps.web-server.server.routes.projects.load_projects') as mock_load:
+        with patch('server.routes.projects.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -614,7 +614,7 @@ class TestCLIErrorHandling:
 
     def test_cli_tool_not_found(self, client, mock_projects_file):
         """Test handling when CLI tool is not installed"""
-        with patch('apps.web-server.server.routes.gitlab.load_projects') as mock_load:
+        with patch('server.routes.gitlab.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -629,7 +629,7 @@ class TestCLIErrorHandling:
 
     def test_cli_timeout(self, client, mock_projects_file):
         """Test handling of CLI command timeout"""
-        with patch('apps.web-server.server.routes.gitlab.load_projects') as mock_load:
+        with patch('server.routes.gitlab.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -645,7 +645,7 @@ class TestCLIErrorHandling:
 
     def test_cli_failure_return_code(self, client, mock_projects_file):
         """Test handling of CLI command failure"""
-        with patch('apps.web-server.server.routes.gitlab.load_projects') as mock_load:
+        with patch('server.routes.gitlab.load_projects') as mock_load:
             mock_load.return_value = json.loads(mock_projects_file.read_text())
 
             with patch('subprocess.run') as mock_run:
@@ -669,7 +669,8 @@ class TestCLIErrorHandling:
 
 
 def test_all_cli_endpoints_implemented():
-    """Verify all 11 CLI integration endpoints are implemented"""
+    """Verify all CLI integration endpoints are listed (followup_mr_review
+    and cancel_mr_review are AI endpoints, not CLI, so excluded)."""
 
     cli_endpoints = [
         # Phase 7: GitLab CLI (5)
@@ -686,15 +687,14 @@ def test_all_cli_endpoints_implemented():
         "squash_commits",
         "create_worktree",
 
-        # Phase 14: Git Maintenance (3)
+        # Phase 14: Git Maintenance (2 CLI; the 2 review endpoints moved
+        # to the AI bucket)
         "download_source_update",
         "create_release",
-        # followup_mr_review and cancel_mr_review are AI endpoints, not CLI
     ]
 
-    # All 11 CLI endpoints should be tested
-    assert len(cli_endpoints) == 11
+    assert len(cli_endpoints) == 10
 
-    print("\n✅ All 11 CLI Integration Endpoints Tested:")
+    print(f"\n✅ {len(cli_endpoints)} CLI Integration Endpoints Tested:")
     for i, endpoint in enumerate(cli_endpoints, 1):
         print(f"{i}. {endpoint}")

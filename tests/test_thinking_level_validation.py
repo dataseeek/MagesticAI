@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-# Add magestic-ai to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "Apps" / "backend"))
+# Add backend to path
+sys.path.insert(0, str(Path(__file__).parent.parent / "apps" / "backend"))
 
 from phase_config import THINKING_BUDGET_MAP, get_thinking_budget
 
@@ -22,7 +22,7 @@ class TestThinkingLevelValidation:
 
     def test_valid_thinking_levels(self):
         """Test that all valid thinking levels return correct budgets."""
-        valid_levels = ["none", "low", "medium", "high", "ultrathink"]
+        valid_levels = ["none", "low", "medium", "high"]
 
         for level in valid_levels:
             budget = get_thinking_budget(level)
@@ -33,9 +33,9 @@ class TestThinkingLevelValidation:
         """Test that 'none' thinking level returns None (no extended thinking)."""
         assert get_thinking_budget("none") is None
 
-    def test_ultrathink_max_budget(self):
-        """Test that 'ultrathink' returns maximum budget."""
-        assert get_thinking_budget("ultrathink") == 65536
+    def test_high_max_budget(self):
+        """Test that 'high' returns the maximum supported budget."""
+        assert get_thinking_budget("high") == 16384
 
     def test_invalid_level_logs_warning(self, caplog):
         """Test that invalid thinking level logs a warning."""
@@ -57,7 +57,7 @@ class TestThinkingLevelValidation:
             get_thinking_budget("bad_value")
 
             # Check all valid levels are mentioned
-            for level in ["none", "low", "medium", "high", "ultrathink"]:
+            for level in ["none", "low", "medium", "high"]:
                 assert level in caplog.text
 
     def test_empty_string_level(self, caplog):
@@ -91,4 +91,3 @@ class TestThinkingLevelValidation:
         assert get_thinking_budget("low") == 1024
         assert get_thinking_budget("medium") == 4096
         assert get_thinking_budget("high") == 16384
-        assert get_thinking_budget("ultrathink") == 65536
