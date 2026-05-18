@@ -31,10 +31,25 @@ MagesticAI is a browser-based platform for managing AI-powered coding tasks thro
 
 ---
 
-## Screenshots
+## Demo Video
 
-<!-- TODO: drop the captured PNGs into assets/screenshots/ and replace these
-     placeholders. See assets/screenshots/README.md for what to capture. -->
+> 🎬 **Coming soon** — a short walkthrough video is in the works.
+
+<!--
+  To enable once recorded:
+    1. Upload the video to YouTube.
+    2. Replace YOUR_YOUTUBE_VIDEO_ID below with the 11-character ID
+       (the part after `watch?v=` in the YouTube URL).
+    3. Remove the "Coming soon" line above and uncomment the block below.
+
+  [![Watch the MagesticAI demo](https://img.youtube.com/vi/YOUR_YOUTUBE_VIDEO_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=YOUR_YOUTUBE_VIDEO_ID)
+
+  _A quick walkthrough of the Kanban board, task creation flow, and agent execution._
+-->
+
+---
+
+## Screenshots
 
 | View | Preview |
 |------|---------|
