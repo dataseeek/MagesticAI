@@ -11,12 +11,13 @@ Tests the spec/pipeline.py module functionality including:
 """
 
 import json
-import pytest
 import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Add magestic-ai directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "Apps" / "backend"))

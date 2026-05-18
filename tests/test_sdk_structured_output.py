@@ -24,8 +24,9 @@ _pydantic_models_path = (
 )
 sys.path.insert(0, str(_pydantic_models_path))
 
-from pydantic import BaseModel, Field
 from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 # Simple test model
@@ -45,7 +46,7 @@ async def test_structured_output():
         print("ERROR: CLAUDE_CODE_OAUTH_TOKEN environment variable not set")
         return
 
-    from claude_agent_sdk import query, ClaudeAgentOptions
+    from claude_agent_sdk import ClaudeAgentOptions, query
 
     # Generate JSON schema from Pydantic model
     schema = SimpleReviewResponse.model_json_schema()
@@ -109,12 +110,12 @@ Provide a verdict (PASS or FAIL), reason, and score.
                     tool_name = getattr(block, "name", "")
                     if tool_name == "StructuredOutput":
                         structured_data = getattr(block, "input", None)
-                        print(f"\n  🎯 Found StructuredOutput tool use!")
+                        print("\n  🎯 Found StructuredOutput tool use!")
                         print(f"     Data: {structured_data}")
                         if structured_data:
                             try:
                                 validated = SimpleReviewResponse.model_validate(structured_data)
-                                print(f"\n  ✅ Successfully validated StructuredOutput!")
+                                print("\n  ✅ Successfully validated StructuredOutput!")
                                 print(f"     verdict: {validated.verdict}")
                                 print(f"     reason: {validated.reason}")
                                 print(f"     score: {validated.score}")
@@ -142,13 +143,13 @@ Provide a verdict (PASS or FAIL), reason, and score.
                     parsed = json.loads(result)
                     print(f"  result parsed as JSON: {parsed}")
                 except:
-                    print(f"  result is not JSON")
+                    print("  result is not JSON")
 
             # Try to validate with Pydantic if we got data
             if so:
                 try:
                     validated = SimpleReviewResponse.model_validate(so)
-                    print(f"\n  ✅ Successfully validated structured_output!")
+                    print("\n  ✅ Successfully validated structured_output!")
                     print(f"     verdict: {validated.verdict}")
                     print(f"     reason: {validated.reason}")
                     print(f"     score: {validated.score}")
@@ -159,7 +160,7 @@ Provide a verdict (PASS or FAIL), reason, and score.
                 try:
                     data = result if isinstance(result, dict) else json.loads(result)
                     validated = SimpleReviewResponse.model_validate(data)
-                    print(f"\n  ✅ Successfully validated result as structured output!")
+                    print("\n  ✅ Successfully validated result as structured output!")
                     print(f"     verdict: {validated.verdict}")
                     print(f"     reason: {validated.reason}")
                     print(f"     score: {validated.score}")

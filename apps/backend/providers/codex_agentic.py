@@ -32,8 +32,9 @@ import json
 import logging
 import re
 import shutil
+from collections.abc import AsyncGenerator, AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncGenerator, AsyncIterator
+from typing import Any
 
 from providers import BaseLLMProvider
 from providers.types import AssistantMessage, TextBlock
@@ -147,7 +148,7 @@ class CodexAgenticProvider(BaseLLMProvider):
         self._request_id += 1
         return self._request_id
 
-    async def __aenter__(self) -> "CodexAgenticProvider":
+    async def __aenter__(self) -> CodexAgenticProvider:
         """Start the MCP server and send initialize handshake."""
         resolved_path = shutil.which(self._codex_path)
         if resolved_path is None:

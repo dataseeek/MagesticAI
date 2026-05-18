@@ -15,9 +15,9 @@ from pathlib import Path
 # Memory integration for cross-session learning
 from agents.memory_manager import get_graphiti_context, save_session_memory
 from debug import debug, debug_detailed, debug_error, debug_section, debug_success
-from qa.providers import BaseLLMProvider
-from providers.factory import get_tool_fallback_provider
 from prompts_pkg import get_qa_reviewer_prompt
+from providers.factory import get_tool_fallback_provider
+from qa.providers import BaseLLMProvider
 from security.tool_input_validator import get_safe_tool_input
 from task_logger import (
     LogEntryType,

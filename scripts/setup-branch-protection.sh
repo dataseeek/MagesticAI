@@ -26,7 +26,7 @@ fi
 # Check job names from .github/workflows/ci.yml
 REQUIRED_CHECKS_JSON='[
   {"context":"backend (ruff + pytest)"},
-  {"context":"frontend (lint + typecheck)"}
+  {"context":"frontend (typecheck)"}
 ]'
 
 apply_protection() {

@@ -57,8 +57,8 @@ import logging
 import urllib.error
 import urllib.parse
 import urllib.request
-from pathlib import Path
-from typing import Any, AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
+from typing import Any
 
 from providers import BaseLLMProvider
 from providers.types import AssistantMessage, TextBlock
@@ -348,7 +348,7 @@ class OllamaProvider(BaseLLMProvider):
     # Async context manager
     # ------------------------------------------------------------------
 
-    async def __aenter__(self) -> "OllamaProvider":
+    async def __aenter__(self) -> OllamaProvider:
         """Verify the Ollama server is reachable before the QA session starts.
 
         Issues a lightweight ``GET /api/tags`` health check so that

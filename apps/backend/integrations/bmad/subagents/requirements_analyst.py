@@ -7,8 +7,7 @@ Identifies gaps, ambiguities, and potential issues in requirements.
 """
 
 import json
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import SubAgent, SubAgentResult
 
@@ -49,7 +48,7 @@ class RequirementsAnalyst(SubAgent):
     def description(self) -> str:
         return "Analyzes requirements for completeness, clarity, and feasibility"
 
-    def analyze(self, input_data: Dict[str, Any]) -> SubAgentResult:
+    def analyze(self, input_data: dict[str, Any]) -> SubAgentResult:
         """Analyze requirements for quality and completeness.
 
         Args:
@@ -138,7 +137,7 @@ class RequirementsAnalyst(SubAgent):
             },
         )
 
-    def _analyze_completeness(self, requirements: str) -> Dict[str, Any]:
+    def _analyze_completeness(self, requirements: str) -> dict[str, Any]:
         """Analyze requirements completeness.
 
         Checks for presence of essential elements:
@@ -177,7 +176,7 @@ class RequirementsAnalyst(SubAgent):
 
         return {"score": score, "missing": missing}
 
-    def _analyze_clarity(self, requirements: str) -> Dict[str, Any]:
+    def _analyze_clarity(self, requirements: str) -> dict[str, Any]:
         """Analyze requirements clarity.
 
         Identifies ambiguous terms and vague language:
@@ -215,7 +214,7 @@ class RequirementsAnalyst(SubAgent):
 
         return {"score": score, "ambiguous": ambiguous}
 
-    def _detect_conflicts(self, requirements: str) -> List[str]:
+    def _detect_conflicts(self, requirements: str) -> list[str]:
         """Detect conflicting requirements.
 
         Looks for contradictions like:
@@ -242,7 +241,7 @@ class RequirementsAnalyst(SubAgent):
 
     def _generate_questions(
         self, requirements: str, context: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Generate clarification questions.
 
         Based on missing elements and ambiguities, generate questions
@@ -274,10 +273,10 @@ class RequirementsAnalyst(SubAgent):
 
     def _generate_reasoning(
         self,
-        completeness: Dict,
-        clarity: Dict,
-        conflicts: List[str],
-        questions: List[str],
+        completeness: dict,
+        clarity: dict,
+        conflicts: list[str],
+        questions: list[str],
     ) -> str:
         """Generate reasoning explanation for the analysis."""
         parts = []

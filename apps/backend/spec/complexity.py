@@ -59,7 +59,7 @@ class ComplexityAssessment:
 
     # BMad Method integration
     track: Optional['Track'] = None  # Planning track (Quick Flow / Standard / Enterprise)
-    bmad_level: Optional[int] = None  # BMad complexity level (0-4)
+    bmad_level: int | None = None  # BMad complexity level (0-4)
 
     def phases_to_run(self) -> list[str]:
         """Return list of phase names to run based on complexity."""
@@ -571,8 +571,8 @@ def map_bmad_level_to_complexity(bmad_level: int) -> Complexity:
 
 def run_bmad_complexity_detection(
     task_description: str,
-    project_dir: Optional[Path] = None
-) -> Optional[ComplexityAssessment]:
+    project_dir: Path | None = None
+) -> ComplexityAssessment | None:
     """Run BMad complexity detection and return ComplexityAssessment.
 
     This integrates BMad Method's 5-level + track system with the existing

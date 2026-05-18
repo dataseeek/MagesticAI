@@ -32,13 +32,13 @@ Usage:
 from .models import (
     # Agent configuration registry
     AGENT_CONFIGS,
-    # MCP tool lists
-    MAGESTIC_AI_TOOLS,
     # Base tools
     BASE_READ_TOOLS,
     BASE_WRITE_TOOLS,
     CONTEXT7_TOOLS,
     GRAPHITI_MCP_TOOLS,
+    # MCP tool lists
+    MAGESTIC_AI_TOOLS,
     PLAYWRIGHT_TOOLS,
     # Magestic AI tool names
     TOOL_GET_BUILD_PROGRESS,

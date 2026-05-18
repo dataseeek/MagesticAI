@@ -77,7 +77,6 @@ def _mock_load_projects(project_dir: Path):
 def client(_mock_load_projects):
     """FastAPI TestClient with auth disabled via settings."""
     from fastapi.testclient import TestClient
-
     from server.config import get_settings
 
     settings = get_settings()

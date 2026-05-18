@@ -11,27 +11,26 @@ Tests the security.py module functionality including:
 """
 
 import pytest
-
+from project_analyzer import BASE_COMMANDS, SecurityProfile
 from security import (
     extract_commands,
-    split_command_segments,
-    validate_command,
-    validate_pkill_command,
-    validate_kill_command,
-    validate_chmod_command,
-    validate_rm_command,
-    validate_git_commit,
-    validate_dropdb_command,
-    validate_dropuser_command,
-    validate_psql_command,
-    validate_mysql_command,
-    validate_redis_cli_command,
-    validate_mongosh_command,
-    validate_mysqladmin_command,
     get_command_for_validation,
     reset_profile_cache,
+    split_command_segments,
+    validate_chmod_command,
+    validate_command,
+    validate_dropdb_command,
+    validate_dropuser_command,
+    validate_git_commit,
+    validate_kill_command,
+    validate_mongosh_command,
+    validate_mysql_command,
+    validate_mysqladmin_command,
+    validate_pkill_command,
+    validate_psql_command,
+    validate_redis_cli_command,
+    validate_rm_command,
 )
-from project_analyzer import SecurityProfile, BASE_COMMANDS
 
 
 class TestCommandExtraction:

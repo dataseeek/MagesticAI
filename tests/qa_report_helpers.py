@@ -11,7 +11,7 @@ without importing the Claude SDK which is not available in the test environment.
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import MagicMock
 
 # =============================================================================
@@ -19,8 +19,8 @@ from unittest.mock import MagicMock
 # =============================================================================
 
 # Store original modules for cleanup
-_original_modules: Dict[str, Any] = {}
-_mocked_module_names: List[str] = [
+_original_modules: dict[str, Any] = {}
+_mocked_module_names: list[str] = [
     'claude_agent_sdk',
     'ui',
     'progress',
@@ -113,6 +113,6 @@ def cleanup_qa_report_mocks() -> None:
             del sys.modules[name]
 
 
-def get_mocked_module_names() -> List[str]:
+def get_mocked_module_names() -> list[str]:
     """Return list of module names that are mocked."""
     return _mocked_module_names.copy()

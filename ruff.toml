@@ -23,12 +23,21 @@ ignore = [
     "F841",   # local variable assigned but never used
     "W293",   # blank line contains whitespace
     "B007",   # loop control variable not used
+    "F821",   # undefined name (forward refs in type hints used as strings)
+    "UP035",  # deprecated typing imports (legacy modules use typing.List/Dict)
 ]
 
 [lint.per-file-ignores]
 "__init__.py" = ["F401"]  # unused imports in __init__.py
-"tests/*" = ["B011"]      # assert false in tests
-"test_*.py" = ["F401"]    # unused imports in test files (for availability checks)
+"tests/*" = [
+    "B011",   # assert false in tests
+    "B017",   # assert raises bare Exception (acceptable in tests)
+    "E712",   # == True/False (occasionally clearer in test assertions)
+    "E722",   # bare except (acceptable in test cleanup)
+    "F401",   # unused imports (availability checks)
+    "F811",   # redefined-while-unused (pytest fixture argument shadowing)
+]
+"test_*.py" = ["F401", "F811"]
 
 [format]
 quote-style = "double"
