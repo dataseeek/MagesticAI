@@ -40,8 +40,8 @@ This document outlines the architecture for a Docker-native version of Magestic 
 │  ┌─────────────────────────────────────────────────────────────────────┐│
 │  │                         Caddy / Nginx                                ││
 │  │  - Serves React SPA static files                                    ││
-│  │  - Reverse proxy: /api/* → FastAPI :8000                            ││
-│  │  - WebSocket proxy: /ws/* → FastAPI :8000                           ││
+│  │  - Reverse proxy: /api/* → FastAPI :3101                            ││
+│  │  - WebSocket proxy: /ws/* → FastAPI :3101                           ││
 │  │  - TLS termination (optional, for production)                       ││
 │  └──────────────────────────────┬──────────────────────────────────────┘│
 │                                 │                                        │
@@ -401,7 +401,7 @@ CMD ["/start.sh"]
 
 # Start FastAPI in background
 cd /app/magestic-ai
-uvicorn api.main:app --host 0.0.0.0 --port 8000 &
+uvicorn api.main:app --host 0.0.0.0 --port 3101 &
 
 # Start Caddy (foreground)
 caddy run --config /etc/caddy/Caddyfile
@@ -419,12 +419,12 @@ caddy run --config /etc/caddy/Caddyfile
 
     # Proxy API requests
     handle /api/* {
-        reverse_proxy localhost:8000
+        reverse_proxy localhost:3101
     }
 
     # Proxy WebSocket requests
     handle /ws/* {
-        reverse_proxy localhost:8000
+        reverse_proxy localhost:3101
     }
 }
 ```

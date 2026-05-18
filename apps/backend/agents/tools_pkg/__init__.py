@@ -32,14 +32,14 @@ Usage:
 from .models import (
     # Agent configuration registry
     AGENT_CONFIGS,
-    # MCP tool lists
-    MAGESTIC_AI_TOOLS,
     # Base tools
     BASE_READ_TOOLS,
     BASE_WRITE_TOOLS,
     CONTEXT7_TOOLS,
     GRAPHITI_MCP_TOOLS,
-    PUPPETEER_TOOLS,
+    # MCP tool lists
+    MAGESTIC_AI_TOOLS,
+    PLAYWRIGHT_TOOLS,
     # Magestic AI tool names
     TOOL_GET_BUILD_PROGRESS,
     TOOL_GET_SESSION_CONTEXT,
@@ -75,7 +75,7 @@ __all__ = [
     "MAGESTIC_AI_TOOLS",
     "CONTEXT7_TOOLS",
     "GRAPHITI_MCP_TOOLS",
-    "PUPPETEER_TOOLS",
+    "PLAYWRIGHT_TOOLS",
     # Magestic AI tool name constants
     "TOOL_UPDATE_SUBTASK_STATUS",
     "TOOL_GET_BUILD_PROGRESS",

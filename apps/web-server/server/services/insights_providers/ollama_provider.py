@@ -2,6 +2,7 @@
 Ollama provider for insights chat.
 
 Uses HTTP streaming to localhost:11434/api/chat (NDJSON format).
+Supports tool calling for models that implement OpenAI-compatible function calling.
 """
 
 import asyncio
@@ -14,10 +15,12 @@ from pathlib import Path
 
 from ...websockets.events import broadcast_event
 from .base import ProviderInfo, ProviderModel, ProviderStrategy
+from .tools import execute_tool, get_tool_definitions
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
+MAX_TOOL_ITERATIONS = 10
 
 # Keywords that indicate an embedding or non-chat model
 EMBEDDING_NAME_KEYWORDS = {"embed", "minilm", "bge", "gte", "e5", "rerank"}
@@ -98,6 +101,61 @@ class OllamaProvider(ProviderStrategy):
 
         return info
 
+    async def _stream_response(
+        self,
+        client,
+        payload: dict,
+        project_id: str,
+    ) -> tuple[str, list[dict], dict]:
+        """Stream a single Ollama chat request, returning (text, tool_calls, metrics).
+
+        Accumulates text content (broadcasting chunks) and collects any tool_calls
+        from the response. Returns metrics from the final 'done' message.
+        """
+        accumulated = ""
+        tool_calls = []
+        ollama_metrics: dict = {}
+
+        async with client.stream(
+            "POST",
+            f"{self.base_url}/api/chat",
+            json=payload,
+        ) as resp:
+            resp.raise_for_status()
+
+            async for line in resp.aiter_lines():
+                if not line.strip():
+                    continue
+                try:
+                    data = json.loads(line)
+                    msg = data.get("message", {})
+
+                    content = msg.get("content", "")
+                    if content:
+                        accumulated += content
+                        await broadcast_event("insights:chunk", {
+                            "projectId": project_id,
+                            "type": "text",
+                            "content": content,
+                        })
+
+                    # Collect tool calls from the message
+                    msg_tool_calls = msg.get("tool_calls", [])
+                    if msg_tool_calls:
+                        tool_calls.extend(msg_tool_calls)
+
+                    if data.get("done"):
+                        ollama_metrics = {
+                            "eval_count": data.get("eval_count", 0),
+                            "prompt_eval_count": data.get("prompt_eval_count", 0),
+                            "eval_duration": data.get("eval_duration", 0),
+                        }
+                        break
+                except json.JSONDecodeError:
+                    continue
+
+        return accumulated, tool_calls, ollama_metrics
+
     async def send_message(
         self,
         project_path: Path,
@@ -109,8 +167,17 @@ class OllamaProvider(ProviderStrategy):
     ) -> str:
         effective_model = model or (model_config or {}).get("model", "llama3.2:latest")
 
-        # Build messages array with conversation history
-        messages = []
+        # Build messages array with system context and conversation history
+        resolved_path = project_path.resolve()
+        system_prompt = (
+            f"You are a helpful coding assistant analyzing the project at: {resolved_path}\n"
+            f"You have tools to read files, list directories, and search code in this project.\n"
+            f"Use your tools to explore the codebase when the user asks about files, code, "
+            f"structure, or anything that requires looking at the actual project contents.\n"
+            f"Always use tools before answering questions about the code — do not guess."
+        )
+
+        messages = [{"role": "system", "content": system_prompt}]
         if conversation_history:
             for msg in conversation_history[-10:]:  # Last 10 messages
                 messages.append({
@@ -119,13 +186,9 @@ class OllamaProvider(ProviderStrategy):
                 })
         messages.append({"role": "user", "content": message})
 
-        payload = {
-            "model": effective_model,
-            "messages": messages,
-            "stream": True,
-        }
+        tools = get_tool_definitions()
 
-        logger.info(f"[OllamaProvider] Streaming: {effective_model}")
+        logger.info(f"[OllamaProvider] Streaming with tools: {effective_model}")
 
         try:
             import httpx
@@ -136,52 +199,108 @@ class OllamaProvider(ProviderStrategy):
                 "content": "",
             })
 
-            accumulated = ""
+            final_text = ""
             stream_start = time.monotonic()
-            ollama_metrics: dict = {}
+            total_input_tokens = 0
+            total_output_tokens = 0
+            last_metrics: dict = {}
+            use_tools = True  # Will be set to False if model doesn't support tools
 
             async with httpx.AsyncClient(timeout=httpx.Timeout(300.0, connect=10.0)) as client:
-                async with client.stream(
-                    "POST",
-                    f"{self.base_url}/api/chat",
-                    json=payload,
-                ) as resp:
-                    resp.raise_for_status()
+                for iteration in range(MAX_TOOL_ITERATIONS):
+                    payload = {
+                        "model": effective_model,
+                        "messages": messages,
+                        "stream": True,
+                    }
+                    if use_tools:
+                        payload["tools"] = tools
 
-                    async for line in resp.aiter_lines():
-                        if not line.strip():
-                            continue
-                        try:
-                            data = json.loads(line)
-                            content = data.get("message", {}).get("content", "")
-                            if content:
-                                accumulated += content
-                                await broadcast_event("insights:chunk", {
-                                    "projectId": project_id,
-                                    "type": "text",
-                                    "content": content,
-                                })
+                    try:
+                        text, tool_calls, ollama_metrics = await self._stream_response(
+                            client, payload, project_id,
+                        )
+                    except httpx.HTTPStatusError as e:
+                        if e.response.status_code == 400 and use_tools:
+                            # Model doesn't support tool calling — retry without tools
+                            logger.warning(
+                                f"[OllamaProvider] {effective_model} returned 400 with tools, "
+                                f"retrying without tools (model may not support function calling)"
+                            )
+                            use_tools = False
+                            payload.pop("tools", None)
+                            text, tool_calls, ollama_metrics = await self._stream_response(
+                                client, payload, project_id,
+                            )
+                        else:
+                            raise
+                    last_metrics = ollama_metrics
+                    total_input_tokens += ollama_metrics.get("prompt_eval_count", 0)
+                    total_output_tokens += ollama_metrics.get("eval_count", 0)
 
-                            if data.get("done"):
-                                # Ollama provides exact token counts in the final message
-                                ollama_metrics = {
-                                    "eval_count": data.get("eval_count", 0),
-                                    "prompt_eval_count": data.get("prompt_eval_count", 0),
-                                    "eval_duration": data.get("eval_duration", 0),  # nanoseconds
-                                }
-                                break
-                        except json.JSONDecodeError:
-                            continue
+                    if text:
+                        final_text += text
+
+                    # No tool calls or tools disabled — model is done
+                    if not tool_calls or not use_tools:
+                        break
+
+                    # Append the assistant message with tool calls
+                    messages.append({
+                        "role": "assistant",
+                        "content": text,
+                        "tool_calls": tool_calls,
+                    })
+
+                    # Execute each tool call and append results
+                    for tc in tool_calls:
+                        func = tc.get("function", {})
+                        tool_name = func.get("name", "unknown")
+                        raw_args = func.get("arguments", {})
+
+                        # Handle arguments as both dict and string
+                        if isinstance(raw_args, str):
+                            try:
+                                tool_args = json.loads(raw_args)
+                            except json.JSONDecodeError:
+                                tool_args = {}
+                        else:
+                            tool_args = raw_args
+
+                        # Format input for display
+                        display_input = (
+                            tool_args.get("file_path")
+                            or tool_args.get("path")
+                            or tool_args.get("pattern")
+                            or str(tool_args)[:200]
+                        )
+
+                        await broadcast_event("insights:chunk", {
+                            "projectId": project_id,
+                            "type": "tool_start",
+                            "tool": {"name": tool_name, "input": str(display_input)[:200]},
+                        })
+
+                        result = execute_tool(tool_name, tool_args, project_path)
+
+                        await broadcast_event("insights:chunk", {
+                            "projectId": project_id,
+                            "type": "tool_end",
+                        })
+
+                        messages.append({
+                            "role": "tool",
+                            "content": result,
+                        })
+
+                    logger.debug(f"[OllamaProvider] Tool iteration {iteration + 1}: {len(tool_calls)} tool(s) called")
 
             elapsed = time.monotonic() - stream_start
-            output_tokens = ollama_metrics.get("eval_count", 0)
-            input_tokens = ollama_metrics.get("prompt_eval_count", 0)
-            # Ollama eval_duration is in nanoseconds
-            eval_ns = ollama_metrics.get("eval_duration", 0)
-            if eval_ns > 0 and output_tokens > 0:
-                tokens_per_sec = round(output_tokens / (eval_ns / 1e9), 1)
-            elif elapsed > 0 and output_tokens > 0:
-                tokens_per_sec = round(output_tokens / elapsed, 1)
+            eval_ns = last_metrics.get("eval_duration", 0)
+            if eval_ns > 0 and total_output_tokens > 0:
+                tokens_per_sec = round(total_output_tokens / (eval_ns / 1e9), 1)
+            elif elapsed > 0 and total_output_tokens > 0:
+                tokens_per_sec = round(total_output_tokens / elapsed, 1)
             else:
                 tokens_per_sec = 0
 
@@ -189,15 +308,15 @@ class OllamaProvider(ProviderStrategy):
                 "projectId": project_id,
                 "type": "done",
                 "metrics": {
-                    "inputTokens": input_tokens,
-                    "outputTokens": output_tokens,
+                    "inputTokens": total_input_tokens,
+                    "outputTokens": total_output_tokens,
                     "tokensPerSecond": tokens_per_sec,
                     "elapsedSeconds": round(elapsed, 1),
                     "estimated": False,
                 },
             })
 
-            return accumulated
+            return final_text
 
         except Exception as e:
             logger.error(f"[OllamaProvider] Error: {e}", exc_info=True)

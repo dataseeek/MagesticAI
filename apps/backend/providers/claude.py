@@ -31,11 +31,11 @@ Usage::
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 
 from claude_agent_sdk import ClaudeSDKClient
-
 from providers import BaseLLMProvider
 
 logger = logging.getLogger(__name__)
@@ -69,9 +69,9 @@ class ClaudeProvider(BaseLLMProvider):
 
     def __init__(
         self,
-        project_dir: Path,
-        spec_dir: Path,
-        model: str,
+        project_dir: Path | None = None,
+        spec_dir: Path | None = None,
+        model: str = "sonnet",
         agent_type: str = "qa_reviewer",
         max_thinking_tokens: int | None = None,
         output_format: dict | None = None,
@@ -79,7 +79,14 @@ class ClaudeProvider(BaseLLMProvider):
         betas: list[str] | None = None,
         effort_level: str | None = None,
         fast_mode: bool = False,
+        working_dir: Path | None = None,  # Alias for project_dir (compat with other providers)
+        **_kwargs: Any,  # Ignore unknown kwargs from factory
     ) -> None:
+        # Accept working_dir as alias for project_dir
+        if project_dir is None and working_dir is not None:
+            project_dir = working_dir
+        if spec_dir is None and project_dir is not None:
+            spec_dir = project_dir
         # Import here to avoid circular imports (core.client imports many things)
         from core.client import create_client
 
@@ -116,7 +123,7 @@ class ClaudeProvider(BaseLLMProvider):
         """Return the SDK client's response stream directly."""
         return self._sdk_client.receive_response()
 
-    async def __aenter__(self) -> "ClaudeProvider":
+    async def __aenter__(self) -> ClaudeProvider:
         """Enter the SDK client context manager and return *self*."""
         await self._sdk_client.__aenter__()
         return self

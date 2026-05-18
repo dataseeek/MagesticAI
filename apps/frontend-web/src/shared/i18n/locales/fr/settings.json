@@ -395,6 +395,8 @@
     "disconnect": "Déconnecter",
     "loginInTerminal": "Connexion dans le terminal",
     "waitingForAuth": "En attente d'authentification...",
+    "authenticatingWith": "Authentification avec {{cli}}...",
+    "completeOAuthInBrowser": "Complétez le flux OAuth dans votre navigateur lorsque vous y êtes invité.",
     "authSuccess": "Authentification réussie !",
     "authFailed": "L'authentification a expiré. Veuillez réessayer.",
     "install": "Installer",
@@ -485,9 +487,9 @@
         "name": "Electron",
         "description": "Automatisation d'applications desktop via Chrome DevTools"
       },
-      "puppeteer": {
-        "name": "Puppeteer",
-        "description": "Automatisation du navigateur web pour les tests"
+      "playwright": {
+        "name": "Playwright",
+        "description": "Automatisation du navigateur web pour les tests (Chromium headless)"
       },
       "autoClaude": {
         "name": "Outils Magestic AI",

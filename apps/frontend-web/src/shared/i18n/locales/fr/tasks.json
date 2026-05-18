@@ -143,6 +143,25 @@
     "expandSection": "Afficher les compétences IA",
     "collapseSection": "Masquer les compétences IA"
   },
+  "createPR": {
+    "title": "Créer une Pull Request",
+    "description": "Configurez et créez une pull request pour les modifications de cette tâche",
+    "targetRepo": "Dépôt cible",
+    "yourRepo": "Votre dépôt",
+    "upstreamRepo": "Dépôt amont (original)",
+    "baseBranch": "Branche de base",
+    "prTitle": "Titre de la PR",
+    "prDescription": "Description",
+    "draft": "Créer en brouillon",
+    "submit": "Créer la Pull Request",
+    "cancel": "Annuler",
+    "creating": "Création de la PR...",
+    "detectingFork": "Détection des informations du dépôt...",
+    "forkDetectionFailed": "Impossible de détecter les infos du fork (valeurs par défaut utilisées)",
+    "success": "Pull Request créée",
+    "createdSuccessfully": "créée avec succès",
+    "failed": "Échec de la création de la PR"
+  },
   "notifications": {
     "profileSwitch": {
       "title": "Profil Claude changé",

@@ -2,7 +2,8 @@
 Skills API routes.
 
 Exposes the SkillsService through a REST API for browsing, searching,
-and suggesting skills from the <skills-mount>/skills/ knowledge base.
+and suggesting skills from the local skills/ directory (or wherever
+APP_SKILLS_PATH points).
 """
 
 from typing import Optional

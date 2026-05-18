@@ -152,12 +152,12 @@
     "files": "files",
     "filesChanged": "{{count}} files changed",
     "posting": "Posting...",
-    "postingApproval": "Posting Approval...",
+    "postingApproval": "Approving & Merging...",
     "postFindings": "Post {{count}} Finding",
     "postFindings_plural": "Post {{count}} Findings",
     "approve": "Approve",
     "merge": "Merge",
-    "autoApprovePR": "Auto-Approve PR",
+    "autoApprovePR": "Approve & Merge",
     "suggestions": "+{{count}} suggestions",
     "postedFindings": "Posted {{count}} finding",
     "postedFindings_plural": "Posted {{count}} findings",
@@ -259,6 +259,21 @@
       "confirm": "Create Task",
       "creating": "Creating..."
     }
+  },
+  "clarificationWizard": {
+    "title": "Task Clarifications",
+    "description": "Let's make sure your task has all the details needed.",
+    "analyzing": "Analyzing task for clarification questions...",
+    "noQuestionsTitle": "Task Created Successfully",
+    "noQuestionsMessage": "Your task is detailed enough — no additional clarifications needed.",
+    "submitAnswers": "Submit Answers",
+    "submitting": "Submitting...",
+    "skipClarifications": "Skip",
+    "close": "Close",
+    "answerPlaceholder": "Your answer...",
+    "errorGenerating": "Failed to generate clarification questions.",
+    "errorSubmitting": "Failed to submit answers.",
+    "retry": "Retry"
   },
   "downloads": {
     "toggleExpand": "Toggle download details",

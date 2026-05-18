@@ -152,12 +152,12 @@
     "files": "fichiers",
     "filesChanged": "{{count}} fichiers modifiés",
     "posting": "Publication...",
-    "postingApproval": "Publication de l'approbation...",
+    "postingApproval": "Approbation & Fusion...",
     "postFindings": "Publier {{count}} résultat",
     "postFindings_plural": "Publier {{count}} résultats",
     "approve": "Approuver",
     "merge": "Fusionner",
-    "autoApprovePR": "Auto-approuver PR",
+    "autoApprovePR": "Approuver & Fusionner",
     "suggestions": "+{{count}} suggestions",
     "postedFindings": "{{count}} résultat publié",
     "postedFindings_plural": "{{count}} résultats publiés",
@@ -259,6 +259,21 @@
       "confirm": "Créer la tâche",
       "creating": "Création..."
     }
+  },
+  "clarificationWizard": {
+    "title": "Clarifications de la tâche",
+    "description": "Vérifions que votre tâche contient tous les détails nécessaires.",
+    "analyzing": "Analyse de la tâche pour les questions de clarification...",
+    "noQuestionsTitle": "Tâche créée avec succès",
+    "noQuestionsMessage": "Votre tâche est suffisamment détaillée — aucune clarification supplémentaire nécessaire.",
+    "submitAnswers": "Soumettre les réponses",
+    "submitting": "Envoi en cours...",
+    "skipClarifications": "Ignorer",
+    "close": "Fermer",
+    "answerPlaceholder": "Votre réponse...",
+    "errorGenerating": "Échec de la génération des questions de clarification.",
+    "errorSubmitting": "Échec de l'envoi des réponses.",
+    "retry": "Réessayer"
   },
   "downloads": {
     "toggleExpand": "Afficher/masquer les détails",

@@ -55,6 +55,14 @@ Your job is to catch ALL of these before sign-off.
 
 ## PHASE 0: LOAD CONTEXT (MANDATORY)
 
+**First, verify your working directory:**
+```bash
+pwd
+ls package.json 2>/dev/null || ls apps/ 2>/dev/null || echo "Not at project root"
+```
+If you are NOT at the project root, locate it before proceeding. When running in a
+worktree, paths may differ from the main project. Use absolute paths when in doubt.
+
 ```bash
 # 1. Read the spec (your source of truth for requirements)
 cat spec.md

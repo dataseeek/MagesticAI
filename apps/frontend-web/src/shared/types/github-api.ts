@@ -286,9 +286,11 @@ export interface GitHubAPI {
   ) => Promise<IPCResult<{ url: string }>>;
   suggestReleaseVersion: (projectId: string) => Promise<IPCResult<{ suggestedVersion: string; currentVersion: string; bumpType: 'major' | 'minor' | 'patch'; commitCount: number; reason: string }>>;
   checkGitHubCli: () => Promise<IPCResult<{ installed: boolean; version?: string }>>;
+  installGitHubCli: () => Promise<IPCResult<{ message: string; version: string; steps_completed: string[] }>>;
   checkGitHubAuth: () => Promise<IPCResult<{ authenticated: boolean; username?: string }>>;
+  checkGitHubAuthStatus: () => Promise<IPCResult<{ complete: boolean; success?: boolean; error?: string }>>;
   autoDetectGitHub: (projectId?: string) => Promise<IPCResult<{ authenticated: boolean; username?: string; tokenPersisted?: boolean; reason?: string }>>;
-  startGitHubAuth: () => Promise<IPCResult<{ success: boolean; message?: string }>>;
+  startGitHubAuth: () => Promise<IPCResult<{ success: boolean; message?: string; deviceCode?: string; authUrl?: string; awaiting?: boolean }>>;
   getGitHubToken: () => Promise<IPCResult<{ hasToken: boolean }>>;
   persistGitHubToken: (projectId: string) => Promise<IPCResult<{ tokenPersisted: boolean }>>;
   getGitHubUser: () => Promise<IPCResult<{ username: string; name?: string }>>;
@@ -328,6 +330,7 @@ export interface GitHubAPI {
   postPRReview: (projectId: string, prNumber: number, selectedFindingIds?: string[]) => Promise<boolean>;
   deletePRReview: (projectId: string, prNumber: number) => Promise<boolean>;
   postPRComment: (projectId: string, prNumber: number, body: string) => Promise<boolean>;
+  approvePR: (projectId: string, prNumber: number, body: string) => Promise<boolean>;
   mergePR: (projectId: string, prNumber: number, mergeMethod?: 'merge' | 'squash' | 'rebase') => Promise<boolean>;
   assignPR: (projectId: string, prNumber: number, username: string) => Promise<boolean>;
   getPRReview: (projectId: string, prNumber: number) => Promise<PRReviewResult | null>;

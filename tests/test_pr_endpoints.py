@@ -77,7 +77,6 @@ def _mock_load_projects(project_dir: Path):
 def client(_mock_load_projects):
     """FastAPI TestClient with auth disabled via settings."""
     from fastapi.testclient import TestClient
-
     from server.config import get_settings
 
     settings = get_settings()
@@ -459,9 +458,9 @@ class TestPostPRReviewToGitHub:
 
         # Verify review metadata was updated
         updated = json.loads(review_file.read_text())
-        assert updated["hasPostedFindings"] is True
-        assert "f1" in updated["postedFindingIds"]
-        assert "f2" in updated["postedFindingIds"]
+        assert updated["has_posted_findings"] is True
+        assert "f1" in updated["posted_finding_ids"]
+        assert "f2" in updated["posted_finding_ids"]
 
     def test_post_review_selected_findings(self, client, project_dir):
         """Posts only selected findings."""

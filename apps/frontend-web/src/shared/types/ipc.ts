@@ -143,6 +143,8 @@ export interface API {
   // Task operations
   getTasks: (projectId: string) => Promise<IPCResult<Task[]>>;
   createTask: (projectId: string, title: string, description: string, metadata?: TaskMetadata) => Promise<IPCResult<Task>>;
+  generateClarifications: (taskId: string) => Promise<IPCResult<{ questions: Array<{ id: string; question: string; options: string[] }>; skip: boolean; skipReason: string }>>;
+  submitClarificationAnswers: (taskId: string, answers: Array<{ questionId: string; question: string; answer: string }>) => Promise<IPCResult<Task>>;
   deleteTask: (taskId: string) => Promise<IPCResult>;
   updateTask: (taskId: string, updates: { title?: string; description?: string; metadata?: Partial<TaskMetadata> }) => Promise<IPCResult<Task>>;
   startTask: (taskId: string, options?: TaskStartOptions) => void;
@@ -163,6 +165,20 @@ export interface API {
   resolveGitMergeConflicts: (taskId: string) => Promise<IPCResult<{ resolved: string[]; failed?: Array<{ file: string; error: string }>; message: string }>>;
   abortWorktreeMerge: (taskId: string) => Promise<IPCResult<{ abortedIn: string[]; message: string }>>;
   discardWorktree: (taskId: string) => Promise<IPCResult<WorktreeDiscardResult>>;
+  createPRFromTask: (taskId: string, options?: {
+    title?: string;
+    body?: string;
+    draft?: boolean;
+    baseBranch?: string;
+    targetRepo?: string;
+  }) => Promise<IPCResult<{ prUrl: string; prNumber: number | null; branch: string; baseBranch: string }>>;
+  getForkInfo: (projectPath: string) => Promise<IPCResult<{
+    isFork: boolean;
+    origin: string;
+    defaultBranch: string;
+    upstream?: string;
+    upstreamDefaultBranch?: string;
+  }>>;
   listWorktrees: (projectId: string) => Promise<IPCResult<WorktreeListResult>>;
   worktreeOpenInIDE: (worktreePath: string, ide: SupportedIDE, customPath?: string) => Promise<IPCResult<{ opened: boolean }>>;
   worktreeOpenInTerminal: (worktreePath: string, terminal: SupportedTerminal, customPath?: string) => Promise<IPCResult<{ opened: boolean }>>;
@@ -257,6 +273,7 @@ export interface API {
   importCLICredentials: (cli: 'codex' | 'gemini') => Promise<IPCResult>;
   setCLIApiKey: (cli: 'codex' | 'gemini', apiKey: string) => Promise<IPCResult>;
   startCLILogin: (cli: 'codex' | 'gemini') => Promise<IPCResult>;
+  startCLILoginTerminal: (cli: 'codex' | 'gemini') => Promise<IPCResult<{ terminalId: string; command: string; message: string }>>;
   removeCLIAccount: (cli: 'codex' | 'gemini') => Promise<IPCResult>;
   installCLI: (cli: 'codex' | 'gemini') => Promise<IPCResult<{ version: string; wasUpdate: boolean; message: string }>>;
   onCLIAccountAuth: (callback: (info: { cli: string; success: boolean }) => void) => () => void;
@@ -340,15 +357,16 @@ export interface API {
 
   // GitHub OAuth operations (gh CLI)
   checkGitHubCli: () => Promise<IPCResult<{ installed: boolean; version?: string }>>;
+  installGitHubCli: () => Promise<IPCResult<{ message: string; version: string; steps_completed: string[] }>>;
   checkGitHubAuth: () => Promise<IPCResult<{ authenticated: boolean; username?: string }>>;
+  checkGitHubAuthStatus: () => Promise<IPCResult<{ complete: boolean; success?: boolean; error?: string }>>;
   autoDetectGitHub: (projectId?: string) => Promise<IPCResult<{ authenticated: boolean; username?: string; tokenPersisted?: boolean; reason?: string }>>;
   startGitHubAuth: () => Promise<IPCResult<{
     success: boolean;
     message?: string;
     deviceCode?: string;
     authUrl?: string;
-    browserOpened?: boolean;
-    fallbackUrl?: string;
+    awaiting?: boolean;
   }>>;
   getGitHubToken: () => Promise<IPCResult<{ hasToken: boolean }>>;
   persistGitHubToken: (projectId: string) => Promise<IPCResult<{ tokenPersisted: boolean }>>;

@@ -20,8 +20,8 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import AsyncIterator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -51,6 +51,16 @@ if str(_BACKEND) not in sys.path:
 # ---------------------------------------------------------------------------
 
 from qa.providers import BaseLLMProvider  # noqa: E402
+from qa.providers.codex import CodexCLIProvider  # noqa: E402
+from qa.providers.factory import (  # noqa: E402
+    _PROVIDER_ALIASES,
+    _PROVIDER_REGISTRY,
+    get_qa_llm_provider,
+    list_provider_aliases,
+    list_providers,
+)
+from qa.providers.gemini import GeminiCLIProvider  # noqa: E402
+from qa.providers.ollama import OllamaProvider  # noqa: E402
 from qa.providers.types import (  # noqa: E402
     AssistantMessage,
     TextBlock,
@@ -58,17 +68,6 @@ from qa.providers.types import (  # noqa: E402
     ToolUseBlock,
     UserMessage,
 )
-from qa.providers.factory import (  # noqa: E402
-    get_qa_llm_provider,
-    list_provider_aliases,
-    list_providers,
-    _PROVIDER_ALIASES,
-    _PROVIDER_REGISTRY,
-)
-from qa.providers.codex import CodexCLIProvider  # noqa: E402
-from qa.providers.gemini import GeminiCLIProvider  # noqa: E402
-from qa.providers.ollama import OllamaProvider  # noqa: E402
-
 
 # ===========================================================================
 # Helpers
@@ -244,7 +243,7 @@ class TestBaseLLMProviderAbstract:
 
                 return _gen()
 
-            async def __aenter__(self) -> "ConcreteProvider":
+            async def __aenter__(self) -> ConcreteProvider:
                 return self
 
             async def __aexit__(self, *args) -> None:
@@ -269,7 +268,7 @@ class TestBaseLLMProviderAbstract:
 
                 return _gen()
 
-            async def __aenter__(self) -> "ConcreteProvider":
+            async def __aenter__(self) -> ConcreteProvider:
                 ConcreteProvider.entered = True
                 return self
 
@@ -298,7 +297,7 @@ class TestBaseLLMProviderAbstract:
 
                 return _gen()
 
-            async def __aenter__(self) -> "ConcreteProvider":
+            async def __aenter__(self) -> ConcreteProvider:
                 return self
 
             async def __aexit__(self, *args) -> None:
@@ -1021,16 +1020,20 @@ class TestOllamaProviderInit:
     """Tests for OllamaProvider initialisation."""
 
     def test_default_values(self):
-        """Default model, base_url, and timeout are set."""
+        """Default model, base_url, and timeout are set.
+
+        Note: OllamaProvider always injects num_ctx=32768 if the caller
+        doesn't supply one, so _extra_options is never truly empty.
+        """
         provider = OllamaProvider()
         assert provider._model == "llama3.2"
         assert "localhost:11434" in provider._base_url
         assert provider._timeout == 300
-        assert provider._extra_options == {}
+        assert provider._extra_options == {"num_ctx": 32768}
         assert provider._pending_prompt is None
 
     def test_custom_values(self):
-        """Custom constructor values are stored."""
+        """Custom constructor values are stored; num_ctx default merges in."""
         provider = OllamaProvider(
             model="codellama:13b",
             base_url="http://ollama.example.com:11434",
@@ -1040,17 +1043,26 @@ class TestOllamaProviderInit:
         assert provider._model == "codellama:13b"
         assert "ollama.example.com" in provider._base_url
         assert provider._timeout == 120
-        assert provider._extra_options == {"temperature": 0, "num_predict": 4096}
+        assert provider._extra_options == {
+            "temperature": 0,
+            "num_predict": 4096,
+            "num_ctx": 32768,
+        }
 
     def test_trailing_slash_stripped_from_base_url(self):
         """Trailing slash is stripped from base_url."""
         provider = OllamaProvider(base_url="http://localhost:11434/")
         assert not provider._base_url.endswith("/")
 
-    def test_none_extra_options_becomes_empty_dict(self):
-        """None extra_options is normalised to an empty dict."""
+    def test_none_extra_options_gets_num_ctx_default(self):
+        """None extra_options is normalised to a dict containing num_ctx."""
         provider = OllamaProvider(extra_options=None)
-        assert provider._extra_options == {}
+        assert provider._extra_options == {"num_ctx": 32768}
+
+    def test_explicit_num_ctx_not_overridden(self):
+        """A caller-supplied num_ctx wins over the default."""
+        provider = OllamaProvider(extra_options={"num_ctx": 8192})
+        assert provider._extra_options == {"num_ctx": 8192}
 
     def test_is_base_provider_subclass(self):
         """OllamaProvider is a subclass of BaseLLMProvider."""
@@ -1077,18 +1089,17 @@ class TestOllamaProviderBuildPayload:
         assert msg["role"] == "user"
         assert msg["content"] == "my qa prompt"
 
-    def test_options_key_absent_when_empty(self):
-        """options key is NOT included when extra_options is empty."""
+    def test_options_key_always_includes_num_ctx_default(self):
+        """options key is always present because num_ctx default is injected."""
         provider = OllamaProvider(extra_options={})
         payload = provider._build_payload("prompt")
-        assert "options" not in payload
+        assert payload["options"] == {"num_ctx": 32768}
 
-    def test_options_key_present_when_set(self):
-        """options key IS included when extra_options is non-empty."""
+    def test_options_key_merges_caller_and_default(self):
+        """Caller-supplied options are merged with the num_ctx default."""
         provider = OllamaProvider(extra_options={"temperature": 0})
         payload = provider._build_payload("prompt")
-        assert "options" in payload
-        assert payload["options"] == {"temperature": 0}
+        assert payload["options"] == {"temperature": 0, "num_ctx": 32768}
 
 
 class TestOllamaProviderExtractContent:

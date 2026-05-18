@@ -24,12 +24,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "apps" / "web-server"))
 from server.services.skills_service import (
     SkillCategory,
     SkillDetail,
-    SkillSummary,
-    SkillSuggestion,
     SkillsService,
+    SkillSuggestion,
+    SkillSummary,
 )
 
-# Fixture skills directory — no <skills-mount> required
+# Fixture skills directory — fully isolated from the real skills/ dir
 FIXTURES_PATH = Path(__file__).parent / "fixtures" / "skills"
 
 

@@ -73,6 +73,7 @@ export function GitHubPRs({ onOpenSettings, isActive = false }: GitHubPRsProps) 
     cancelReview,
     postReview,
     postComment,
+    approvePR,
     mergePR,
     assignPR,
     refresh,
@@ -139,6 +140,13 @@ export function GitHubPRs({ onOpenSettings, isActive = false }: GitHubPRsProps) 
       await postComment(selectedPRNumber, body);
     }
   }, [selectedPRNumber, postComment]);
+
+  const handleApprovePR = useCallback(async (body: string): Promise<boolean> => {
+    if (selectedPRNumber) {
+      return await approvePR(selectedPRNumber, body);
+    }
+    return false;
+  }, [selectedPRNumber, approvePR]);
 
   const handleMergePR = useCallback(async (mergeMethod?: 'merge' | 'squash' | 'rebase') => {
     if (selectedPRNumber) {
@@ -253,6 +261,7 @@ export function GitHubPRs({ onOpenSettings, isActive = false }: GitHubPRsProps) 
               onCancelReview={handleCancelReview}
               onPostReview={handlePostReview}
               onPostComment={handlePostComment}
+              onApprovePR={handleApprovePR}
               onMergePR={handleMergePR}
               onAssignPR={handleAssignPR}
               onGetLogs={handleGetLogs}

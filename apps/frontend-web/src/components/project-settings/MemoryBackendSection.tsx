@@ -165,7 +165,7 @@ export function MemoryBackendSection({
                 URL of the Graphiti MCP server
               </p>
               <Input
-                placeholder="http://localhost:8000/mcp/"
+                placeholder="http://localhost:3101/mcp/"
                 value={settings.graphitiMcpUrl || ''}
                 onChange={(e) => onUpdateSettings({ graphitiMcpUrl: e.target.value || undefined })}
               />

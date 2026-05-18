@@ -44,7 +44,7 @@ def test_gitlab_issue_to_merge_workflow():
 ### 1. Run All Workflow Tests
 
 ```bash
-cd <project>/PD/AutoClaude/MagesticAI/apps/web-server
+cd <your-clone-dir>/apps/web-server
 pytest tests/test_e2e_workflows.py -v
 ```
 
@@ -470,7 +470,7 @@ Add your workflow to `E2E_WORKFLOWS_TEST_REPORT.md`:
 **Solution:**
 ```bash
 # Ensure you're in the correct directory
-cd <project>/PD/AutoClaude/MagesticAI/apps/web-server
+cd <your-clone-dir>/apps/web-server
 
 # Install in development mode
 pip install -e .

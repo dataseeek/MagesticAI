@@ -1,16 +1,14 @@
 """
-CodexAgenticProvider — Agentic Codex CLI adapter for coding/planning phases
-============================================================================
+CodexAgenticProvider — MCP-based Codex adapter for agentic phases
+==================================================================
 
-Runs ``codex exec --full-auto`` as a non-interactive subprocess, which handles
-file operations and command execution autonomously.  The prompt is sent via
-stdin (``-``) and the CLI's output is streamed back as ``AssistantMessage`` /
-``TextBlock`` objects.
+Uses ``codex mcp-server`` (stdio JSON-RPC) instead of ``codex exec``.
+The MCP server provides full agentic capability: file creation, command
+execution, sandbox control, and multi-turn conversations via threadId.
 
-Unlike ``CodexCLIProvider`` (text-only, ``-q`` flag), this provider uses
-``exec --full-auto`` mode which gives Codex full agentic capabilities:
-file reads/writes, command execution, etc.  The ``exec`` subcommand runs
-headless without requiring a terminal.
+The server is started once in ``__aenter__`` and reused for all calls
+within the ``async with`` block.  Communication follows the MCP protocol
+(JSON-RPC 2.0 over stdio, one message per line).
 
 Usage::
 
@@ -18,27 +16,25 @@ Usage::
 
     provider = CodexAgenticProvider(
         model="gpt-5.3-codex",
-        working_dir=project_dir,
+        working_dir=spec_dir,
         timeout=600,
     )
     async with provider:
         await provider.query(prompt)
         async for msg in provider.receive_response():
             ...
-
-CLI invocation shape::
-
-    codex exec --full-auto [--model <model>] [-C <dir>] [<extra_args>...] -
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
 import shutil
+from collections.abc import AsyncGenerator, AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncGenerator, AsyncIterator
+from typing import Any
 
 from providers import BaseLLMProvider
 from providers.types import AssistantMessage, TextBlock
@@ -50,21 +46,25 @@ _DEFAULT_MODEL: str = "gpt-5.3-codex"
 _DEFAULT_TIMEOUT: int = 600  # 10 minutes for agentic tasks
 _MODEL_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._:/-]*$")
 
+# MCP protocol constants
+_MCP_PROTOCOL_VERSION = "2024-11-05"
+_CLIENT_INFO = {"name": "magestic-ai", "version": "1.0"}
+
 
 class CodexAgenticProvider(BaseLLMProvider):
     """
-    Agentic Codex provider for coding/planning/spec/qa_fixer phases.
+    Agentic Codex provider using ``codex mcp-server`` (stdio JSON-RPC).
 
-    Runs ``codex exec --full-auto`` (non-interactive/headless) which handles
-    file ops and commands autonomously.  Streams output as
-    AssistantMessage/TextBlock messages.
+    Starts a persistent MCP server subprocess on enter, sends tool calls
+    to run Codex sessions with full agentic capability, and shuts down
+    on exit.
 
     Args:
         model: Codex model identifier (e.g. ``"gpt-5.3-codex"``).
         codex_path: Path or command name for the ``codex`` executable.
-        timeout: Maximum seconds to wait for the subprocess.
-        working_dir: Working directory for the subprocess.
-        extra_args: Additional CLI flags.
+        timeout: Maximum seconds to wait for a response.
+        working_dir: Working directory for Codex sessions.
+        extra_args: Additional CLI flags (unused in MCP mode, kept for API compat).
     """
 
     def __init__(
@@ -84,10 +84,10 @@ class CodexAgenticProvider(BaseLLMProvider):
         self._timeout = timeout
         self._working_dir = working_dir
         self._extra_args: list[str] = extra_args or []
-        for arg in self._extra_args:
-            if "\x00" in arg:
-                raise ValueError("extra_args must not contain null bytes")
         self._pending_prompt: str | None = None
+        self._proc: asyncio.subprocess.Process | None = None
+        self._request_id: int = 0
+        self._thread_id: str | None = None
 
         logger.debug(
             "CodexAgenticProvider created model=%s working_dir=%s timeout=%d",
@@ -96,20 +96,60 @@ class CodexAgenticProvider(BaseLLMProvider):
             timeout,
         )
 
-    async def query(self, prompt: str) -> None:
-        """Store the prompt for execution when ``receive_response()`` is called."""
-        self._pending_prompt = prompt
+    async def _send_message(self, message: dict) -> None:
+        """Send a JSON-RPC message to the MCP server via stdin."""
+        if not self._proc or not self._proc.stdin:
+            raise RuntimeError("MCP server not running")
+        line = json.dumps(message) + "\n"
+        self._proc.stdin.write(line.encode("utf-8"))
+        await self._proc.stdin.drain()
 
-    def receive_response(self) -> AsyncIterator[Any]:
-        """Return an async generator that runs the Codex CLI in full-auto mode."""
-        return self._run_codex()
+    async def _read_response(self, expected_id: int) -> dict:
+        """Read a JSON-RPC response from the MCP server stdout.
 
-    async def _run_codex(self) -> AsyncGenerator[Any, None]:
-        """Spawn codex --full-auto, stream output as AssistantMessage blocks."""
-        if not self._pending_prompt:
-            logger.warning("CodexAgenticProvider.receive_response() called before query()")
-            return
+        Skips notification messages (no 'id' field) and waits for
+        the response matching the expected request ID.
+        """
+        if not self._proc or not self._proc.stdout:
+            raise RuntimeError("MCP server not running")
 
+        while True:
+            line = await asyncio.wait_for(
+                self._proc.stdout.readline(),
+                timeout=float(self._timeout),
+            )
+            if not line:
+                raise RuntimeError("MCP server closed stdout unexpectedly")
+
+            text = line.decode("utf-8", errors="replace").strip()
+            if not text:
+                continue
+
+            try:
+                data = json.loads(text)
+            except json.JSONDecodeError:
+                logger.debug("CodexMCP: skipping non-JSON line: %s", text[:200])
+                continue
+
+            # Skip notifications (no id field)
+            if "id" not in data:
+                continue
+
+            if data.get("id") == expected_id:
+                if "error" in data:
+                    error = data["error"]
+                    raise RuntimeError(
+                        f"MCP error {error.get('code', '?')}: {error.get('message', 'unknown')}"
+                    )
+                return data
+
+    def _next_id(self) -> int:
+        """Get the next JSON-RPC request ID."""
+        self._request_id += 1
+        return self._request_id
+
+    async def __aenter__(self) -> CodexAgenticProvider:
+        """Start the MCP server and send initialize handshake."""
         resolved_path = shutil.which(self._codex_path)
         if resolved_path is None:
             raise RuntimeError(
@@ -117,85 +157,142 @@ class CodexAgenticProvider(BaseLLMProvider):
                 "Install the Codex CLI or pass the correct path."
             )
 
-        cmd = self._build_command()
-        cwd = str(self._working_dir) if self._working_dir else None
+        cmd = [resolved_path, "mcp-server"]
+        logger.info("CodexAgenticProvider: starting MCP server: %s", " ".join(cmd))
 
-        logger.debug("CodexAgenticProvider: spawning cmd=%r cwd=%r", cmd, cwd)
-
-        proc: asyncio.subprocess.Process | None = None
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=cwd,
-            )
-
-            prompt_bytes = self._pending_prompt.encode("utf-8")
-            stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                proc.communicate(input=prompt_bytes),
-                timeout=float(self._timeout),
-            )
-
-        except asyncio.TimeoutError:
-            if proc is not None:
-                try:
-                    proc.kill()
-                except ProcessLookupError:
-                    pass
-            raise asyncio.TimeoutError(
-                f"Codex CLI (full-auto) timed out after {self._timeout}s."
-            )
-
-        stdout_text = stdout_bytes.decode("utf-8", errors="replace").strip()
-        stderr_text = stderr_bytes.decode("utf-8", errors="replace").strip()
-
-        logger.debug(
-            "CodexAgenticProvider: finished returncode=%d stdout_len=%d stderr_len=%d",
-            proc.returncode,
-            len(stdout_text),
-            len(stderr_text),
+        self._proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
 
-        if proc.returncode != 0 and not stdout_text:
-            error_detail = stderr_text or f"exit code {proc.returncode}"
-            raise RuntimeError(f"Codex CLI (full-auto) error: {error_detail}")
+        # Send initialize
+        init_id = self._next_id()
+        await self._send_message({
+            "jsonrpc": "2.0",
+            "id": init_id,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": _MCP_PROTOCOL_VERSION,
+                "capabilities": {},
+                "clientInfo": _CLIENT_INFO,
+            },
+        })
 
-        if stderr_text:
-            logger.warning("Codex CLI stderr (first 500 chars): %s", stderr_text[:500])
+        response = await self._read_response(init_id)
+        server_info = response.get("result", {}).get("serverInfo", {})
+        logger.info(
+            "CodexAgenticProvider: MCP server initialized — %s v%s",
+            server_info.get("name", "unknown"),
+            server_info.get("version", "?"),
+        )
 
-        response_text = stdout_text if stdout_text else "(no output from Codex CLI)"
-
-        yield AssistantMessage(content=[TextBlock(text=response_text)])
-
-    def _build_command(self) -> list[str]:
-        """Build the argv list for ``codex exec --full-auto``.
-
-        Uses ``exec`` subcommand for non-interactive/headless execution.
-        The ``-`` at the end tells Codex to read the prompt from stdin.
-        Uses ``-C`` to set the working directory inside the CLI.
-        """
-        cmd: list[str] = [self._codex_path, "exec", "--full-auto"]
-
-        if self._model:
-            cmd += ["--model", self._model]
-
-        if self._working_dir:
-            cmd += ["-C", str(self._working_dir)]
-
-        if self._extra_args:
-            cmd.extend(self._extra_args)
-
-        # "-" tells codex exec to read prompt from stdin
-        cmd.append("-")
-        return cmd
-
-    async def __aenter__(self) -> "CodexAgenticProvider":
         return self
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Shut down the MCP server subprocess."""
         self._pending_prompt = None
+        self._thread_id = None
+
+        if self._proc:
+            try:
+                if self._proc.stdin:
+                    self._proc.stdin.close()
+                self._proc.terminate()
+                await asyncio.wait_for(self._proc.wait(), timeout=5.0)
+            except (ProcessLookupError, asyncio.TimeoutError):
+                try:
+                    self._proc.kill()
+                except ProcessLookupError:
+                    pass
+            finally:
+                self._proc = None
+                logger.debug("CodexAgenticProvider: MCP server stopped")
+
+    async def query(self, prompt: str) -> None:
+        """Store the prompt for execution when ``receive_response()`` is called."""
+        self._pending_prompt = prompt
+
+    def receive_response(self) -> AsyncIterator[Any]:
+        """Return an async generator that calls the Codex MCP tool."""
+        return self._run_codex_mcp()
+
+    async def _run_codex_mcp(self) -> AsyncGenerator[Any, None]:
+        """Call the 'codex' tool via MCP and yield the response."""
+        if not self._pending_prompt:
+            logger.warning("CodexAgenticProvider.receive_response() called before query()")
+            return
+
+        if not self._proc:
+            raise RuntimeError("MCP server not running — use 'async with' context manager")
+
+        # Build tool call arguments
+        arguments: dict[str, Any] = {
+            "prompt": self._pending_prompt,
+            "approval-policy": "never",
+            "sandbox": "danger-full-access",
+        }
+
+        if self._model:
+            arguments["model"] = self._model
+
+        if self._working_dir:
+            arguments["cwd"] = str(self._working_dir)
+
+        # Use codex-reply for multi-turn if we have a thread ID
+        tool_name = "codex"
+        if self._thread_id:
+            tool_name = "codex-reply"
+            arguments["threadId"] = self._thread_id
+
+        call_id = self._next_id()
+        await self._send_message({
+            "jsonrpc": "2.0",
+            "id": call_id,
+            "method": "tools/call",
+            "params": {
+                "name": tool_name,
+                "arguments": arguments,
+            },
+        })
+
+        logger.info(
+            "CodexAgenticProvider: sent %s call (id=%d, model=%s, cwd=%s)",
+            tool_name,
+            call_id,
+            self._model,
+            self._working_dir,
+        )
+
+        response = await self._read_response(call_id)
+
+        # Extract response text
+        result = response.get("result", {})
+        content_blocks = result.get("content", [])
+        structured = result.get("structuredContent", {})
+
+        # Store thread ID for potential multi-turn
+        thread_id = structured.get("threadId")
+        if thread_id:
+            self._thread_id = thread_id
+
+        # Extract text from content blocks
+        response_text = ""
+        for block in content_blocks:
+            if block.get("type") == "text":
+                response_text += block.get("text", "")
+
+        if not response_text:
+            response_text = structured.get("content", "(no output from Codex MCP)")
+
+        logger.info(
+            "CodexAgenticProvider: response received (len=%d, threadId=%s)",
+            len(response_text),
+            thread_id or "none",
+        )
+
+        yield AssistantMessage(content=[TextBlock(text=response_text)])
 
 
 __all__ = ["CodexAgenticProvider"]

@@ -32,6 +32,7 @@ interface UseGitHubPRsResult {
   cancelReview: (prNumber: number) => Promise<boolean>;
   postReview: (prNumber: number, selectedFindingIds?: string[]) => Promise<boolean>;
   postComment: (prNumber: number, body: string) => Promise<boolean>;
+  approvePR: (prNumber: number, body: string) => Promise<boolean>;
   mergePR: (prNumber: number, mergeMethod?: 'merge' | 'squash' | 'rebase') => Promise<boolean>;
   assignPR: (prNumber: number, username: string) => Promise<boolean>;
   getReviewStateForPR: (prNumber: number) => { isReviewing: boolean; progress: PRReviewProgress | null; result: PRReviewResult | null; previousResult: PRReviewResult | null; error: string | null; newCommitsCheck?: NewCommitsCheck | null } | null;
@@ -278,6 +279,17 @@ export function useGitHubPRs(projectId?: string): UseGitHubPRsResult {
     }
   }, [projectId]);
 
+  const approvePR = useCallback(async (prNumber: number, body: string): Promise<boolean> => {
+    if (!projectId) return false;
+
+    try {
+      return await window.API.github.approvePR(projectId, prNumber, body);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to approve PR');
+      return false;
+    }
+  }, [projectId]);
+
   const mergePR = useCallback(async (prNumber: number, mergeMethod: 'merge' | 'squash' | 'rebase' = 'squash'): Promise<boolean> => {
     if (!projectId) return false;
 
@@ -331,6 +343,7 @@ export function useGitHubPRs(projectId?: string): UseGitHubPRsResult {
     cancelReview,
     postReview,
     postComment,
+    approvePR,
     mergePR,
     assignPR,
     getReviewStateForPR,

@@ -75,19 +75,25 @@ GRAPHITI_MCP_TOOLS = [
 # Browser Automation MCP Tools (QA agents only)
 # =============================================================================
 
-# Puppeteer MCP tools for web browser automation
+# Playwright MCP tools for web browser automation
 # Used for web frontend validation (non-Electron web apps)
+# Uses @playwright/mcp with headless Chromium for reliable Linux support.
 # NOTE: Screenshots must be compressed (1280x720, quality 60, JPEG) to stay under
 # Claude SDK's 1MB JSON message buffer limit. See GitHub issue #74.
-PUPPETEER_TOOLS = [
-    "mcp__puppeteer__puppeteer_connect_active_tab",
-    "mcp__puppeteer__puppeteer_navigate",
-    "mcp__puppeteer__puppeteer_screenshot",
-    "mcp__puppeteer__puppeteer_click",
-    "mcp__puppeteer__puppeteer_fill",
-    "mcp__puppeteer__puppeteer_select",
-    "mcp__puppeteer__puppeteer_hover",
-    "mcp__puppeteer__puppeteer_evaluate",
+PLAYWRIGHT_TOOLS = [
+    "mcp__playwright__browser_navigate",
+    "mcp__playwright__browser_take_screenshot",
+    "mcp__playwright__browser_click",
+    "mcp__playwright__browser_fill_form",
+    "mcp__playwright__browser_select_option",
+    "mcp__playwright__browser_hover",
+    "mcp__playwright__browser_evaluate",
+    "mcp__playwright__browser_snapshot",
+    "mcp__playwright__browser_console_messages",
+    "mcp__playwright__browser_press_key",
+    "mcp__playwright__browser_wait_for",
+    "mcp__playwright__browser_navigate_back",
+    "mcp__playwright__browser_close",
 ]
 
 # =============================================================================
@@ -333,7 +339,8 @@ def _map_mcp_server_name(
         "context7": "context7",
         "graphiti-memory": "graphiti",
         "graphiti": "graphiti",
-        "puppeteer": "puppeteer",
+        "playwright": "playwright",
+        "puppeteer": "playwright",  # backward compat: puppeteer maps to playwright
         "magestic-ai": "magestic-ai",
     }
     # Check if it's a known mapping
@@ -355,7 +362,7 @@ def get_required_mcp_servers(
     Get MCP servers required for this agent type.
 
     Handles dynamic server selection:
-    - "browser" → puppeteer (if is_web_frontend)
+    - "browser" → playwright (if is_web_frontend)
     - "graphiti" → only if GRAPHITI_MCP_URL is set
     - Respects per-project MCP config overrides from .magestic-ai/.env
     - Applies per-agent ADD/REMOVE overrides from AGENT_MCP_<agent>_ADD/REMOVE
@@ -365,7 +372,7 @@ def get_required_mcp_servers(
         project_capabilities: Dict from detect_project_capabilities() or None
         mcp_config: Per-project MCP server toggles from .magestic-ai/.env
                    Keys: CONTEXT7_ENABLED,
-                         PUPPETEER_MCP_ENABLED, AGENT_MCP_<agent>_ADD/REMOVE
+                         PLAYWRIGHT_MCP_ENABLED, AGENT_MCP_<agent>_ADD/REMOVE
 
     Returns:
         List of MCP server names to start
@@ -383,18 +390,22 @@ def get_required_mcp_servers(
         if str(context7_enabled).lower() == "false":
             servers = [s for s in servers if s != "context7"]
 
-    # Handle dynamic "browser" → puppeteer based on project type and config
+    # Handle dynamic "browser" → playwright based on project type and config
     if "browser" in servers:
         servers = [s for s in servers if s != "browser"]
         if project_capabilities:
             is_web_frontend = project_capabilities.get("is_web_frontend", False)
 
             # Check per-project override (default false)
-            puppeteer_enabled = mcp_config.get("PUPPETEER_MCP_ENABLED", "false")
+            # Accept both PLAYWRIGHT_MCP_ENABLED and legacy PUPPETEER_MCP_ENABLED
+            playwright_enabled = mcp_config.get(
+                "PLAYWRIGHT_MCP_ENABLED",
+                mcp_config.get("PUPPETEER_MCP_ENABLED", "false"),
+            )
 
-            # Puppeteer: enabled by project config for web frontends
-            if is_web_frontend and str(puppeteer_enabled).lower() == "true":
-                servers.append("puppeteer")
+            # Playwright: enabled by project config for web frontends
+            if is_web_frontend and str(playwright_enabled).lower() == "true":
+                servers.append("playwright")
 
     # Filter graphiti if not enabled
     if "graphiti" in servers:

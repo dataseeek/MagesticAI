@@ -144,8 +144,10 @@ const githubAPI: API['github'] = {
   closeGitHubIssue: async () => ({ success: false, error: 'Not implemented' }),
   createGitHubRelease: async () => ({ success: true, data: { url: '' } }),
   suggestReleaseVersion: async () => ({ success: true, data: { suggestedVersion: '1.0.0', currentVersion: '0.0.0', bumpType: 'minor' as const, commitCount: 0, reason: 'Initial' } }),
-  checkGitHubCli: async () => ({ success: true, data: { installed: false } }),
+  checkGitHubCli: async () => ({ success: true, data: { installed: false, version: undefined } }),
+  installGitHubCli: async () => ({ success: false, error: 'Not implemented' }),
   checkGitHubAuth: async () => ({ success: true, data: { authenticated: false } }),
+  checkGitHubAuthStatus: async () => ({ success: true, data: { complete: false } }),
   autoDetectGitHub: async () => ({ success: true, data: { authenticated: false } }),
   startGitHubAuth: async () => ({ success: true, data: { success: false } }),
   getGitHubToken: async () => ({ success: true, data: { hasToken: false } }),
@@ -189,6 +191,10 @@ const githubAPI: API['github'] = {
   },
   postPRComment: async (projectId, prNumber, body) => {
     const result = await post(`/projects/${projectId}/github/prs/${prNumber}/comment`, { body });
+    return result.success;
+  },
+  approvePR: async (projectId, prNumber, body) => {
+    const result = await post(`/projects/${projectId}/github/prs/${prNumber}/approve`, { body });
     return result.success;
   },
   mergePR: async (projectId, prNumber, mergeMethod) => {
@@ -280,6 +286,10 @@ export const webAPI: API & { _isWebMode: boolean } = {
   getTasks: (projectId: string) => get<Task[]>(`/projects/${projectId}/tasks`),
   createTask: (projectId: string, title: string, description: string, metadata?: TaskMetadata) =>
     post<Task>(`/projects/${projectId}/tasks`, { title, description, metadata }),
+  generateClarifications: (taskId: string) =>
+    post<{ questions: Array<{ id: string; question: string; options: string[] }>; skip: boolean; skipReason: string }>(`/tasks/${taskId}/clarifications`),
+  submitClarificationAnswers: (taskId: string, answers: Array<{ questionId: string; question: string; answer: string }>) =>
+    post<Task>(`/tasks/${taskId}/clarifications/answers`, { answers }),
   deleteTask: (taskId: string) => del(`/tasks/${taskId}`),
   updateTask: (taskId: string, updates: { title?: string; description?: string; metadata?: Partial<TaskMetadata> }) =>
     patch<Task>(`/tasks/${taskId}`, updates),
@@ -338,6 +348,10 @@ export const webAPI: API & { _isWebMode: boolean } = {
   abortWorktreeMerge: (taskId: string) =>
     post(`/tasks/${taskId}/worktree/abort-merge`),
   discardWorktree: (taskId: string) => post(`/tasks/${taskId}/worktree/discard`),
+  createPRFromTask: (taskId: string, options?: { title?: string; body?: string; draft?: boolean; baseBranch?: string; targetRepo?: string }) =>
+    post(`/tasks/${taskId}/worktree/create-pr`, options || {}),
+  getForkInfo: (projectPath: string) =>
+    get(`/github/fork-info?project_path=${encodeURIComponent(projectPath)}`),
   listWorktrees: (projectId: string) => get(`/projects/${projectId}/worktrees`),
   worktreeOpenInIDE: (worktreePath: string, ide: string, customPath?: string) =>
     post('/tasks/worktree/open-in-ide', { worktreePath, ide, customPath }),
@@ -549,6 +563,7 @@ export const webAPI: API & { _isWebMode: boolean } = {
   importCLICredentials: (cli: 'codex' | 'gemini') => post(`/settings/cli-accounts/${cli}/import`),
   setCLIApiKey: (cli: 'codex' | 'gemini', apiKey: string) => post(`/settings/cli-accounts/${cli}/api-key`, { api_key: apiKey }),
   startCLILogin: (cli: 'codex' | 'gemini') => post(`/settings/cli-accounts/${cli}/start-login`),
+  startCLILoginTerminal: (cli: 'codex' | 'gemini') => post(`/settings/cli-accounts/${cli}/start-login-terminal`),
   removeCLIAccount: (cli: 'codex' | 'gemini') => del(`/settings/cli-accounts/${cli}`),
   installCLI: (cli: 'codex' | 'gemini') => post(`/settings/cli-accounts/${cli}/install`),
   onCLIAccountAuth: (callback: (info: { cli: string; success: boolean }) => void) => {
@@ -639,7 +654,9 @@ export const webAPI: API & { _isWebMode: boolean } = {
 
   // GitHub OAuth
   checkGitHubCli: () => get('/github/cli/check'),
+  installGitHubCli: () => post('/github/cli/install'),
   checkGitHubAuth: () => get('/github/auth/check'),
+  checkGitHubAuthStatus: () => get('/github/auth/status'),
   autoDetectGitHub: (projectId?: string) =>
     get(`/github/auto-detect${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`),
   startGitHubAuth: () => post('/github/auth/start'),

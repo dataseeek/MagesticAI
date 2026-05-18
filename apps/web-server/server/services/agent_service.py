@@ -729,6 +729,71 @@ class AgentService:
         except Exception as e:
             logger.error(f"[AgentService] Failed to update active profile: {e}")
 
+    async def _retry_task_with_fallback_model(
+        self,
+        task_id: str,
+        project_path: Path,
+        spec_id: str,
+        cmd: list[str],
+        env: dict,
+    ) -> asyncio.subprocess.Process | None:
+        """Retry task execution with Claude Sonnet as fallback model.
+
+        Called when a non-Claude model (Codex, Gemini, Ollama) fails.
+        Swaps the --model flag in the command to 'sonnet'.
+
+        Returns:
+            New subprocess or None if retry not possible
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        profile_info = self._task_profiles.get(task_id, {})
+        failed_model = profile_info.get("model", "unknown")
+
+        # Build new command with sonnet model
+        new_cmd = list(cmd)
+        if "--model" in new_cmd:
+            model_idx = new_cmd.index("--model")
+            if model_idx + 1 < len(new_cmd):
+                new_cmd[model_idx + 1] = "sonnet"
+        else:
+            new_cmd.extend(["--model", "sonnet"])
+
+        logger.info(f"[AgentService] [Model: sonnet] Fallback triggered for {task_id} (original: {failed_model})")
+
+        # Emit WebSocket event for model fallback
+        from ..websockets.events import broadcast_event
+        await broadcast_event("task:log", {
+            "taskId": task_id,
+            "type": "model_fallback",
+            "message": f"Model '{failed_model}' failed. Falling back to Claude Sonnet.",
+        })
+
+        # Update tracking
+        if task_id in self._task_profiles:
+            self._task_profiles[task_id]["model"] = "sonnet"
+            self._task_profiles[task_id]["attempt"] = 2
+            self._task_profiles[task_id]["fallbackFrom"] = failed_model
+
+        # Relaunch subprocess
+        import pty
+        master_fd, slave_fd = pty.openpty()
+
+        proc = await asyncio.create_subprocess_exec(
+            *new_cmd,
+            stdin=slave_fd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=str(project_path),
+            env=env,
+        )
+
+        os.close(slave_fd)
+        os.close(master_fd)
+
+        return proc
+
     async def _retry_task_with_profile(
         self,
         task_id: str,
@@ -1106,19 +1171,40 @@ class AgentService:
                         try:
                             main_plan = json.loads(dst.read_text())
                             worktree_plan = json.loads(src.read_text())
-                            # Preserve status/reviewReason from main spec if present
+
+                            # Preserve top-level fields from main spec
                             preserved_status = main_plan.get("status")
                             preserved_reason = main_plan.get("reviewReason")
-                            # Copy worktree plan (has updated subtask statuses)
-                            shutil.copy2(src, dst)
-                            # Restore preserved fields if they exist
-                            if preserved_status or preserved_reason:
-                                merged_plan = json.loads(dst.read_text())
-                                if preserved_status:
-                                    merged_plan["status"] = preserved_status
-                                if preserved_reason:
-                                    merged_plan["reviewReason"] = preserved_reason
-                                dst.write_text(json.dumps(merged_plan, indent=2))
+
+                            # Build map of main spec subtask statuses
+                            STATUS_ORDER = {"pending": 0, "in_progress": 1, "completed": 2, "failed": 2}
+                            main_subtask_statuses = {}
+                            for phase in main_plan.get("phases", []):
+                                for subtask in phase.get("subtasks", []):
+                                    sid = subtask.get("id")
+                                    if sid:
+                                        main_subtask_statuses[sid] = subtask.get("status", "pending")
+
+                            # Start from worktree plan (has latest structure)
+                            merged_plan = worktree_plan
+
+                            # Restore preserved top-level fields
+                            if preserved_status:
+                                merged_plan["status"] = preserved_status
+                            if preserved_reason:
+                                merged_plan["reviewReason"] = preserved_reason
+
+                            # Prevent subtask status regressions
+                            for phase in merged_plan.get("phases", []):
+                                for subtask in phase.get("subtasks", []):
+                                    sid = subtask.get("id")
+                                    if sid and sid in main_subtask_statuses:
+                                        main_rank = STATUS_ORDER.get(main_subtask_statuses[sid], 0)
+                                        wt_rank = STATUS_ORDER.get(subtask.get("status", "pending"), 0)
+                                        if main_rank > wt_rank:
+                                            subtask["status"] = main_subtask_statuses[sid]
+
+                            dst.write_text(json.dumps(merged_plan, indent=2))
                         except (json.JSONDecodeError, OSError) as merge_err:
                             logger.warning(f"[AgentService] Failed to merge implementation_plan.json, falling back to copy: {merge_err}")
                             shutil.copy2(src, dst)
@@ -1204,8 +1290,9 @@ class AgentService:
                     if previous_status != current_status:
                         has_changes = True
                         # Subtask status changed - emit granular event
+                        # Use task_id (projectId:specId format) so frontend can match
                         await emit_subtask_update(
-                            task_id=spec_id,
+                            task_id=task_id or spec_id,
                             subtask_id=subtask_id,
                             status=current_status,
                             previous_status=previous_status
@@ -1218,8 +1305,8 @@ class AgentService:
                 if has_changes or synced_count > 0:
                     # Use the actual current execution phase from phase event tracking
                     actual_phase = self._task_current_phases.get(task_id, TaskPhase.PLANNING).value if task_id else "coding"
-                    # Emit task update
-                    await emit_task_update(spec_id, {
+                    # Emit task update — use task_id (projectId:specId) so frontend can match
+                    await emit_task_update(task_id or spec_id, {
                         "executionProgress": {
                             "phase": actual_phase,
                             "phaseProgress": progress,
@@ -1342,7 +1429,54 @@ class AgentService:
             if project_path and spec_id:
                 await self._sync_worktree_files(project_path, spec_id, task_id)
 
-            logger.info(f"[AgentService] Task {task_id} process exited with code {return_code}")
+            exit_model = self._task_profiles.get(task_id, {}).get("model", "unknown")
+            logger.info(f"[AgentService] [Model: {exit_model}] Task {task_id} process exited with code {return_code}")
+
+            # Early model fallback: if a non-Claude model failed, retry with Sonnet
+            # before any other processing (spec detection, plan status, etc.)
+            if return_code != 0 and cmd and env:
+                _fb_info = self._task_profiles.get(task_id, {})
+                _fb_model = _fb_info.get("model", "")
+                _fb_attempt = _fb_info.get("attempt", 1)
+                _fb_is_non_claude = (
+                    _fb_model
+                    and not _fb_model.startswith("claude-")
+                    and _fb_model not in ("haiku", "sonnet", "opus", "opus-1m")
+                )
+                logger.info(f"[AgentService] Fallback check: model={_fb_model!r}, attempt={_fb_attempt}, is_non_claude={_fb_is_non_claude}, cmd={'yes' if cmd else 'no'}, env={'yes' if env else 'no'}")
+                if _fb_is_non_claude and _fb_attempt <= 1:
+                    new_proc = await self._retry_task_with_fallback_model(
+                        task_id, project_path, spec_id, cmd, env
+                    )
+                    if new_proc:
+                        self._task_rate_limits.pop(task_id, None)
+                        self.running_tasks[task_id] = new_proc
+
+                        log_writer = None
+                        main_log_writer = None
+                        if task_id in self._task_log_writers:
+                            log_writer, main_log_writer = self._task_log_writers[task_id]
+
+                        asyncio.create_task(
+                            self._process_output(
+                                task_id, new_proc.stdout, is_stderr=False,
+                                log_writer=log_writer, spec_id=spec_id,
+                            )
+                        )
+                        asyncio.create_task(
+                            self._process_output(
+                                task_id, new_proc.stderr, is_stderr=True,
+                                log_writer=log_writer, spec_id=spec_id,
+                            )
+                        )
+                        asyncio.create_task(
+                            self._monitor_process(
+                                task_id, new_proc, project_path, spec_id,
+                                cmd=None, env=None
+                            )
+                        )
+                        logger.info(f"[AgentService] Task {task_id} restarted with fallback model (sonnet)")
+                        return
 
             # Special case: Spec creation (project_path provided, spec_id is None)
             # Need to detect the created spec_id and check if it requires review
@@ -1397,13 +1531,10 @@ class AgentService:
                                     return  # Exit early - not a failure
 
                             # If we reach here, spec was created but doesn't need review
-                            # Emit completion event
-                            logger.info(f"[AgentService] Spec {detected_spec_id} created successfully (no review required)")
+                            # Auto-start task execution immediately
+                            logger.info(f"[AgentService] Spec {detected_spec_id} created successfully (no review required) — auto-starting execution")
 
-                            # Persist status to implementation_plan.json
-                            await self._update_plan_status(project_path, detected_spec_id, "completed", task_id)
-
-                            # Clean up tracking data
+                            # Clean up tracking data from spec creation
                             if task_id in self.running_tasks:
                                 del self.running_tasks[task_id]
                             self._task_sequence_numbers.pop(task_id, None)
@@ -1413,18 +1544,19 @@ class AgentService:
                             self._task_rate_limits.pop(task_id, None)
                             self._task_subtask_states.pop(task_id, None)
 
-                            # Emit completion (20% overall = planning complete, override scaling
-                            # since COMPLETED phase would normally scale to 95-100%)
-                            await self._emit_progress(
-                                TaskProgress(
+                            # Auto-start task execution
+                            try:
+                                await self.start_task_execution(
                                     task_id=task_id,
-                                    phase=TaskPhase.COMPLETED,
-                                    message="Spec created successfully",
-                                    percentage=100,
-                                    overall_progress=20,
-                                ),
-                                previous_phase=TaskPhase.SPEC_CREATION,
-                            )
+                                    project_path=project_path,
+                                    spec_id=detected_spec_id,
+                                    auto_continue=True,
+                                )
+                                logger.info(f"[AgentService] Task execution auto-started for {detected_spec_id}")
+                            except Exception as exec_err:
+                                logger.error(f"[AgentService] Failed to auto-start execution for {detected_spec_id}: {exec_err}")
+                                # Fall back to human_review status so user can start manually
+                                await self._update_plan_status(project_path, detected_spec_id, "completed", task_id)
                             return  # Exit early
                 except Exception as e:
                     logger.warning(f"[AgentService] Failed to detect created spec: {e}")
@@ -1580,7 +1712,8 @@ class AgentService:
                         logger.info(f"[AgentService] Task {task_id} restarted with alternate profile")
                         return  # Exit this monitor instance
                     else:
-                        logger.warning(f"[AgentService] No alternate profile available for task {task_id}, surfacing failure")
+                        logger.warning(f"[AgentService] No alternate profile available for task {task_id}, trying model fallback")
+
 
             # If stop_task() already handled cleanup, skip duplicate processing
             if task_id in self._task_stopped:
@@ -1606,6 +1739,80 @@ class AgentService:
                 del self._task_log_writers[task_id]
                 logger.debug(f"[AgentService] Finalized task logs for {task_id}")
 
+            # Auto-continuation: if process exited successfully but subtasks remain,
+            # restart execution instead of marking as completed (max 10 continuation rounds)
+            if return_code == 0 and spec_id and project_path and cmd and env:
+                plan_file = project_path / ".magestic-ai" / "specs" / spec_id / "implementation_plan.json"
+                if plan_file.exists():
+                    try:
+                        plan_data = json.loads(plan_file.read_text())
+                        pending_count = 0
+                        completed_count = 0
+                        total_count = 0
+                        for phase in plan_data.get("phases", []):
+                            for subtask in phase.get("subtasks", []):
+                                total_count += 1
+                                st = subtask.get("status", "pending")
+                                if st in ("pending", "in_progress"):
+                                    pending_count += 1
+                                elif st == "completed":
+                                    completed_count += 1
+
+                        # Track continuation rounds to prevent infinite loops
+                        continuation_key = f"_continuation_{task_id}"
+                        round_num = getattr(self, continuation_key, 0) + 1
+
+                        if pending_count > 0 and round_num <= 10:
+                            setattr(self, continuation_key, round_num)
+                            logger.info(
+                                f"[AgentService] Auto-continuation round {round_num}: "
+                                f"{completed_count}/{total_count} subtasks done, "
+                                f"{pending_count} remaining for {spec_id}"
+                            )
+
+                            # Clean up current run tracking
+                            if task_id in self.running_tasks:
+                                del self.running_tasks[task_id]
+                            self._task_sequence_numbers.pop(task_id, None)
+                            self._task_start_times.pop(task_id, None)
+                            self._task_current_phases.pop(task_id, None)
+                            self._task_profiles.pop(task_id, None)
+                            self._task_rate_limits.pop(task_id, None)
+                            self._task_subtask_states.pop(task_id, None)
+                            if task_id in self._task_log_writers:
+                                log_writer, main_log_writer = self._task_log_writers[task_id]
+                                if spec_id:
+                                    actual_phase_for_logs = self._get_current_phase(task_id)
+                                    log_writer.finalize(spec_id, actual_phase_for_logs)
+                                    main_log_writer.finalize(spec_id, actual_phase_for_logs)
+                                del self._task_log_writers[task_id]
+
+                            # Restart execution
+                            try:
+                                await self.start_task_execution(
+                                    task_id=task_id,
+                                    project_path=project_path,
+                                    spec_id=spec_id,
+                                    auto_continue=True,
+                                )
+                                logger.info(f"[AgentService] Auto-continuation started for {spec_id} (round {round_num})")
+                                return  # Exit this monitor — new monitor will take over
+                            except Exception as e:
+                                logger.error(f"[AgentService] Auto-continuation failed for {spec_id}: {e}")
+                                # Fall through to normal completion
+                        elif pending_count > 0 and round_num > 10:
+                            logger.warning(
+                                f"[AgentService] Auto-continuation limit reached (10 rounds) for {spec_id}, "
+                                f"{pending_count} subtasks still pending"
+                            )
+                        else:
+                            # All subtasks done — clean up continuation tracker
+                            if hasattr(self, continuation_key):
+                                delattr(self, continuation_key)
+                            logger.info(f"[AgentService] All {total_count} subtasks completed for {spec_id}")
+                    except (json.JSONDecodeError, OSError) as e:
+                        logger.warning(f"[AgentService] Could not check subtask status for auto-continuation: {e}")
+
             # Update implementation_plan.json status for frontend display
             if spec_id and project_path:
                 status = "completed" if return_code == 0 else "failed"
@@ -1613,21 +1820,12 @@ class AgentService:
                 await self._update_plan_status(project_path, spec_id, status, task_id)
                 logger.info(f"[AgentService._monitor_process] _update_plan_status call completed")
 
-            # Clean up from running_tasks and tracking data
-            if task_id in self.running_tasks:
-                del self.running_tasks[task_id]
-            self._task_sequence_numbers.pop(task_id, None)
-            self._task_start_times.pop(task_id, None)
-            self._task_current_phases.pop(task_id, None)
-            self._task_profiles.pop(task_id, None)
-            self._task_rate_limits.pop(task_id, None)
-            self._task_subtask_states.pop(task_id, None)
-            self._spec_dirs.pop(task_id, None)
-
             # Send email/in-app notifications on task completion or failure
             _notif_user_id = self._task_user_ids.pop(task_id, "")
 
-            # Emit completion/failure progress with previous_phase to trigger status event (Bug 1 fix)
+            # Emit completion/failure progress with previous_phase to trigger status event
+            # NOTE: Cleanup is deferred until AFTER these emissions so _emit_progress
+            # can still read _spec_dirs (for plan file), _task_sequence_numbers, and _task_start_times
             if return_code == 0:
                 await self._emit_progress(
                     TaskProgress(
@@ -1677,6 +1875,19 @@ class AgentService:
                         )
                     except Exception:
                         logger.debug("Failed to send task failure notification", exc_info=True)
+
+            # Clean up tracking data AFTER all emissions are complete
+            # This must happen after _emit_progress so it can still read
+            # _spec_dirs, _task_sequence_numbers, and _task_start_times
+            if task_id in self.running_tasks:
+                del self.running_tasks[task_id]
+            self._task_sequence_numbers.pop(task_id, None)
+            self._task_start_times.pop(task_id, None)
+            self._task_current_phases.pop(task_id, None)
+            self._task_profiles.pop(task_id, None)
+            self._task_rate_limits.pop(task_id, None)
+            self._task_subtask_states.pop(task_id, None)
+            self._spec_dirs.pop(task_id, None)
         except asyncio.CancelledError:
             # Task was cancelled, cleanup already handled by stop_task
             pass
@@ -1686,10 +1897,12 @@ class AgentService:
                 del self.running_tasks[task_id]
             self._task_sequence_numbers.pop(task_id, None)
             self._task_start_times.pop(task_id, None)
+            self._task_current_phases.pop(task_id, None)
             self._task_user_ids.pop(task_id, None)
             self._task_profiles.pop(task_id, None)
             self._task_rate_limits.pop(task_id, None)
             self._task_subtask_states.pop(task_id, None)
+            self._spec_dirs.pop(task_id, None)
             await self._emit_progress(TaskProgress(
                 task_id=task_id,
                 phase=TaskPhase.FAILED,
@@ -1712,6 +1925,15 @@ class AgentService:
             logger.warning(f"[AgentService._update_plan_status] plan_file does not exist, returning early")
             return
 
+        # Map internal status to frontend-compatible status using the canonical helpers
+        # (defined before try so it's available in the except fallback)
+        phase_enum_map = {
+            "completed": TaskPhase.COMPLETED,
+            "failed": TaskPhase.FAILED,
+            "human_review": TaskPhase.PLAN_REVIEW,
+        }
+        phase_enum = phase_enum_map.get(status)
+
         try:
             plan = json.loads(plan_file.read_text())
 
@@ -1726,14 +1948,6 @@ class AgentService:
                 logger.error(f"[AgentService] Invalid or minimal implementation plan detected for {spec_id}")
                 await emit_task_status(task_id, "failed", "invalid_plan")
                 return
-
-            # Map internal status to frontend-compatible status using the canonical helpers
-            phase_enum_map = {
-                "completed": TaskPhase.COMPLETED,
-                "failed": TaskPhase.FAILED,
-                "human_review": TaskPhase.PLAN_REVIEW,
-            }
-            phase_enum = phase_enum_map.get(status)
             if phase_enum:
                 plan["status"] = phase_to_status(phase_enum)
                 review_reason = phase_to_review_reason(phase_enum)
@@ -1771,6 +1985,13 @@ class AgentService:
             })
         except Exception as e:
             logger.error(f"[AgentService] Failed to update plan status: {e}")
+            # Still emit status event so frontend updates even if plan file write failed
+            try:
+                fallback_status = phase_to_status(phase_enum) if phase_enum else status
+                fallback_reason = phase_to_review_reason(phase_enum) if phase_enum else None
+                await emit_task_status(task_id, fallback_status, fallback_reason)
+            except Exception:
+                logger.error(f"[AgentService] Failed to emit fallback task:status for {task_id}")
 
     def _write_skill_context(self, spec_dir: Path) -> None:
         """Write skill_context.md to spec_dir based on selectedSkills in task_metadata.json.
@@ -1928,7 +2149,9 @@ class AgentService:
         # Pass spec phase model if configured (multi-model support)
         if spec_phase_model:
             cmd.extend(["--model", spec_phase_model])
-            logger.info(f"[AgentService] Using spec phase model: {spec_phase_model}")
+            logger.info(f"[AgentService] [Model: {spec_phase_model}] Starting spec creation for {task_id}")
+        else:
+            logger.info(f"[AgentService] [Model: sonnet] Starting spec creation for {task_id} (default)")
 
         # Fix 1: Only auto-approve if task doesn't require manual review
         if should_auto_approve:
@@ -2001,9 +2224,11 @@ class AgentService:
                 "profileId": profile_id,
                 "profileName": profile_name,
                 "attempt": 1,
+                "model": spec_phase_model or "sonnet",
             }
         else:
             logger.warning("[AgentService] No Claude OAuth token available for spec creation")
+            self._task_profiles[task_id] = {"attempt": 1, "model": spec_phase_model or "sonnet"}
 
         # Start subprocess with a pseudo-TTY to prevent "Stream closed" errors
         # Claude Code CLI expects a TTY for permission handling
@@ -2047,7 +2272,8 @@ class AgentService:
 
         # Start process monitor to clean up when finished
         # Pass project_path so monitor can detect created spec and check for review state
-        asyncio.create_task(self._monitor_process(task_id, proc, project_path=project_path))
+        # Pass cmd and env so model fallback can retry with a different model on failure
+        asyncio.create_task(self._monitor_process(task_id, proc, project_path=project_path, cmd=cmd, env=env))
 
         return proc
 
@@ -2200,15 +2426,27 @@ class AgentService:
         if token:
             env["CLAUDE_CODE_OAUTH_TOKEN"] = token
             logger.info(f"[AgentService] Using Claude profile: {profile_name} ({profile_id})")
-            # Store for potential retry
+            # Store for potential retry — read model from task_metadata.json
+            exec_model = "sonnet"  # default
+            exec_spec_dir = project_path / ".magestic-ai" / "specs" / spec_id
+            exec_metadata_file = exec_spec_dir / "task_metadata.json"
+            if exec_metadata_file.exists():
+                try:
+                    exec_metadata = json.loads(exec_metadata_file.read_text())
+                    exec_model = exec_metadata.get("model", "sonnet")
+                except (json.JSONDecodeError, OSError):
+                    pass
             self._task_profiles[task_id] = {
                 "profileId": profile_id,
                 "profileName": profile_name,
-                "attempt": 1
+                "attempt": 1,
+                "model": exec_model,
             }
         else:
             logger.warning("[AgentService] No Claude OAuth token available")
 
+        exec_model_display = self._task_profiles.get(task_id, {}).get("model", "sonnet")
+        logger.info(f"[AgentService] [Model: {exec_model_display}] Starting task execution for {task_id}")
         logger.info(f"[AgentService] Command: {' '.join(cmd)}")
 
         # Start subprocess with a pseudo-TTY to prevent "Stream closed" errors

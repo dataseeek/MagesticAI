@@ -57,8 +57,8 @@ import logging
 import urllib.error
 import urllib.parse
 import urllib.request
-from pathlib import Path
-from typing import Any, AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
+from typing import Any
 
 from providers import BaseLLMProvider
 from providers.types import AssistantMessage, TextBlock
@@ -120,6 +120,9 @@ class OllamaProvider(BaseLLMProvider):
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout
         self._extra_options: dict[str, Any] = extra_options or {}
+        # Default to 32K context for QA review of large codebases
+        if "num_ctx" not in self._extra_options:
+            self._extra_options["num_ctx"] = 32768
         self._pending_prompt: str | None = None
 
         logger.debug(
@@ -345,7 +348,7 @@ class OllamaProvider(BaseLLMProvider):
     # Async context manager
     # ------------------------------------------------------------------
 
-    async def __aenter__(self) -> "OllamaProvider":
+    async def __aenter__(self) -> OllamaProvider:
         """Verify the Ollama server is reachable before the QA session starts.
 
         Issues a lightweight ``GET /api/tags`` health check so that

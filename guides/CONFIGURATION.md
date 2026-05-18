@@ -207,7 +207,7 @@ nano apps/web-server/.env
 APP_HOST=0.0.0.0
 
 # Server port
-APP_PORT=8000
+APP_PORT=3101
 
 # Enable debug mode
 APP_DEBUG=true
@@ -250,7 +250,7 @@ APP_SSL_KEYFILE=/path/to/key.pem
 # =============================================================================
 
 # Allowed origins (JSON array format)
-APP_CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
+APP_CORS_ORIGINS=["http://localhost:3100", "http://localhost:3000"]
 ```
 
 ### Terminal Settings
@@ -579,7 +579,7 @@ echo ".env.*" >> .gitignore
 ```bash
 # Production server settings
 APP_HOST=0.0.0.0
-APP_PORT=8000
+APP_PORT=3101
 APP_DEBUG=false
 
 # Enable HTTPS
@@ -625,7 +625,7 @@ server {
 
     # WebSocket support
     location /ws {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:3101;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -634,14 +634,14 @@ server {
 
     # API endpoints
     location /api {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:3101;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
 
     # Frontend
     location / {
-        proxy_pass http://localhost:5173;
+        proxy_pass http://localhost:3100;
         proxy_set_header Host $host;
     }
 }
@@ -674,7 +674,7 @@ GRAPHITI_ENABLED=true
 # Web Server .env
 APP_DEBUG=true
 APP_HOST=127.0.0.1
-APP_PORT=8000
+APP_PORT=3101
 ```
 
 ### Production Checklist
@@ -781,7 +781,7 @@ Available models:
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `APP_HOST` | No | `0.0.0.0` | Server bind address |
-| `APP_PORT` | No | `8000` | Server port |
+| `APP_PORT` | No | `3101` | Server port |
 | `APP_DEBUG` | No | `false` | Debug mode |
 | `APP_API_TOKEN` | No | Auto-generated | API token |
 | `APP_CORS_ORIGINS` | No | `localhost:*` | CORS origins |
