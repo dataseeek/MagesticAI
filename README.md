@@ -420,7 +420,7 @@ See [LICENSE](LICENSE) for details.
 
 ## Credits
 
-MagesticAI is a fork of [Claude-Code-Manager-Web](https://github.com/dataseeek/Claude-Code-Manager-Web) by DataSeek. We thank the original authors for their foundational work.
+MagesticAI is a fork of [Aperant](https://github.com/AndyMik90/Aperant) (formerly *Auto Claude Desktop*) by [@AndyMik90](https://github.com/AndyMik90). We thank the original authors for the foundational work.
 
 ---
 
