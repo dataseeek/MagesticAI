@@ -31,11 +31,11 @@ Usage::
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 
 from claude_agent_sdk import ClaudeSDKClient
-
 from providers import BaseLLMProvider
 
 logger = logging.getLogger(__name__)
@@ -123,7 +123,7 @@ class ClaudeProvider(BaseLLMProvider):
         """Return the SDK client's response stream directly."""
         return self._sdk_client.receive_response()
 
-    async def __aenter__(self) -> "ClaudeProvider":
+    async def __aenter__(self) -> ClaudeProvider:
         """Enter the SDK client context manager and return *self*."""
         await self._sdk_client.__aenter__()
         return self

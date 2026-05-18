@@ -1,15 +1,17 @@
-import pytest
 import json
-import time
 import sys
+import time
 from pathlib import Path
+
+import pytest
 
 # Ensure local apps/backend is in path
 sys.path.insert(0, str(Path(__file__).parents[1] / "apps" / "backend"))
 
-from security.profile import get_security_profile, reset_profile_cache
-from project.models import SecurityProfile
 from project.analyzer import ProjectAnalyzer
+from project.models import SecurityProfile
+from security.profile import get_security_profile, reset_profile_cache
+
 
 @pytest.fixture
 def mock_project_dir(tmp_path):
@@ -115,4 +117,4 @@ def test_cache_invalidation_on_file_deletion(mock_project_dir, mock_profile_path
     
     # 4. Call again - should handle deletion gracefully and fallback to fresh analysis
     profile2 = get_security_profile(mock_project_dir)
-    assert "unique_cmd_A" not in profile2.get_all_allowed_commands() 
+    assert "unique_cmd_A" not in profile2.get_all_allowed_commands()

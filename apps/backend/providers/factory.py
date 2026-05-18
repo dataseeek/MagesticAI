@@ -98,7 +98,7 @@ def _resolve_canonical(provider_name: str) -> str:
     return canonical
 
 
-def _instantiate(module_path: str, class_name: str, **kwargs: Any) -> "BaseLLMProvider":
+def _instantiate(module_path: str, class_name: str, **kwargs: Any) -> BaseLLMProvider:
     """Lazy-import a provider class and instantiate it."""
     try:
         module = importlib.import_module(module_path)
@@ -116,7 +116,7 @@ def _instantiate(module_path: str, class_name: str, **kwargs: Any) -> "BaseLLMPr
 # ---------------------------------------------------------------------------
 
 
-def get_provider(provider_name: str, phase: str, **kwargs: Any) -> "BaseLLMProvider":
+def get_provider(provider_name: str, phase: str, **kwargs: Any) -> BaseLLMProvider:
     """Get a provider appropriate for the given phase.
 
     Routes to agentic or text-only provider based on phase requirements.
@@ -170,7 +170,7 @@ def get_provider(provider_name: str, phase: str, **kwargs: Any) -> "BaseLLMProvi
 # ---------------------------------------------------------------------------
 
 
-def get_qa_llm_provider(provider_name: str, **kwargs: Any) -> "BaseLLMProvider":
+def get_qa_llm_provider(provider_name: str, **kwargs: Any) -> BaseLLMProvider:
     """Instantiate a text-only ``BaseLLMProvider`` by name.
 
     Legacy factory preserved for backward compatibility with ``qa/loop.py``.
@@ -234,7 +234,7 @@ def get_tool_fallback_provider(
     phase: str,
     exclude: str | None = None,
     **kwargs: Any,
-) -> "BaseLLMProvider | None":
+) -> BaseLLMProvider | None:
     """Get a tool-capable fallback provider for phases that need tool use.
 
     When a text-only provider (e.g. Ollama) is used for a phase that requires

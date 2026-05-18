@@ -7,8 +7,8 @@ Simple tests to verify sub-agent functionality.
 
 from pathlib import Path
 
-from .requirements_analyst import RequirementsAnalyst
 from .codebase_analyzer import CodebaseAnalyzer
+from .requirements_analyst import RequirementsAnalyst
 from .technical_evaluator import TechnicalEvaluator
 
 

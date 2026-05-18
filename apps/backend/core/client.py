@@ -192,9 +192,9 @@ def invalidate_project_cache(project_dir: Path | None = None) -> None:
 
 
 from agents.tools_pkg import (
-    MAGESTIC_AI_TOOLS,
     CONTEXT7_TOOLS,
     GRAPHITI_MCP_TOOLS,
+    MAGESTIC_AI_TOOLS,
     PLAYWRIGHT_TOOLS,
     create_magestic_ai_mcp_server,
     get_allowed_tools,

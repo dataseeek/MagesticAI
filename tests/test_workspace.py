@@ -11,16 +11,16 @@ Tests the workspace.py module functionality including:
 """
 
 import subprocess
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+import pytest
 from workspace import (
-    WorkspaceMode,
     WorkspaceChoice,
-    has_uncommitted_changes,
+    WorkspaceMode,
     get_current_branch,
     get_existing_build_worktree,
+    has_uncommitted_changes,
     setup_workspace,
 )
 from worktree import WorktreeManager

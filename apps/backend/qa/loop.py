@@ -11,10 +11,14 @@ from pathlib import Path
 
 from core.client import create_client
 from debug import debug, debug_error, debug_section, debug_success, debug_warning
-from phase_config import get_phase_model, get_phase_thinking_budget, infer_provider_from_model
-from providers.factory import get_provider
+from phase_config import (
+    get_phase_model,
+    get_phase_thinking_budget,
+    infer_provider_from_model,
+)
 from phase_event import ExecutionPhase, emit_phase
 from progress import count_subtasks, is_build_complete
+from providers.factory import get_provider
 from task_logger import (
     LogPhase,
     get_task_logger,
@@ -25,8 +29,8 @@ from .criteria import (
     get_qa_signoff_status,
     is_qa_approved,
 )
-from .providers import get_qa_llm_provider
 from .fixer import run_qa_fixer_session
+from .providers import get_qa_llm_provider
 from .report import (
     create_manual_test_plan,
     escalate_to_human,

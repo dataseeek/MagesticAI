@@ -15,8 +15,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
-from worktree import WorktreeManager, WorktreeInfo, WorktreeError
+from worktree import WorktreeError, WorktreeInfo, WorktreeManager
 
 
 class TestWorktreeManagerInitialization:

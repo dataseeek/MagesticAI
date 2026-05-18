@@ -7,14 +7,14 @@ Shows how planner, architect, and coder agents can use sub-agents.
 """
 
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
 
-from .requirements_analyst import RequirementsAnalyst
 from .codebase_analyzer import CodebaseAnalyzer
+from .requirements_analyst import RequirementsAnalyst
 from .technical_evaluator import TechnicalEvaluator
 
 
-def example_requirements_analysis(project_dir: Path, requirements: str) -> Dict[str, Any]:
+def example_requirements_analysis(project_dir: Path, requirements: str) -> dict[str, Any]:
     """Example: Analyze requirements before planning.
 
     Use case: Planner agent validates requirements before creating stories.
@@ -28,25 +28,25 @@ def example_requirements_analysis(project_dir: Path, requirements: str) -> Dict[
     })
 
     if result.success:
-        print(f"Requirements Analysis:")
+        print("Requirements Analysis:")
         print(f"  Completeness: {result.data['completeness_score']:.0%}")
         print(f"  Clarity: {result.data['clarity_score']:.0%}")
         print(f"  Confidence: {result.confidence:.0%}")
 
         if result.issues:
-            print(f"\n  Issues:")
+            print("\n  Issues:")
             for issue in result.issues:
                 print(f"    - {issue}")
 
         if result.data['questions']:
-            print(f"\n  Questions to resolve:")
+            print("\n  Questions to resolve:")
             for q in result.data['questions'][:5]:
                 print(f"    - {q}")
 
     return result.data
 
 
-def example_codebase_exploration(project_dir: Path, task: str) -> Dict[str, Any]:
+def example_codebase_exploration(project_dir: Path, task: str) -> dict[str, Any]:
     """Example: Explore codebase before implementing feature.
 
     Use case: Coder agent finds relevant files before starting implementation.
@@ -60,18 +60,18 @@ def example_codebase_exploration(project_dir: Path, task: str) -> Dict[str, Any]
     })
 
     if result.success:
-        print(f"Codebase Analysis:")
+        print("Codebase Analysis:")
         print(f"  Tech Stack: {', '.join(result.data['tech_stack'])}")
         print(f"  Relevant Files: {len(result.data['relevant_files'])}")
         print(f"  Entry Points: {len(result.data['entry_points'])}")
 
         if result.data['relevant_files']:
-            print(f"\n  Top relevant files:")
+            print("\n  Top relevant files:")
             for file in result.data['relevant_files'][:5]:
                 print(f"    - {file}")
 
         if result.recommendations:
-            print(f"\n  Recommendations:")
+            print("\n  Recommendations:")
             for rec in result.recommendations:
                 print(f"    - {rec}")
 
@@ -82,7 +82,7 @@ def example_technical_evaluation(
     project_dir: Path,
     decision: str,
     alternatives: list = None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Example: Evaluate technical decision before implementation.
 
     Use case: Architect agent evaluates database choice, API design, etc.
@@ -97,27 +97,27 @@ def example_technical_evaluation(
     })
 
     if result.success:
-        print(f"Technical Evaluation:")
+        print("Technical Evaluation:")
         print(f"  Risk Level: {result.data['risk_level']}")
         print(f"  Confidence: {result.confidence:.0%}")
 
         if result.data['pros']:
-            print(f"\n  Pros:")
+            print("\n  Pros:")
             for pro in result.data['pros'][:3]:
                 print(f"    + {pro}")
 
         if result.data['cons']:
-            print(f"\n  Cons:")
+            print("\n  Cons:")
             for con in result.data['cons'][:3]:
                 print(f"    - {con}")
 
         if result.data['security_concerns']:
-            print(f"\n  Security Concerns:")
+            print("\n  Security Concerns:")
             for concern in result.data['security_concerns'][:3]:
                 print(f"    ⚠ {concern}")
 
         if result.data['best_practices']:
-            print(f"\n  Best Practices:")
+            print("\n  Best Practices:")
             for bp in result.data['best_practices'][:3]:
                 print(f"    → {bp}")
 

@@ -12,7 +12,6 @@ This adapter allows for:
 """
 
 from pathlib import Path
-from typing import Optional
 
 
 class AgentPersona:
@@ -29,14 +28,14 @@ class AgentPersona:
 
     def to_markdown(self) -> str:
         """Convert persona to markdown format for injection into prompts."""
-        md = f"## YOUR PERSONA\n\n"
+        md = "## YOUR PERSONA\n\n"
         md += f"You are **{self.name}**, {self.role}.\n\n"
         md += f"### YOUR IDENTITY\n{self.identity}\n\n"
         md += f"### YOUR COMMUNICATION STYLE\n{self.communication_style}\n\n"
-        md += f"### YOUR PRINCIPLES\n"
+        md += "### YOUR PRINCIPLES\n"
         for i, principle in enumerate(self.principles, 1):
             md += f"{i}. {principle}\n"
-        md += f"\n### CRITICAL ACTIONS\n"
+        md += "\n### CRITICAL ACTIONS\n"
         for action in self.critical_actions:
             md += f"- {action}\n"
         return md
@@ -45,7 +44,7 @@ class AgentPersona:
 class AgentAdapter:
     """Adapter for loading and injecting BMad-style personas into agent prompts."""
 
-    def __init__(self, personas_dir: Optional[Path] = None):
+    def __init__(self, personas_dir: Path | None = None):
         """
         Initialize the agent adapter.
 
@@ -60,7 +59,7 @@ class AgentAdapter:
         self.personas_dir = personas_dir
         self._persona_cache: dict[str, AgentPersona] = {}
 
-    def load_persona(self, persona_name: str) -> Optional[AgentPersona]:
+    def load_persona(self, persona_name: str) -> AgentPersona | None:
         """
         Load a persona from a template file.
 
@@ -86,7 +85,7 @@ class AgentAdapter:
         self._persona_cache[persona_name] = persona
         return persona
 
-    def _parse_persona_markdown(self, content: str) -> Optional[AgentPersona]:
+    def _parse_persona_markdown(self, content: str) -> AgentPersona | None:
         """Parse persona markdown content into AgentPersona object."""
         lines = content.split('\n')
 

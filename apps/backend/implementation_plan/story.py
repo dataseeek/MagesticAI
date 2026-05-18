@@ -9,7 +9,6 @@ This extends the subtask model to include product-oriented story structure.
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 from .enums import SubtaskStatus
 from .verification import Verification
@@ -88,7 +87,7 @@ class Story:
     critique_result: dict | None = None
 
     # Legacy compatibility fields
-    description: Optional[str] = None  # Falls back to user_story
+    description: str | None = None  # Falls back to user_story
 
     def to_dict(self) -> dict:
         """Convert to dictionary representation."""

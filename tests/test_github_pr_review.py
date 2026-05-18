@@ -7,10 +7,10 @@ Tests the PR review orchestrator and follow-up review functionality.
 
 import json
 import sys
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
-from dataclasses import asdict
 
 import pytest
 
@@ -22,16 +22,15 @@ if str(_github_dir) not in sys.path:
 if str(_backend_dir) not in sys.path:
     sys.path.insert(0, str(_backend_dir))
 
+from bot_detection import BotDetectionState, BotDetector
 from models import (
-    PRReviewResult,
-    PRReviewFinding,
-    ReviewSeverity,
-    ReviewCategory,
-    MergeVerdict,
     FollowupReviewContext,
+    MergeVerdict,
+    PRReviewFinding,
+    PRReviewResult,
+    ReviewCategory,
+    ReviewSeverity,
 )
-from bot_detection import BotDetector, BotDetectionState
-
 
 # ============================================================================
 # Fixtures
