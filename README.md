@@ -31,6 +31,35 @@ MagesticAI is a browser-based platform for managing AI-powered coding tasks thro
 
 ---
 
+## Screenshots
+
+<!-- TODO: drop the captured PNGs into assets/screenshots/ and replace these
+     placeholders. See assets/screenshots/README.md for what to capture. -->
+
+| View | Preview |
+|------|---------|
+| Kanban task board       | ![kanban](assets/screenshots/kanban.png) |
+| Task creation wizard    | ![task-wizard](assets/screenshots/task-wizard.png) |
+| Built-in PTY terminal   | ![terminal](assets/screenshots/terminal.png) |
+| Monaco code editor      | ![editor](assets/screenshots/editor.png) |
+| Settings & onboarding   | ![settings](assets/screenshots/settings.png) |
+
+---
+
+## Supported Platforms
+
+| OS / Runtime | Status | Notes |
+|---|---|---|
+| **Ubuntu 24.04 LTS** (kernel 6.8) | ✅ Tested | Primary development environment. Docker 27.x. |
+| Other recent Linux distros | ✅ Should work | Same dependencies (Python 3.12+, Node 24+, optionally Docker). |
+| **macOS** (Intel + Apple Silicon) | ⚠️ Should work, untested | Native install of the backend + frontend is straightforward. The Docker `macvlan` networking in `docker-compose.yml` is **Linux-only** — on macOS run the stack natively, or replace the macvlan network with a bridge + port mapping. |
+| **Windows (WSL2)** | ⚠️ Should work, untested | Run inside an Ubuntu WSL2 distro and treat it as Linux. Native Windows is not supported. |
+| **Windows (native)** | ❌ Not supported | Some scripts assume bash, Linux tools, and a POSIX filesystem. |
+
+> If you successfully run MagesticAI on a platform marked untested, open a PR adding your config to this table — happy to mark it ✅.
+
+---
+
 ## Quick Start
 
 ### Prerequisites
