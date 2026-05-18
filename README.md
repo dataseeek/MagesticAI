@@ -1,6 +1,6 @@
 # MagesticAI
 
-**Web-based AI task management and agent orchestration platform powered by Claude AI**
+**SDD (Spec-Driven Development) — a cloud and web-based AI task management and agent orchestration platform powered by LLMs**
 
 [![CI](https://github.com/dataseeek/MagesticAI/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dataseeek/MagesticAI/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
