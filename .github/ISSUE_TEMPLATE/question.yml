@@ -5,14 +5,14 @@ body:
   - type: markdown
     attributes:
       value: |
-        **Before asking:** Check [Discord](https://discord.gg/QhRnz9m5HE) - your question may already be answered there!
+        **Before asking:** Check [GitHub Discussions](https://github.com/dataseeek/MagesticAI/discussions) - your question may already be answered there!
 
   - type: checkboxes
     id: checklist
     attributes:
       label: Checklist
       options:
-        - label: I searched existing issues and Discord for similar questions
+        - label: I searched existing issues for similar questions
           required: true
 
   - type: dropdown

@@ -9,10 +9,10 @@ These tests validate the integration between components.
 import asyncio
 import json
 import sys
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
-from dataclasses import dataclass
 
 import pytest
 
@@ -24,17 +24,16 @@ if str(_github_dir) not in sys.path:
 if str(_backend_dir) not in sys.path:
     sys.path.insert(0, str(_backend_dir))
 
-from models import (
-    PRReviewResult,
-    PRReviewFinding,
-    ReviewSeverity,
-    ReviewCategory,
-    MergeVerdict,
-    GitHubRunnerConfig,
-    FollowupReviewContext,
-)
 from bot_detection import BotDetector
-
+from models import (
+    FollowupReviewContext,
+    GitHubRunnerConfig,
+    MergeVerdict,
+    PRReviewFinding,
+    PRReviewResult,
+    ReviewCategory,
+    ReviewSeverity,
+)
 
 # ============================================================================
 # Fixtures

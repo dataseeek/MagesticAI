@@ -45,7 +45,8 @@ export async function apiRequest<T>(
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       const errorMsg = errorData.detail || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
-      log.error(`API error: ${method} ${endpoint}`, { status: response.status, error: errorMsg });
+      const logFn = response.status >= 500 ? log.error : log.warn;
+      logFn(`API error: ${method} ${endpoint}`, { status: response.status, error: errorMsg });
       return {
         success: false,
         error: errorMsg,

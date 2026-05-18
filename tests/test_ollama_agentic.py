@@ -222,7 +222,7 @@ class TestAgenticProviderInit:
             extra_options={"temperature": 0.7},
         )
         assert p._model == "qwen3:30b"
-        assert p._base_url == "http://ollama.example.com:11434"
+        assert p._base_url == "http://ollama.example.com:11434"  # matches custom base_url
         assert p._max_turns == 10
         assert p._timeout == 300
 

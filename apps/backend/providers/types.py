@@ -16,7 +16,6 @@ See: .magestic-ai/specs/004-add-alternative-llm-for-qa-rev/abstraction_boundary.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Union
 
 # ---------------------------------------------------------------------------
 # Content blocks (items inside top-level messages)
@@ -57,7 +56,7 @@ class ToolResultBlock:
     Accessed via: ``block.is_error``, ``block.content``
     """
 
-    content: Union[str, list]
+    content: str | list
     is_error: bool = False
 
 

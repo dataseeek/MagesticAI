@@ -7,6 +7,7 @@ Settings are loaded from environment variables with sensible defaults.
 import secrets
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 from .paths import get_data_dir, get_data_file
@@ -17,7 +18,7 @@ class Settings(BaseSettings):
 
     # Server configuration
     HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    PORT: int = 3101
     DEBUG: bool = False
 
     # SSL configuration
@@ -42,16 +43,26 @@ class Settings(BaseSettings):
     PROJECTS_DATA_DIR: str = ""  # Directory to store project metadata
     BACKEND_PATH: str = ""  # Path to apps/backend
 
-    # CORS
+    # CORS — localhost defaults. Override or extend via APP_CORS_ORIGINS env var.
+    # Accepts a comma-separated string ("https://a.com,https://b.com") or a JSON list.
     CORS_ORIGINS: list[str] = [
-        "http://localhost:5173",
+        "http://localhost:3100",
         "http://localhost:3000",
-        "https://localhost:5173",
+        "https://localhost:3100",
         "https://localhost:3000",
-        "https://localhost:8000",
-        "https://dev.example.com:8001",
-        "http://dev.example.com:5173",
+        "https://localhost:3101",
     ]
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, v):
+        if isinstance(v, str):
+            stripped = v.strip()
+            if stripped.startswith("["):
+                # Let pydantic handle JSON-list form natively
+                return stripped
+            return [s.strip() for s in stripped.split(",") if s.strip()]
+        return v
 
     # Terminal
     DEFAULT_SHELL: str = "/bin/bash"

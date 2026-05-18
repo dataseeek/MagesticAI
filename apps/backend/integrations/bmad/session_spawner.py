@@ -6,12 +6,10 @@ Spawns fresh agent sessions per story with minimal context for token optimizatio
 Implements BMad Method's session segmentation pattern.
 """
 
-import asyncio
 import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 # Handle both relative and absolute imports
 try:
@@ -59,7 +57,7 @@ class SessionSpawner:
         """
         return is_session_segmentation_enabled_for_spec(self.spec_dir)
 
-    def prepare_story_context(self, story: Dict) -> Dict[str, str]:
+    def prepare_story_context(self, story: dict) -> dict[str, str]:
         """Prepare minimal context for a story.
 
         Args:
@@ -71,7 +69,7 @@ class SessionSpawner:
         arch_file = self.architecture_file if self.architecture_file.exists() else None
         return load_story_context(self.spec_dir, story, arch_file)
 
-    def format_context_for_agent(self, context: Dict[str, str]) -> str:
+    def format_context_for_agent(self, context: dict[str, str]) -> str:
         """Format story context for agent prompt.
 
         Args:
@@ -109,7 +107,7 @@ class SessionSpawner:
             "timestamp": datetime.now().isoformat(),
         }
 
-    def get_reduction_stats(self, full_context_size: int) -> Dict:
+    def get_reduction_stats(self, full_context_size: int) -> dict:
         """Get context reduction statistics.
 
         Args:
@@ -122,9 +120,9 @@ class SessionSpawner:
 
     async def spawn_story_session(
         self,
-        story: Dict,
+        story: dict,
         run_agent_fn,
-        full_context: Optional[str] = None,
+        full_context: str | None = None,
     ) -> tuple[bool, str]:
         """Spawn a fresh agent session for a story.
 
@@ -188,7 +186,7 @@ def should_use_session_segmentation(spec_dir: Path) -> bool:
     return is_session_segmentation_enabled_for_spec(spec_dir)
 
 
-def get_segmentation_info(spec_dir: Path) -> Dict:
+def get_segmentation_info(spec_dir: Path) -> dict:
     """Get information about session segmentation for a spec.
 
     Args:

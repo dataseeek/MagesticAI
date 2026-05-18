@@ -309,6 +309,41 @@ class PRDataService:
         return {"success": True, "data": {"posted": True}}
 
     # ------------------------------------------------------------------
+    # Approve PR
+    # ------------------------------------------------------------------
+
+    def approve_pr(
+        self,
+        project_path: Path,
+        pr_number: int,
+        body: str = "",
+    ) -> dict[str, Any]:
+        """Approve a PR via ``gh pr review --approve``.
+
+        This marks the PR as "Approved" in GitHub's review system (green
+        checkmark), unlike ``post_comment()`` which only adds a plain text
+        comment.
+
+        Args:
+            project_path: Filesystem path to the project root.
+            pr_number: The PR number.
+            body: Optional review body text.
+
+        Returns:
+            ``{"success": True, "data": {"approved": True}}`` on success,
+            or ``{"success": False, "error": "..."}`` on failure.
+        """
+        args = ["pr", "review", str(pr_number), "--approve"]
+        if body and body.strip():
+            args.extend(["--body", body])
+
+        result = _run_gh(args, cwd=str(project_path))
+        if not result["success"]:
+            return {"success": False, "error": result.get("error", "Failed to approve PR")}
+
+        return {"success": True, "data": {"approved": True}}
+
+    # ------------------------------------------------------------------
     # Merge PR
     # ------------------------------------------------------------------
 

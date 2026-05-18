@@ -20,7 +20,7 @@ export interface ProjectSettings {
   notifications: NotificationSettings;
   /** Enable Graphiti MCP server for agent-accessible knowledge graph */
   graphitiMcpEnabled: boolean;
-  /** Graphiti MCP server URL (default: http://localhost:8000/mcp/) */
+  /** Graphiti MCP server URL (default: http://localhost:3101/mcp/) */
   graphitiMcpUrl?: string;
   /** Main branch name for worktree creation (default: auto-detected or 'main') */
   mainBranch?: string;
@@ -318,7 +318,7 @@ export interface ProjectEnvConfig {
     /** Electron desktop automation (QA only) - default: false */
     electronEnabled?: boolean;
     /** Puppeteer browser automation (QA only) - default: false */
-    puppeteerEnabled?: boolean;
+    playwrightEnabled?: boolean;
   };
 
   // Per-agent MCP overrides (add/remove MCPs from specific agents)

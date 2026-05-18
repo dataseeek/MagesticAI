@@ -8,7 +8,7 @@ and analyzes patterns and architecture.
 
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import SubAgent, SubAgentResult
 
@@ -50,7 +50,7 @@ class CodebaseAnalyzer(SubAgent):
     def description(self) -> str:
         return "Explores codebase structure and identifies relevant files"
 
-    def analyze(self, input_data: Dict[str, Any]) -> SubAgentResult:
+    def analyze(self, input_data: dict[str, Any]) -> SubAgentResult:
         """Analyze codebase structure and find relevant files.
 
         Args:
@@ -139,7 +139,7 @@ class CodebaseAnalyzer(SubAgent):
             },
         )
 
-    def _analyze_structure(self, max_depth: int) -> Dict[str, Any]:
+    def _analyze_structure(self, max_depth: int) -> dict[str, Any]:
         """Analyze project directory structure.
 
         Returns summary of directory tree and file counts.
@@ -177,7 +177,7 @@ class CodebaseAnalyzer(SubAgent):
 
         return structure
 
-    def _detect_tech_stack(self) -> List[str]:
+    def _detect_tech_stack(self) -> list[str]:
         """Detect technology stack from project files.
 
         Looks for indicators like package.json, requirements.txt, etc.
@@ -228,10 +228,10 @@ class CodebaseAnalyzer(SubAgent):
     def _find_relevant_files(
         self,
         task: str,
-        search_terms: List[str],
-        file_patterns: List[str],
+        search_terms: list[str],
+        file_patterns: list[str],
         max_depth: int,
-    ) -> List[str]:
+    ) -> list[str]:
         """Find files relevant to the task.
 
         Uses task description and search terms to identify relevant files.
@@ -295,7 +295,7 @@ class CodebaseAnalyzer(SubAgent):
 
         return relevant[:50]  # Limit to top 50 files
 
-    def _identify_entry_points(self) -> List[str]:
+    def _identify_entry_points(self) -> list[str]:
         """Identify main entry points of the application."""
         entry_points = []
 
@@ -327,7 +327,7 @@ class CodebaseAnalyzer(SubAgent):
 
         return entry_points[:10]  # Limit to top 10
 
-    def _analyze_file_patterns(self) -> Dict[str, Any]:
+    def _analyze_file_patterns(self) -> dict[str, Any]:
         """Analyze file naming and organization patterns."""
         patterns = {
             "naming_convention": "unknown",
@@ -379,7 +379,7 @@ class CodebaseAnalyzer(SubAgent):
         patterns["file_extensions"] = list(patterns["file_extensions"])
         return patterns
 
-    def _detect_conventions(self) -> List[str]:
+    def _detect_conventions(self) -> list[str]:
         """Detect coding conventions from codebase."""
         conventions = []
 
@@ -432,10 +432,10 @@ class CodebaseAnalyzer(SubAgent):
 
     def _generate_reasoning(
         self,
-        structure: Dict,
-        tech_stack: List[str],
-        relevant_files: List[str],
-        entry_points: List[str],
+        structure: dict,
+        tech_stack: list[str],
+        relevant_files: list[str],
+        entry_points: list[str],
     ) -> str:
         """Generate reasoning explanation for the analysis."""
         parts = []

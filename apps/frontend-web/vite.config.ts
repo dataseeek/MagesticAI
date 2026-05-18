@@ -26,9 +26,12 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: 5173,
+      port: 3100,
       host: true, // Listen on all network interfaces for remote access
-      allowedHosts: ['dev.example.com'],
+      // Extra hostnames via VITE_ALLOWED_HOSTS (comma-separated, e.g. "dev.example.com,staging.example.com")
+      allowedHosts: env.VITE_ALLOWED_HOSTS
+        ? env.VITE_ALLOWED_HOSTS.split(',').map((h) => h.trim()).filter(Boolean)
+        : undefined,
       ...(hasSSL && {
         https: {
           cert: fs.readFileSync(certFile),
@@ -37,12 +40,12 @@ export default defineConfig(({ mode }) => {
       }),
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:8000',
+          target: env.VITE_API_URL || 'http://localhost:3101',
           changeOrigin: true,
           secure: false,
         },
         '/ws': {
-          target: env.VITE_WS_URL || 'ws://localhost:8000',
+          target: env.VITE_WS_URL || 'ws://localhost:3101',
           ws: true,
           secure: false,
         },

@@ -45,8 +45,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import shutil
+from collections.abc import AsyncGenerator, AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncGenerator, AsyncIterator
+from typing import Any
 
 from providers import BaseLLMProvider
 from providers.types import AssistantMessage, TextBlock
@@ -268,7 +269,7 @@ class GeminiCLIProvider(BaseLLMProvider):
     # Async context manager — no persistent resources to manage
     # ------------------------------------------------------------------
 
-    async def __aenter__(self) -> "GeminiCLIProvider":
+    async def __aenter__(self) -> GeminiCLIProvider:
         """No-op context entry — the subprocess is spawned per-request."""
         return self
 

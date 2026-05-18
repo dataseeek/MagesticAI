@@ -300,7 +300,7 @@ def _load_prompt_file(filename: str) -> str:
     Load a prompt file from the prompts directory.
 
     Args:
-        filename: Relative path to prompt file (e.g., "qa_reviewer.md" or "mcp_tools/puppeteer_browser.md")
+        filename: Relative path to prompt file (e.g., "qa_reviewer.md" or "mcp_tools/playwright_browser.md")
 
     Returns:
         Content of the prompt file

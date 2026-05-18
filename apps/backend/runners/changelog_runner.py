@@ -6,11 +6,9 @@ builds prompts, calls the Claude API, and generates changelog content.
 """
 
 import argparse
-import json
 import logging
 import subprocess
 import sys
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -73,7 +71,7 @@ def load_task_specs(project_path: Path, task_ids: list[str]) -> list[dict[str, A
         req_file = task_dir / "requirements.json"
         if req_file.exists():
             try:
-                with open(req_file, "r", encoding="utf-8") as f:
+                with open(req_file, encoding="utf-8") as f:
                     req_content = f.read()
                 # Limit to first 1000 characters
                 if len(req_content) > 1000:
@@ -322,7 +320,7 @@ def build_changelog_prompt(
         elif emoji_level == "high":
             prompt += "Add emojis throughout for all changes\n\n"
     else:
-        prompt += "**Emoji Level:** none\nDo NOT use any emojis anywhere in the changelog output.\n\n"
+        prompt += "**Emojis:** Do NOT include any emoji characters (e.g. ✨🐛🔧📌💡🎯🔐) in the output. Still use all section headers, categories, and markdown formatting as required by the format above — just no emoji characters.\n\n"
 
     # Add custom instructions
     if custom_instructions:
@@ -357,7 +355,7 @@ def build_changelog_prompt(
     prompt += """
 **OUTPUT INSTRUCTIONS:**
 1. Analyze all changes in the source data
-2. Group related changes into logical categories
+2. Group related changes into logical categories using section headers (e.g. ### Added, ### Fixed, ### Changed)
 3. Write clear, concise descriptions following the format
 4. Match the audience tone precisely
 5. Apply emoji level as specified
@@ -471,8 +469,8 @@ def generate_changelog(
     emit_phase(4, "GENERATING")
 
     try:
-        import os
         import json
+        import os
 
         # Load LLM provider settings from web server config
         settings_file = Path.home() / ".magestic-ai" / "settings.json"

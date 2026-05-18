@@ -58,7 +58,8 @@ Usage::
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import AsyncIterator, Any
+from collections.abc import AsyncIterator
+from typing import Any
 
 from .types import (
     AssistantMessage,
@@ -95,7 +96,7 @@ class BaseLLMProvider(ABC):
         """Return an async iterable of message objects produced by the LLM."""
 
     @abstractmethod
-    async def __aenter__(self) -> "BaseLLMProvider":
+    async def __aenter__(self) -> BaseLLMProvider:
         """Enter the provider context (connect, initialise session, etc.)."""
 
     @abstractmethod
@@ -107,7 +108,12 @@ class BaseLLMProvider(ABC):
 # Factory (imported after BaseLLMProvider to avoid circular imports)
 # ---------------------------------------------------------------------------
 
-from .factory import get_provider, get_qa_llm_provider, list_provider_aliases, list_providers  # noqa: E402
+from .factory import (  # noqa: E402
+    get_provider,
+    get_qa_llm_provider,
+    list_provider_aliases,
+    list_providers,
+)
 
 # ---------------------------------------------------------------------------
 # Re-export public symbols

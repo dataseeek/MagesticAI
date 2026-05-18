@@ -28,8 +28,8 @@ MagesticAI consists of three main applications:
 
 | Application | Technology | Port | Purpose |
 |-------------|------------|------|---------|
-| **frontend-web** | React 19 + Vite | 5173 | Web-based user interface |
-| **web-server** | FastAPI + Python | 8000 | REST API and WebSocket server |
+| **frontend-web** | React 19 + Vite | 3100 | Web-based user interface |
+| **web-server** | FastAPI + Python | 3101 | REST API and WebSocket server |
 | **backend** | Python | N/A | AI agent system (Planner, Coder, QA) |
 
 The frontend communicates with the web server via REST API and WebSocket connections. The web server orchestrates backend agents for AI-powered task execution.
@@ -212,10 +212,10 @@ Create `.env.local` for local overrides (not committed):
 
 ```bash
 # Override API URL (default uses Vite proxy)
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:3101
 
 # Override WebSocket URL
-VITE_WS_URL=ws://localhost:8000
+VITE_WS_URL=ws://localhost:3101
 ```
 
 ---
@@ -253,14 +253,14 @@ python -m server.main
 ```bash
 # Server settings
 APP_HOST=0.0.0.0        # Listen on all interfaces
-APP_PORT=8000           # Server port
+APP_PORT=3101           # Server port
 APP_DEBUG=true          # Enable debug mode (required for API docs)
 
 # Authentication (auto-generated if not set)
 # APP_API_TOKEN=your-secure-token
 
 # CORS origins (frontend URLs allowed to connect)
-APP_CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
+APP_CORS_ORIGINS=["http://localhost:3100", "http://localhost:3000"]
 
 # Paths (auto-detected if not set)
 # APP_BACKEND_PATH=/path/to/apps/backend
@@ -310,8 +310,8 @@ When `APP_DEBUG=true`, API documentation is available at:
 
 | URL | Documentation |
 |-----|---------------|
-| http://localhost:8000/docs | Swagger UI (interactive) |
-| http://localhost:8000/redoc | ReDoc (readable) |
+| http://localhost:3101/docs | Swagger UI (interactive) |
+| http://localhost:3101/redoc | ReDoc (readable) |
 
 ### Running with Auto-Reload
 
@@ -327,7 +327,7 @@ For manual uvicorn control with specific reload options:
 source .venv/bin/activate
 
 # Run with uvicorn directly
-uvicorn server.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn server.main:app --reload --host 0.0.0.0 --port 3101
 ```
 
 ---
@@ -439,7 +439,7 @@ Create `.vscode/launch.json` in the project root:
       "name": "Frontend: Chrome",
       "type": "chrome",
       "request": "launch",
-      "url": "http://localhost:5173",
+      "url": "http://localhost:3100",
       "webRoot": "${workspaceFolder}/apps/frontend-web/src",
       "sourceMapPathOverrides": {
         "webpack:///./src/*": "${webRoot}/*"
@@ -533,7 +533,7 @@ Create `.vscode/settings.json`:
 
 For frontend debugging:
 
-1. Open `http://localhost:5173` in Chrome
+1. Open `http://localhost:3100` in Chrome
 2. Open DevTools (`F12` or `Cmd+Option+I`)
 3. Use the **Sources** tab to set breakpoints
 4. React DevTools extension for component inspection
@@ -685,7 +685,7 @@ cd apps/frontend-web
 npm run dev
 ```
 
-Access the application at `http://localhost:5173`
+Access the application at `http://localhost:3100`
 
 ### Using npm Scripts (Root Directory)
 
@@ -830,10 +830,10 @@ app.include_router(new_feature.router)
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `APP_HOST` | `0.0.0.0` | Server bind address |
-| `APP_PORT` | `8000` | Server port |
+| `APP_PORT` | `3101` | Server port |
 | `APP_DEBUG` | `false` | Enable debug mode and API docs |
 | `APP_API_TOKEN` | Auto-generated | Authentication token |
-| `APP_CORS_ORIGINS` | `["http://localhost:5173"]` | Allowed CORS origins |
+| `APP_CORS_ORIGINS` | `["http://localhost:3100"]` | Allowed CORS origins |
 | `APP_DEFAULT_SHELL` | `/bin/bash` | Default terminal shell |
 | `APP_MAX_TERMINALS` | `20` | Maximum terminal sessions |
 | `APP_MAX_CONCURRENT_TASKS` | `5` | Maximum parallel tasks |

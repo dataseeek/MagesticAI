@@ -6,8 +6,7 @@ Evaluates technical decisions, assesses risks, and recommends best practices.
 Provides expert guidance on architecture, technology choices, and implementation approach.
 """
 
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import SubAgent, SubAgentResult
 
@@ -52,7 +51,7 @@ class TechnicalEvaluator(SubAgent):
     def description(self) -> str:
         return "Evaluates technical decisions and assesses risks"
 
-    def analyze(self, input_data: Dict[str, Any]) -> SubAgentResult:
+    def analyze(self, input_data: dict[str, Any]) -> SubAgentResult:
         """Evaluate a technical decision.
 
         Args:
@@ -167,8 +166,8 @@ class TechnicalEvaluator(SubAgent):
         )
 
     def _assess_risk(
-        self, decision: str, context: str, constraints: List[str]
-    ) -> Dict[str, Any]:
+        self, decision: str, context: str, constraints: list[str]
+    ) -> dict[str, Any]:
         """Assess overall risk level of the technical decision."""
         risk_factors = []
         risk_score = 0
@@ -241,7 +240,7 @@ class TechnicalEvaluator(SubAgent):
 
         return {"level": level, "factors": risk_factors, "score": risk_score}
 
-    def _analyze_pros_cons(self, decision: str) -> tuple[List[str], List[str]]:
+    def _analyze_pros_cons(self, decision: str) -> tuple[list[str], list[str]]:
         """Identify pros and cons of the decision."""
         pros = []
         cons = []
@@ -282,7 +281,7 @@ class TechnicalEvaluator(SubAgent):
 
         return pros, cons
 
-    def _assess_security(self, decision: str) -> List[str]:
+    def _assess_security(self, decision: str) -> list[str]:
         """Identify security concerns."""
         concerns = []
         decision_lower = decision.lower()
@@ -306,7 +305,7 @@ class TechnicalEvaluator(SubAgent):
 
         return concerns[:5]  # Top 5 concerns
 
-    def _assess_performance(self, decision: str) -> List[str]:
+    def _assess_performance(self, decision: str) -> list[str]:
         """Identify performance concerns."""
         concerns = []
         decision_lower = decision.lower()
@@ -328,7 +327,7 @@ class TechnicalEvaluator(SubAgent):
 
         return concerns[:5]  # Top 5 concerns
 
-    def _assess_scalability(self, decision: str) -> List[str]:
+    def _assess_scalability(self, decision: str) -> list[str]:
         """Identify scalability concerns."""
         concerns = []
         decision_lower = decision.lower()
@@ -348,7 +347,7 @@ class TechnicalEvaluator(SubAgent):
 
         return concerns[:5]  # Top 5 concerns
 
-    def _recommend_best_practices(self, decision: str) -> List[str]:
+    def _recommend_best_practices(self, decision: str) -> list[str]:
         """Generate best practice recommendations."""
         recommendations = []
         decision_lower = decision.lower()
@@ -378,8 +377,8 @@ class TechnicalEvaluator(SubAgent):
         return recommendations[:8]  # Top 8 recommendations
 
     def _evaluate_alternatives(
-        self, decision: str, alternatives: List[str]
-    ) -> List[str]:
+        self, decision: str, alternatives: list[str]
+    ) -> list[str]:
         """Evaluate alternative approaches."""
         evaluations = []
 
@@ -406,11 +405,11 @@ class TechnicalEvaluator(SubAgent):
 
     def _generate_reasoning(
         self,
-        risk_assessment: Dict,
-        pros: List[str],
-        cons: List[str],
-        security_concerns: List[str],
-        performance_concerns: List[str],
+        risk_assessment: dict,
+        pros: list[str],
+        cons: list[str],
+        security_concerns: list[str],
+        performance_concerns: list[str],
     ) -> str:
         """Generate reasoning explanation for the evaluation."""
         parts = []

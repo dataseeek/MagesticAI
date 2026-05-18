@@ -10,7 +10,6 @@ to achieve 50-90% token reduction on large projects.
 import json
 import os
 from pathlib import Path
-from typing import Optional
 
 
 def is_session_segmentation_enabled() -> bool:
@@ -66,7 +65,7 @@ def is_session_segmentation_enabled_for_spec(spec_dir: Path) -> bool:
     return is_session_segmentation_enabled()
 
 
-def enable_session_segmentation(spec_dir: Optional[Path] = None) -> None:
+def enable_session_segmentation(spec_dir: Path | None = None) -> None:
     """Enable session segmentation globally or for a specific spec.
 
     Args:
@@ -109,7 +108,7 @@ def enable_session_segmentation(spec_dir: Optional[Path] = None) -> None:
             json.dump(config, f, indent=2)
 
 
-def disable_session_segmentation(spec_dir: Optional[Path] = None) -> None:
+def disable_session_segmentation(spec_dir: Path | None = None) -> None:
     """Disable session segmentation globally or for a specific spec.
 
     Args:

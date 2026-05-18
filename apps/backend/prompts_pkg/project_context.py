@@ -260,7 +260,7 @@ def get_mcp_tools_for_project(capabilities: dict) -> list[str]:
 
     # Web browser automation
     if capabilities.get("is_web_frontend"):
-        tools.append("mcp_tools/puppeteer_browser.md")
+        tools.append("mcp_tools/playwright_browser.md")
 
     # Database validation
     if capabilities.get("has_database"):

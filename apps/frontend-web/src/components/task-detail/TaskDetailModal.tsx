@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from '../../hooks/use-toast';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
@@ -34,6 +34,7 @@ import {
 import { cn } from '../../lib/utils';
 import { calculateProgress } from '../../lib/utils';
 import { startTask, stopTask, submitReview, recoverStuckTask, deleteTask, persistTaskStatus } from '../../stores/task-store';
+import { useProjectStore } from '../../stores/project-store';
 import { TASK_STATUS_LABELS } from '../../shared/constants';
 import { TaskEditDialog } from '../TaskEditDialog';
 import { useTaskDetail } from './hooks/useTaskDetail';
@@ -44,6 +45,7 @@ import { TaskLogs } from './TaskLogs';
 import { TaskFiles } from './TaskFiles';
 import { TaskReview } from './TaskReview';
 import { PlanReviewSection } from './PlanReviewSection';
+import { CreatePRDialog } from './task-review/CreatePRDialog';
 import type { Task } from '../../shared/types';
 
 interface TaskDetailModalProps {
@@ -184,6 +186,7 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
       stopTask(task.id);
     } else {
       startTask(task.id);
+      onOpenChange(false);
     }
   };
 
@@ -259,6 +262,14 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
     } finally {
       state.setIsMerging(false);
     }
+  };
+
+  const [isCreatingPR, setIsCreatingPR] = useState(false);
+  const [showCreatePRDialog, setShowCreatePRDialog] = useState(false);
+  const selectedProject = useProjectStore((s) => s.getSelectedProject());
+
+  const handleCreatePR = () => {
+    setShowCreatePRDialog(true);
   };
 
   const handleDiscard = async () => {
@@ -563,6 +574,8 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
                             onFeedbackChange={state.setFeedback}
                             onReject={handleReject}
                             onMerge={handleMerge}
+                            onCreatePR={handleCreatePR}
+                            isCreatingPR={isCreatingPR}
                             onDiscard={handleDiscard}
                             onShowDiscardDialog={state.setShowDiscardDialog}
                             onShowDiffDialog={state.setShowDiffDialog}
@@ -644,6 +657,23 @@ function TaskDetailModalContent({ open, task, onOpenChange, onSwitchToTerminals,
         open={state.isEditDialogOpen}
         onOpenChange={state.setIsEditDialogOpen}
       />
+
+      {/* Create PR Dialog */}
+      {selectedProject && (
+        <CreatePRDialog
+          open={showCreatePRDialog}
+          task={task}
+          projectPath={selectedProject.path}
+          onOpenChange={setShowCreatePRDialog}
+          onSuccess={() => {
+            setIsCreatingPR(false);
+          }}
+          onError={(error) => {
+            state.setWorkspaceError(error);
+            setIsCreatingPR(false);
+          }}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={state.showDeleteDialog} onOpenChange={state.setShowDeleteDialog}>

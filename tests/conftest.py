@@ -7,13 +7,12 @@ Provides common test fixtures for the Auto-Build Framework test suite.
 """
 
 import json
-import os
 import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 from unittest.mock import MagicMock
 
 import pytest
@@ -217,7 +216,6 @@ from tests.review_fixtures import (  # noqa: E402, F401
     review_spec_dir,
 )
 
-
 # =============================================================================
 # PROJECT STRUCTURE FIXTURES
 # =============================================================================
@@ -242,7 +240,6 @@ def python_project(temp_git_repo: Path) -> Path:
         },
     }
 
-    import tomllib
     # Write as TOML (we'll write manually since tomllib is read-only)
     toml_content = """[project]
 name = "test-project"
@@ -337,7 +334,7 @@ CMD ["python", "main.py"]
   app:
     build: .
     ports:
-      - "8000:8000"
+      - "3101:3101"
   postgres:
     image: postgres:15
     environment:
@@ -685,8 +682,8 @@ def mock_spec_validator():
             result = validator.validate_spec_document()
             assert result.valid
     """
-    from unittest.mock import MagicMock
     from dataclasses import dataclass
+    from unittest.mock import MagicMock
 
     @dataclass
     class MockValidationResult:
@@ -1018,11 +1015,11 @@ Add Google OAuth2 authentication to the application.
 # Import merge module (path already added at top of conftest)
 try:
     from merge import (
-        SemanticAnalyzer,
-        ConflictDetector,
-        AutoMerger,
-        FileEvolutionTracker,
         AIResolver,
+        AutoMerger,
+        ConflictDetector,
+        FileEvolutionTracker,
+        SemanticAnalyzer,
     )
 except ImportError:
     # Module will be available when tests run
@@ -1090,7 +1087,7 @@ def temp_project(temp_git_repo: Path):
     - src/App.tsx (React component)
     - src/utils.py (Python module)
     """
-    from tests.test_fixtures import SAMPLE_REACT_COMPONENT, SAMPLE_PYTHON_MODULE
+    from tests.test_fixtures import SAMPLE_PYTHON_MODULE, SAMPLE_REACT_COMPONENT
 
     # Create src directory
     src_dir = temp_git_repo / "src"
@@ -1124,22 +1121,22 @@ def temp_project(temp_git_repo: Path):
 # collected but skipped automatically by pytest when the fixtures are missing.
 try:
     from tests.endpoint_test_utils import (  # noqa: E402, F401
-        test_app,
-        client,
-        authenticated_client,
-        mock_file_system,
-        mock_claude_profiles,
-        mock_api_profiles,
-        mock_roadmap_json,
-        mock_ideation_json,
-        mock_subprocess,
-        mock_glab_cli,
-        mock_gh_cli,
-        mock_ai_service,
-        mock_background_task,
-        test_data_factory,
         assert_endpoint,
+        authenticated_client,
+        client,
         endpoint_integration_helper,
+        mock_ai_service,
+        mock_api_profiles,
+        mock_background_task,
+        mock_claude_profiles,
+        mock_file_system,
+        mock_gh_cli,
+        mock_glab_cli,
+        mock_ideation_json,
+        mock_roadmap_json,
+        mock_subprocess,
+        test_app,
+        test_data_factory,
     )
 except ImportError:
     # FastAPI (or another web-server dependency) is not installed.

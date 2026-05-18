@@ -35,7 +35,7 @@ node --version
 python3 --version
 
 # Check if web server is running
-curl http://localhost:8000/health
+curl http://localhost:3101/health
 
 # Check backend authentication
 cd apps/backend && source .venv/bin/activate && python -c "import os; print('Token set:', bool(os.getenv('CLAUDE_CODE_OAUTH_TOKEN')))"
@@ -44,8 +44,8 @@ cd apps/backend && source .venv/bin/activate && python -c "import os; print('Tok
 cat ~/.magestic-ai/.token 2>/dev/null || echo "No token file found"
 
 # Check if ports are in use
-lsof -i :8000  # Web server
-lsof -i :5173  # Frontend dev server
+lsof -i :3101  # Web server
+lsof -i :3100  # Frontend dev server
 ```
 
 ### Health Check Endpoints
@@ -267,16 +267,16 @@ curl http://127.0.0.1:3456/health
    # Check which port is configured
    grep APP_PORT apps/web-server/.env
 
-   # Default is 8000, ensure frontend uses the same
+   # Default is 3101, ensure frontend uses the same
    ```
 
 3. **Firewall blocking:**
    ```bash
-   # Allow port 8000 (Linux)
-   sudo ufw allow 8000
+   # Allow port 3101 (Linux)
+   sudo ufw allow 3101
 
    # Windows Firewall
-   netsh advfirewall firewall add rule name="Claude Web" dir=in action=allow protocol=tcp localport=8000
+   netsh advfirewall firewall add rule name="Claude Web" dir=in action=allow protocol=tcp localport=3101
    ```
 
 ### WebSocket Connection Failed
@@ -286,12 +286,12 @@ curl http://127.0.0.1:3456/health
 **Solution:**
 ```bash
 # Check WebSocket connection in browser DevTools
-# Network tab → WS filter → Check for ws://localhost:8000/ws/events
+# Network tab → WS filter → Check for ws://localhost:3101/ws/events
 
 # Common fixes:
 # 1. Disable browser extensions that block WebSockets
 # 2. Check CORS settings in apps/web-server/.env:
-APP_CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
+APP_CORS_ORIGINS=["http://localhost:3100", "http://localhost:3000"]
 
 # 3. Try a different browser
 # 4. Clear browser cache and cookies
@@ -304,7 +304,7 @@ APP_CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000"]
 **Solution:**
 ```bash
 # Edit apps/web-server/.env
-APP_CORS_ORIGINS=["http://localhost:5173", "http://127.0.0.1:5173"]
+APP_CORS_ORIGINS=["http://localhost:3100", "http://127.0.0.1:3100"]
 
 # Restart web server
 pkill -f "server.main"
@@ -416,7 +416,7 @@ source .venv/bin/activate
 python -c "import os; print('OAuth Token:', 'SET' if os.getenv('CLAUDE_CODE_OAUTH_TOKEN') else 'MISSING')"
 
 # Verify web server can reach backend
-curl http://localhost:8000/api/settings
+curl http://localhost:3101/api/settings
 
 # Check for maximum concurrent task limits
 grep APP_MAX_CONCURRENT_TASKS apps/web-server/.env
@@ -666,7 +666,7 @@ git worktree add .magestic-ai/worktrees/tasks/TASK-ID -b task/TASK-ID main
 # 2. Disable browser extensions
 # 3. Try incognito/private mode
 # 4. Check if frontend is running:
-lsof -i :5173
+lsof -i :3100
 
 # Rebuild frontend if corrupted
 cd apps/frontend-web
@@ -860,7 +860,7 @@ grep -i error apps/backend/debug.log
 
 When `APP_DEBUG=true`:
 
-1. Open `http://localhost:8000/docs` for Swagger UI
+1. Open `http://localhost:3101/docs` for Swagger UI
 2. Test endpoints interactively
 3. View request/response details
 
@@ -949,10 +949,10 @@ npm run install:all
 A: Yes, but use different ports:
 ```bash
 # Instance 1
-APP_PORT=8000 python -m server.main
+APP_PORT=3101 python -m server.main
 
 # Instance 2 (different terminal)
-APP_PORT=8001 python -m server.main
+APP_PORT=3102 python -m server.main
 ```
 
 ### Authentication

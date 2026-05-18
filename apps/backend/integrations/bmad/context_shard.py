@@ -9,11 +9,10 @@ Loads only the architecture sections and dependencies referenced by a story.
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
 def extract_architecture_sections(
-    architecture_file: Path, section_refs: List[str]
+    architecture_file: Path, section_refs: list[str]
 ) -> str:
     """Extract specific sections from architecture.md.
 
@@ -55,7 +54,7 @@ def extract_architecture_sections(
     return ""
 
 
-def _find_section_by_anchor(lines: List[str], anchor: str) -> List[str]:
+def _find_section_by_anchor(lines: list[str], anchor: str) -> list[str]:
     """Find a markdown section by its anchor/heading.
 
     Args:
@@ -96,8 +95,8 @@ def _find_section_by_anchor(lines: List[str], anchor: str) -> List[str]:
 
 
 def load_story_context(
-    spec_dir: Path, story: Dict, architecture_file: Optional[Path] = None
-) -> Dict[str, str]:
+    spec_dir: Path, story: dict, architecture_file: Path | None = None
+) -> dict[str, str]:
     """Load minimal context for a story (for session segmentation).
 
     Args:
@@ -136,7 +135,7 @@ def load_story_context(
     return context
 
 
-def format_story_context(context: Dict[str, str]) -> str:
+def format_story_context(context: dict[str, str]) -> str:
     """Format story context as a prompt-ready string.
 
     Args:
@@ -150,7 +149,7 @@ def format_story_context(context: Dict[str, str]) -> str:
     lines.append(f"# Story Context: {context['story_id']}")
     lines.append("")
 
-    lines.append(f"## Story")
+    lines.append("## Story")
     lines.append(f"**Title**: {context['title']}")
     if context.get("user_story"):
         lines.append(f"**User Story**: {context['user_story']}")
@@ -242,7 +241,7 @@ def save_session_metadata(
         json.dump(metadata, f, indent=2)
 
 
-def get_context_reduction_stats(spec_dir: Path, full_context_size: int) -> Dict:
+def get_context_reduction_stats(spec_dir: Path, full_context_size: int) -> dict:
     """Calculate context reduction statistics.
 
     Args:

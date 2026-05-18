@@ -34,10 +34,11 @@ import { AgentProfileSelector } from './AgentProfileSelector';
 import { FileAutocomplete } from './FileAutocomplete';
 import { SkillsBrowser } from './SkillsBrowser';
 import { Badge } from './ui/badge';
+import { TaskClarificationWizard } from './TaskClarificationWizard';
 import { createTask, saveDraft, loadDraft, clearDraft, isDraftEmpty } from '../stores/task-store';
 import { useProjectStore } from '../stores/project-store';
 import { cn } from '../lib/utils';
-import type { TaskCategory, TaskPriority, TaskComplexity, TaskImpact, TaskMetadata, ImageAttachment, TaskDraft, ModelType, ThinkingLevel, ReferencedFile, SelectedSkill } from '../shared/types';
+import type { Task, TaskCategory, TaskPriority, TaskComplexity, TaskImpact, TaskMetadata, ImageAttachment, TaskDraft, ModelType, ThinkingLevel, ReferencedFile, SelectedSkill } from '../shared/types';
 import type { PhaseModelConfig, PhaseThinkingConfig } from '../shared/types/settings';
 import {
   TASK_CATEGORY_LABELS,
@@ -78,6 +79,10 @@ export function TaskCreationWizard({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showFileExplorer, setShowFileExplorer] = useState(false);
   const [showGitOptions, setShowGitOptions] = useState(false);
+
+  // Clarification wizard state
+  const [clarificationOpen, setClarificationOpen] = useState(false);
+  const [clarificationTask, setClarificationTask] = useState<Task | null>(null);
 
   // Git options state
   // Use a special value to represent "use project default" since Radix UI Select doesn't allow empty string values
@@ -664,9 +669,11 @@ export function TaskCreationWizard({
       if (task) {
         // Clear draft on successful creation
         clearDraft(projectId);
-        // Reset form and close
         resetForm();
         onOpenChange(false);
+        // Open clarification wizard
+        setClarificationTask(task);
+        setClarificationOpen(true);
       } else {
         setError('Failed to create task. Please try again.');
       }
@@ -735,6 +742,7 @@ export function TaskCreationWizard({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
         className={cn(
@@ -915,7 +923,7 @@ export function TaskCreationWizard({
                 type="button"
                 onClick={() => {
                   setMode('quick');
-                  setRequireReviewBeforeCoding(true); // Auto-enable for Quick Mode
+                  setRequireReviewBeforeCoding(false); // Quick Mode skips review by default
                 }}
                 disabled={isCreating}
                 className={cn(
@@ -955,7 +963,7 @@ export function TaskCreationWizard({
             </div>
             {mode === 'quick' && (
               <p className="text-xs text-info bg-info/10 p-2 rounded-md">
-                Quick Mode uses simplified prompts and auto-enables human review before coding.
+                Quick Mode uses simplified prompts and skips human review before coding for faster execution.
               </p>
             )}
           </div>
@@ -1288,5 +1296,20 @@ export function TaskCreationWizard({
         </div>
       </DialogContent>
     </Dialog>
+
+    {clarificationTask && (
+      <TaskClarificationWizard
+        open={clarificationOpen}
+        onOpenChange={(isOpen) => {
+          setClarificationOpen(isOpen);
+          if (!isOpen) setClarificationTask(null);
+        }}
+        taskId={clarificationTask.id}
+        taskTitle={clarificationTask.title}
+        taskDescription={clarificationTask.description}
+        projectId={projectId}
+      />
+    )}
+    </>
   );
 }

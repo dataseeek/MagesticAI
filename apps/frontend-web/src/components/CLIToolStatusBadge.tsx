@@ -7,7 +7,6 @@ import {
   Loader2,
   Download,
   RefreshCw,
-  LogIn,
   KeyRound,
 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -22,11 +21,15 @@ import {
   TooltipTrigger,
 } from './ui/tooltip';
 import { cn } from '../lib/utils';
+import { StatusBadgeButton } from './ui/StatusBadgeButton';
 import { OpenAIIcon } from './icons/OpenAIIcon';
 import { GeminiIcon } from './icons/GeminiIcon';
 import type { CLIAccountStatus, CLIAccountsDetectionResult } from '../shared/types';
 
-// No props needed — rendered as fragment children
+interface CLIToolStatusBadgeProps {
+  className?: string;
+  iconOnly?: boolean;
+}
 
 // Refresh every 5 minutes
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -37,14 +40,14 @@ interface CLIToolPopoverProps {
   Icon: React.ComponentType<{ className?: string }>;
   label: string;
   lastChecked: Date | null;
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<void>;
+  iconOnly?: boolean;
 }
 
-function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CLIToolPopoverProps) {
+function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh, iconOnly = false }: CLIToolPopoverProps) {
   const { t } = useTranslation(['navigation', 'common']);
   const [isOpen, setIsOpen] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
-  const [isLoginPolling, setIsLoginPolling] = useState(false);
   const installed = status?.installed ?? false;
   const authenticated = status?.authenticated ?? false;
   const hasUpdate = installed && status?.latestVersion && status?.version !== status?.latestVersion;
@@ -70,13 +73,6 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
       ? t('navigation:cliTools.viaGoogleLogin')
       : t('navigation:cliTools.viaApiKey');
   };
-
-  // Reset login polling when auth succeeds
-  useEffect(() => {
-    if (isLoginPolling && authenticated) {
-      setIsLoginPolling(false);
-    }
-  }, [isLoginPolling, authenticated]);
 
   // Tooltip text
   const tooltipText = (() => {
@@ -111,29 +107,11 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
     setIsInstalling(true);
     try {
       await window.API.installCLI(cli);
-      setTimeout(onRefresh, 3000);
+      await onRefresh();
     } catch (err) {
       console.error(`Failed to install/update ${cli} CLI:`, err);
     } finally {
       setIsInstalling(false);
-    }
-  };
-
-  const handleLogin = () => {
-    if (!window.API?.startCLILogin) return;
-    setIsLoginPolling(true);
-    window.API.startCLILogin(cli);
-    // Auto-reset after 3 min timeout
-    setTimeout(() => setIsLoginPolling(false), 180000);
-  };
-
-  const handleImport = async () => {
-    if (!window.API?.importCLICredentials) return;
-    try {
-      await window.API.importCLICredentials(cli);
-      onRefresh();
-    } catch (err) {
-      console.error(`Failed to import ${cli} credentials:`, err);
     }
   };
 
@@ -142,23 +120,16 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
+            <StatusBadgeButton
+              iconOnly={iconOnly}
+              icon={<Icon className="h-4 w-4" />}
+              label={label}
+              dotColor={dotColor}
               className={cn(
-                'w-full justify-start gap-2 text-xs',
                 statusType === 'not-installed' && 'opacity-50',
                 statusType === 'installed' && 'text-yellow-600 dark:text-yellow-500',
               )}
             >
-              <div className="relative">
-                <Icon className="h-4 w-4" />
-                <span className={cn(
-                  'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full',
-                  dotColor,
-                )} />
-              </div>
-              <span className="truncate">{label}</span>
               {hasUpdate && (
                 <span className="ml-auto text-[10px] bg-blue-500/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded">
                   {t('common:update', 'Update')}
@@ -169,15 +140,15 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
                   {t('navigation:cliTools.notInstalled')}
                 </span>
               )}
-            </Button>
+            </StatusBadgeButton>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="right">
+        <TooltipContent side={iconOnly ? 'bottom' : 'right'}>
           {tooltipText}
         </TooltipContent>
       </Tooltip>
 
-      <PopoverContent side="right" align="end" className="w-72">
+      <PopoverContent side={iconOnly ? 'bottom' : 'right'} align="end" className="w-72">
         <div className="space-y-3">
           {/* Header */}
           <div className="flex items-center gap-2">
@@ -255,16 +226,6 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
             </div>
           )}
 
-          {/* Login hint when polling */}
-          {isLoginPolling && (
-            <div className="bg-muted/30 rounded-lg p-2 text-xs text-muted-foreground">
-              {cli === 'codex'
-                ? t('navigation:cliTools.loginHintCodex')
-                : t('navigation:cliTools.loginHintGemini')
-              }
-            </div>
-          )}
-
           {/* Actions */}
           <div className="space-y-2">
             <div className="flex gap-2 flex-wrap">
@@ -288,27 +249,6 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
                 </Button>
               )}
 
-              {/* Login */}
-              {installed && !authenticated && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-1"
-                  onClick={handleLogin}
-                  disabled={isLoginPolling}
-                >
-                  {isLoginPolling ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <LogIn className="h-3 w-3" />
-                  )}
-                  {isLoginPolling
-                    ? t('navigation:cliTools.waitingForAuth')
-                    : t('navigation:cliTools.loginInTerminal')
-                  }
-                </Button>
-              )}
-
               {/* Refresh */}
               <Button
                 variant="outline"
@@ -320,19 +260,6 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
                 {t('common:refresh', 'Refresh')}
               </Button>
             </div>
-
-            {/* Import Credentials */}
-            {installed && !authenticated && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full gap-1 text-xs"
-                onClick={handleImport}
-              >
-                <Download className="h-3 w-3" />
-                {t('navigation:cliTools.importCredentials')}
-              </Button>
-            )}
 
           </div>
         </div>
@@ -346,7 +273,7 @@ function CLIToolPopover({ cli, status, Icon, label, lastChecked, onRefresh }: CL
  * Shows Codex CLI and Gemini CLI status with brand icons, colored indicators,
  * and rich popover modals with version info, auth status, and action buttons.
  */
-export function CLIToolStatusBadge() {
+export function CLIToolStatusBadge({ className, iconOnly = false }: CLIToolStatusBadgeProps) {
   const [accounts, setAccounts] = useState<CLIAccountsDetectionResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
@@ -392,7 +319,7 @@ export function CLIToolStatusBadge() {
   ];
 
   return (
-    <>
+    <div className={cn(iconOnly ? 'flex items-center gap-1' : 'space-y-0.5', className)}>
       {clis.map(({ key, Icon, label }) => (
         <CLIToolPopover
           key={key}
@@ -402,8 +329,9 @@ export function CLIToolStatusBadge() {
           label={label}
           lastChecked={lastChecked}
           onRefresh={detect}
+          iconOnly={iconOnly}
         />
       ))}
-    </>
+    </div>
   );
 }

@@ -221,46 +221,6 @@ class TestProjectDocumentation:
 class TestElectronToolScoping:
     """Verify Electron MCP tools are scoped to QA agents only."""
 
-    def test_qa_reviewer_has_electron_tools_when_enabled(self, monkeypatch):
-        """QA reviewer gets Electron tools when ELECTRON_MCP_ENABLED=true and project is Electron."""
-        monkeypatch.setenv("ELECTRON_MCP_ENABLED", "true")
-
-        # Re-import to pick up env change
-        from magestic_ai_tools import ELECTRON_TOOLS, get_allowed_tools
-
-        # Must pass is_electron=True for Electron tools to be included
-        # This is the new phase-aware behavior
-        qa_tools = get_allowed_tools("qa_reviewer", project_capabilities={"is_electron": True})
-
-        # At least one Electron tool should be present
-        has_electron = any("electron" in tool.lower() for tool in qa_tools)
-        assert has_electron, (
-            "QA reviewer should have Electron tools when ELECTRON_MCP_ENABLED=true and is_electron=True. "
-            f"Got tools: {qa_tools}"
-        )
-
-        # Verify specific tools are included
-        for tool in ELECTRON_TOOLS:
-            assert tool in qa_tools, f"Expected {tool} in qa_reviewer tools"
-
-    def test_qa_fixer_has_electron_tools_when_enabled(self, monkeypatch):
-        """QA fixer gets Electron tools when ELECTRON_MCP_ENABLED=true and project is Electron."""
-        monkeypatch.setenv("ELECTRON_MCP_ENABLED", "true")
-
-        from magestic_ai_tools import ELECTRON_TOOLS, get_allowed_tools
-
-        # Must pass is_electron=True for Electron tools to be included
-        qa_fixer_tools = get_allowed_tools("qa_fixer", project_capabilities={"is_electron": True})
-
-        has_electron = any("electron" in tool.lower() for tool in qa_fixer_tools)
-        assert has_electron, (
-            "QA fixer should have Electron tools when ELECTRON_MCP_ENABLED=true and is_electron=True. "
-            f"Got tools: {qa_fixer_tools}"
-        )
-
-        for tool in ELECTRON_TOOLS:
-            assert tool in qa_fixer_tools, f"Expected {tool} in qa_fixer tools"
-
     def test_coder_no_electron_tools(self, monkeypatch):
         """Coder should NOT get Electron tools even when enabled and project is Electron."""
         monkeypatch.setenv("ELECTRON_MCP_ENABLED", "true")

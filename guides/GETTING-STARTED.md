@@ -178,7 +178,7 @@ Open `apps/web-server/.env` and verify or customize:
 ```bash
 # Server binding (0.0.0.0 allows remote access)
 APP_HOST=0.0.0.0
-APP_PORT=8000
+APP_PORT=3101
 
 # Enable debug mode for development
 APP_DEBUG=true
@@ -212,7 +212,7 @@ INFO:     Started server process
 INFO:     Waiting for application startup.
 INFO:     API Token: abc123...
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8000
+INFO:     Uvicorn running on http://0.0.0.0:3101
 ```
 
 > **Important:** Note the API Token displayed in the console. You'll need this to access the web interface. The token is also saved to `~/.magestic-ai/.token`.
@@ -231,8 +231,8 @@ You should see:
 ```
   VITE v7.x.x  ready in xxx ms
 
-  -> Local:   http://localhost:5173/
-  -> Network: http://xxx.xxx.xxx.xxx:5173/
+  -> Local:   http://localhost:3100/
+  -> Network: http://xxx.xxx.xxx.xxx:3100/
 ```
 
 ---
@@ -244,7 +244,7 @@ You should see:
 Open your web browser and navigate to:
 
 ```
-http://localhost:5173
+http://localhost:3100
 ```
 
 ### Step 2: Enter the API Token
@@ -461,9 +461,9 @@ cd apps/frontend-web && npm run dev
 
 | Service | URL |
 |---------|-----|
-| Web Interface | http://localhost:5173 |
-| API Server | http://localhost:8000 |
-| API Docs | http://localhost:8000/docs |
+| Web Interface | http://localhost:3100 |
+| API Server | http://localhost:3101 |
+| API Docs | http://localhost:3101/docs |
 
 ### Key Files
 

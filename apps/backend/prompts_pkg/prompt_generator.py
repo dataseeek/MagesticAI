@@ -209,7 +209,7 @@ Verify:""")
 4. **Run verification** and fix any issues
 5. **Commit your changes:**
    ```bash
-   git add .
+   git add . ':!.magestic-ai'
    git commit -m "magestic-ai: {subtask_id} - {description[:50]}"
    ```
 6. **Update the plan** - set this subtask's status to "completed" in implementation_plan.json

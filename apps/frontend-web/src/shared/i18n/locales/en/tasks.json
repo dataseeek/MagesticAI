@@ -148,6 +148,25 @@
     "expandSection": "Show AI Skills",
     "collapseSection": "Hide AI Skills"
   },
+  "createPR": {
+    "title": "Create Pull Request",
+    "description": "Configure and create a pull request for this task's changes",
+    "targetRepo": "Target Repository",
+    "yourRepo": "Your repository",
+    "upstreamRepo": "Upstream repository (original)",
+    "baseBranch": "Base Branch",
+    "prTitle": "PR Title",
+    "prDescription": "Description",
+    "draft": "Create as draft",
+    "submit": "Create Pull Request",
+    "cancel": "Cancel",
+    "creating": "Creating PR...",
+    "detectingFork": "Detecting repository info...",
+    "forkDetectionFailed": "Could not detect fork info (will use defaults)",
+    "success": "Pull Request Created",
+    "createdSuccessfully": "created successfully",
+    "failed": "Failed to create PR"
+  },
   "notifications": {
     "profileSwitch": {
       "title": "Switched Claude profile",

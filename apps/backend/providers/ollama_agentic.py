@@ -51,15 +51,14 @@ import json
 import logging
 import urllib.error
 import urllib.request
-import uuid
+from collections.abc import AsyncGenerator, AsyncIterator
 from pathlib import Path
-from typing import Any, AsyncGenerator, AsyncIterator
+from typing import Any
 
 from providers import BaseLLMProvider
 from providers.types import (
     AssistantMessage,
     TextBlock,
-    ToolResultBlock,
     ToolUseBlock,
     UserMessage,
 )
@@ -119,6 +118,9 @@ class OllamaAgenticProvider(BaseLLMProvider):
         self._working_dir = Path(working_dir).resolve()
         self._max_turns = max_turns
         self._extra_options: dict[str, Any] = extra_options or {}
+        # Default to 32K context for complex tasks
+        if "num_ctx" not in self._extra_options:
+            self._extra_options["num_ctx"] = 32768
         self._pending_prompt: str | None = None
 
         # Tool setup
@@ -374,7 +376,7 @@ class OllamaAgenticProvider(BaseLLMProvider):
     # Async context manager
     # ------------------------------------------------------------------
 
-    async def __aenter__(self) -> "OllamaAgenticProvider":
+    async def __aenter__(self) -> OllamaAgenticProvider:
         """Verify Ollama server is reachable before starting."""
         logger.debug(
             "OllamaAgenticProvider: verifying connection to %s", self._base_url
