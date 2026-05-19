@@ -65,6 +65,23 @@ _A quick walkthrough of the Kanban board, task creation flow, and agent executio
 
 ---
 
+## How does it compare?
+
+MagesticAI sits next to two open-source projects with overlapping goals but very different shapes:
+
+|  | [Spec Kit](https://github.com/github/spec-kit) | [Compozy](https://github.com/compozy/compozy) | **MagesticAI** |
+|---|---|---|---|
+| **Primary interface** | CLI (`specify`) | CLI / single Go binary | Browser UI |
+| **Generates specs** | Yes — its core purpose | Partial — workflow artifacts | Yes — multi-agent spec authoring (3–8 stages, auto-scaled by complexity) |
+| **Executes the spec** | No — hands off to your external agent (Copilot / Claude Code / Cursor) | Orchestrates external agents via the ACP protocol | Yes — built-in Planner / Coder / QA Reviewer / QA Fixer |
+| **Task isolation** | None | Workflow state in a daemon | Git worktree per task |
+| **LLM provider model** | Inherited from whatever agent you hand off to | Inherited from the agent it orchestrates | Direct multi-provider: Claude, Codex CLI, Gemini, Ollama, any OpenAI-compatible endpoint |
+| **License** | MIT | MIT | AGPL-3.0 |
+
+**The short version:** Spec Kit is great for authoring specs you'll execute with an existing agent. Compozy is great if you want a terminal-first multi-agent runner driving external agents. MagesticAI is the one to pick if you want the full spec → plan → code → QA loop in one self-hosted browser app, with first-class support for local and OpenAI-compatible LLMs.
+
+---
+
 ## Quick Start
 
 ### Prerequisites
