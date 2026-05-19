@@ -346,6 +346,25 @@ For power users without the UI, the env vars
 ``OPENAI_COMPATIBLE_BASE_URL`` and ``OPENAI_COMPATIBLE_API_KEY`` (or
 ``OPENAI_API_KEY``) act as a fallback when no DB row exists.
 
+**Model size matters.** Smaller local models (under ~30B parameters)
+can call tools and write files, but they sometimes drift from the
+exact JSON schemas MagesticAI expects (`spec.md`,
+`implementation_plan.json`, `qa_report.md`, etc.). When that happens
+the build pipeline has a built-in retry loop that feeds the
+validation error back to the model and asks it to fix the file —
+but small models don't always recover, and a corrupted spec can fail
+the whole task. For reliable end-to-end runs, prefer one of:
+
+- **Larger local models**: `qwen2.5-coder-32b-instruct`,
+  `llama-3.3-70b-instruct`, `deepseek-coder-v2:33b`
+- **Hosted endpoints via OpenRouter / Together / Groq**: any
+  GPT-4-class or Claude-class model
+- **Test small models on a throwaway task first** before committing
+  to a multi-hour build
+
+Tool-call protocol support also varies — make sure your chosen model
+is one LM Studio / vLLM advertises as supporting OpenAI tool calling.
+
 ---
 
 ## API Endpoints
