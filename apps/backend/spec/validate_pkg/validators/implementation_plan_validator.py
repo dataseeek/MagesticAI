@@ -66,18 +66,43 @@ class ImplementationPlanValidator:
                 errors.append(f"Invalid workflow_type: {plan['workflow_type']}")
                 fixes.append(f"Use one of: {schema['workflow_types']}")
 
-        # Validate phases
+        # Validate phases — must be a list of phase objects.  Smaller LLMs
+        # sometimes emit ``phases`` as a dict-of-dicts; catching that early
+        # turns a crash into a structured error the validation_fixer can act on.
         phases = plan.get("phases", [])
-        if not phases:
+        if not isinstance(phases, list):
+            errors.append(
+                f"'phases' must be a JSON list of phase objects, got "
+                f"{type(phases).__name__}. Restructure as: "
+                f"\"phases\": [{{ \"phase\": 1, \"name\": \"...\", "
+                f"\"subtasks\": [...] }}, ...]"
+            )
+            fixes.append(
+                "Rewrite 'phases' as a list of objects, each with phase/name/subtasks fields."
+            )
+            phases = []
+        elif not phases:
             errors.append("No phases defined")
             fixes.append("Add at least one phase with subtasks")
         else:
             for i, phase in enumerate(phases):
+                if not isinstance(phase, dict):
+                    errors.append(
+                        f"Phase {i + 1}: expected a JSON object with "
+                        f"phase/name/subtasks fields, got {type(phase).__name__}"
+                    )
+                    fixes.append(
+                        f"Replace phases[{i}] with a phase object."
+                    )
+                    continue
                 phase_errors = self._validate_phase(phase, i)
                 errors.extend(phase_errors)
 
-        # Check for at least one subtask
-        total_subtasks = sum(len(p.get("subtasks", [])) for p in phases)
+        # Check for at least one subtask — skip any non-dict entries so a
+        # malformed phase doesn't break the count.
+        total_subtasks = sum(
+            len(p.get("subtasks", [])) for p in phases if isinstance(p, dict)
+        )
         if total_subtasks == 0:
             errors.append("No subtasks defined in any phase")
             fixes.append("Add subtasks to phases")
@@ -194,12 +219,16 @@ class ImplementationPlanValidator:
         phase_order = {}  # Maps phase id -> position index
 
         for i, p in enumerate(phases):
+            if not isinstance(p, dict):
+                continue  # malformed entry — surfaced upstream by validate()
             # Support both "id" field (new format) and "phase" field (legacy format)
             phase_id = p.get("id") or p.get("phase", i + 1)
             phase_ids.add(phase_id)
             phase_order[phase_id] = i
 
         for i, phase in enumerate(phases):
+            if not isinstance(phase, dict):
+                continue
             phase_id = phase.get("id") or phase.get("phase", i + 1)
             depends_on = phase.get("depends_on", [])
 
