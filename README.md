@@ -404,7 +404,10 @@ See [RELEASE.md](RELEASE.md) for the full release and versioning process.
 
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
-See [LICENSE](LICENSE) for details.
+See [LICENSE](LICENSE) for the full license text and [NOTICE](NOTICE) for
+copyright and upstream attribution (MagesticAI is a derivative work of
+[Aperant](https://github.com/AndyMik90/Aperant) by [@AndyMik90](https://github.com/AndyMik90)
+and inherits its AGPL-3.0 license).
 
 ---
 
