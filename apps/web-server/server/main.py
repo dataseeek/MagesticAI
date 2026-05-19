@@ -40,6 +40,7 @@ from .routes import (
 )
 from .routes import logs as logs_routes
 from .routes import cli_accounts as cli_accounts_routes
+from .routes import llm_endpoints as llm_endpoints_routes
 from .routes import settings as settings_routes
 from .websockets import events as events_ws
 from .websockets import logs as logs_ws
@@ -136,6 +137,7 @@ def create_app() -> FastAPI:
     app.include_router(execution.router, prefix="/api/tasks", tags=["Task Execution"])
     app.include_router(settings_routes.router, prefix="/api/settings", tags=["Settings"])
     app.include_router(cli_accounts_routes.router, prefix="/api/settings", tags=["CLI Accounts"])
+    app.include_router(llm_endpoints_routes.router)
     app.include_router(files.router, prefix="/api/files", tags=["Files"])
     app.include_router(terminal.router, prefix="/api/terminals", tags=["Terminals"])
 
