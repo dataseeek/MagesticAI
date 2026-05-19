@@ -272,16 +272,22 @@ main (user's branch)
 
 ### Contributing
 
+**Branching model:** `dev` is the working branch — that's where feature
+work and PRs go. `main` is a release branch that only receives
+promotion merges from `dev` (the `release:` commits you see on `main`).
+Do NOT branch new feature work from `main` — always branch from
+`origin/dev`.
+
 **Workflow for contributions:**
-1. Create feature branch from develop: `git checkout -b fix/my-fix develop`
-2. Make changes and commit with sign-off: `git commit -s -m "fix: description"`
-3. Push to your branch: `git push origin fix/my-fix`
-4. Create PR targeting `develop`: `gh pr create --base develop`
+1. Fetch and branch from `dev`: `git fetch origin && git checkout -b feat/my-feature origin/dev`
+2. Make changes and commit with sign-off: `git commit -s -m "feat: description"`
+3. Push to your branch: `git push -u origin feat/my-feature`
+4. Create PR targeting `dev`: `gh pr create --base dev`
 
 **Verify before PR:**
 ```bash
 # Ensure only your commits are included
-git log --oneline origin/develop..HEAD
+git log --oneline origin/dev..HEAD
 ```
 
 ### Security Model
