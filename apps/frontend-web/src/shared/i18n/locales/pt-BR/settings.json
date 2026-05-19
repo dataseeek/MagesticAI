@@ -42,7 +42,7 @@
         "noProvidersDetected": "Nenhum provedor LLM local detectado. Inicie um provedor como Ollama e tente novamente."
       },
       "accounts": {
-        "title": "Contas LLM",
+        "title": "Contas Claude Code",
         "description": "Gerencie perfis Claude e alternância automática de conta"
       },
       "apiKeys": {
@@ -558,5 +558,31 @@
       "devops": "DevOps",
       "communication": "Comunicação"
     }
+  },
+  "openaiEndpoints": {
+    "title": "Endpoints Compatíveis com OpenAI",
+    "description": "Conecte-se ao LM Studio, vLLM, OpenRouter, Together, Groq ou qualquer serviço que implemente o protocolo OpenAI /v1/chat/completions.",
+    "add": "Adicionar endpoint",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "save": "Salvar",
+    "create": "Criar",
+    "cancel": "Cancelar",
+    "test": "Testar",
+    "label": "Rótulo",
+    "baseUrl": "URL base",
+    "baseUrlHint": "Sem o sufixo /v1 — adicionamos automaticamente.",
+    "apiKey": "Chave de API",
+    "apiKeyOptional": "(opcional)",
+    "apiKeyEditPlaceholder": "Deixe em branco para manter a chave existente",
+    "defaultModel": "Modelo padrão",
+    "loading": "Carregando endpoints…",
+    "empty": "Nenhum endpoint ainda. Clique em \"Adicionar endpoint\" para conectar um.",
+    "confirmDelete": "Excluir este endpoint?",
+    "testSuccess": "Conexão bem-sucedida",
+    "testFailed": "Falha na conexão",
+    "modelsFound": "{{count}} modelos",
+    "modelsHint": "{{count}} modelos descobertos — clique no campo ou comece a digitar para escolher um.",
+    "unprobed": "Ainda não testado"
   }
 }

@@ -42,7 +42,7 @@
         "noProvidersDetected": "No local LLM providers detected. Start a provider like Ollama and try again."
       },
       "accounts": {
-        "title": "LLM Accounts",
+        "title": "Claude Code Accounts",
         "description": "Manage Claude profiles and automatic account switching"
       },
       "apiKeys": {
@@ -558,5 +558,31 @@
       "devops": "DevOps",
       "communication": "Communication"
     }
+  },
+  "openaiEndpoints": {
+    "title": "OpenAI-Compatible Endpoints",
+    "description": "Connect to LM Studio, vLLM, OpenRouter, Together, Groq, or any service implementing the OpenAI /v1/chat/completions protocol.",
+    "add": "Add endpoint",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "create": "Create",
+    "cancel": "Cancel",
+    "test": "Test",
+    "label": "Label",
+    "baseUrl": "Base URL",
+    "baseUrlHint": "Without the /v1 suffix — we append it automatically.",
+    "apiKey": "API key",
+    "apiKeyOptional": "(optional)",
+    "apiKeyEditPlaceholder": "Leave blank to keep existing key",
+    "defaultModel": "Default model",
+    "loading": "Loading endpoints…",
+    "empty": "No endpoints yet. Click \"Add endpoint\" to connect one.",
+    "confirmDelete": "Delete this endpoint?",
+    "testSuccess": "Connection successful",
+    "testFailed": "Connection failed",
+    "modelsFound": "{{count}} models",
+    "modelsHint": "{{count}} models discovered — click the field or start typing to pick one.",
+    "unprobed": "Not tested yet"
   }
 }

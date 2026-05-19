@@ -283,5 +283,6 @@
     "done": "Concluído",
     "failedLabel": "Falhou",
     "starting": "Iniciando..."
-  }
+  },
+  "lastChecked": "Última verificação"
 }
