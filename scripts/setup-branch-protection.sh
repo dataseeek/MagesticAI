@@ -67,8 +67,12 @@ JSON
     --input - >/dev/null
 }
 
-# main: stricter — reviews enforced for admins too
-apply_protection "main" "true"  "1"
+# main: 1 review required (CI checks, CODEOWNERS, conversation resolution).
+# Admin enforcement is OFF so the maintainer can self-merge solo PRs — a
+# solo OSS maintainer otherwise has no one to approve their own PR.
+# Outside contributors still need a review because the PR-review rule itself
+# stays enabled.
+apply_protection "main" "false" "1"
 
 # dev: same checks, admins can bypass for fast hotfix integration
 apply_protection "dev"  "false" "1"
