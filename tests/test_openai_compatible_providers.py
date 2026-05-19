@@ -59,7 +59,6 @@ from providers.openai_compatible_agentic import (  # noqa: E402
     OpenAICompatibleAgenticProvider,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
