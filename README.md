@@ -313,6 +313,39 @@ VITE_API_BASE_URL=/api
 VITE_WS_BASE_URL=ws://localhost:3101
 ```
 
+### OpenAI-Compatible Endpoints
+
+MagesticAI can talk to any service that implements the OpenAI
+`POST /v1/chat/completions` protocol: **LM Studio, vLLM, OpenRouter,
+Together AI, Groq, LocalAI**, and OpenAI itself.
+
+**1. Add the endpoint in the UI**
+Open Settings → LLM Accounts → "OpenAI-Compatible Endpoints" → "Add endpoint".
+Fill in:
+- *Label* (e.g. `LM Studio local`)
+- *Base URL* (e.g. `http://localhost:1234` — without the `/v1` suffix)
+- *API key* (leave blank for local servers like LM Studio that don't need one)
+- *Default model* (e.g. `qwen2.5-coder-32b-instruct`)
+
+Use the "Test" button to confirm the server is reachable.
+
+**2. Select it for a task**
+Prefix the model name with `openai:` or `openai-compatible:`:
+
+| Model string                                  | What happens                                    |
+|-----------------------------------------------|--------------------------------------------------|
+| `openai:`                                     | Use the first saved endpoint + its default model |
+| `openai:qwen/qwen3-14b`                       | Use the first saved endpoint with this model     |
+| `openai-compatible:LM studio .11:qwen3-14b`   | Use the endpoint labelled "LM studio .11"        |
+
+The backend reads ``base_url`` and ``api_key`` directly from the
+``llm_endpoints`` table in ``~/.magestic-ai/data.db`` — same row the
+Settings UI writes when you click Create.
+
+For power users without the UI, the env vars
+``OPENAI_COMPATIBLE_BASE_URL`` and ``OPENAI_COMPATIBLE_API_KEY`` (or
+``OPENAI_API_KEY``) act as a fallback when no DB row exists.
+
 ---
 
 ## API Endpoints

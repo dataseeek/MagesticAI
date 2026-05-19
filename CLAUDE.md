@@ -11,7 +11,15 @@ MagesticAI is a web-based AI task management and agent orchestration platform th
 **Author:** DataSeek Team
 **License:** AGPL-3.0
 
-**CRITICAL: All AI interactions use the Claude Agent SDK (`claude-agent-sdk` package), NOT the Anthropic API directly.**
+**LLM provider abstraction:** MagesticAI uses the Claude Agent SDK
+(`claude-agent-sdk`) as its primary provider, but also supports Codex CLI,
+Gemini CLI, Ollama, and any OpenAI-compatible endpoint (LM Studio, vLLM,
+OpenRouter, Together, Groq, LocalAI) via the provider factory in
+`apps/backend/providers/`. Provider selection is driven by the model string —
+see `phase_config.infer_provider_from_model()`. Never call
+`anthropic.Anthropic()` directly; route Claude interactions through
+`core.client.create_client()` and other providers through
+`providers.factory.get_provider()`.
 
 ## Project Structure
 
