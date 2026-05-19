@@ -15,7 +15,7 @@ configure_safe_encoding()
 
 from core.client import create_client
 from debug import debug, debug_detailed, debug_error, debug_section, debug_success
-from phase_config import infer_provider_from_model
+from phase_config import get_provider_extra_kwargs, infer_provider_from_model
 from providers.factory import get_provider
 from security.tool_input_validator import get_safe_tool_input
 from task_logger import (
@@ -153,11 +153,15 @@ class AgentRunner:
             # Non-Claude providers run in spec_dir so relative file writes
             # (cat > spec.md) land in the correct directory.
             self.spec_dir.mkdir(parents=True, exist_ok=True)
+            provider_kwargs = {
+                "model": self.model,
+                "working_dir": self.spec_dir,
+                **get_provider_extra_kwargs(provider_name, self.model),
+            }
             client = get_provider(
                 provider_name,
                 phase="spec",
-                model=self.model,
-                working_dir=self.spec_dir,
+                **provider_kwargs,
             )
 
         current_tool = None

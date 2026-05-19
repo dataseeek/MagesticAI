@@ -499,19 +499,28 @@ def infer_provider_from_model(model: str) -> str:
     gpt-* or *codex* IDs -> 'codex'
     gemini-* IDs -> 'gemini'
     ollama:* prefix -> 'ollama'
+    openai:* or openai-compatible:* prefix -> 'openai-compatible'
     Otherwise -> check QA_LLM_PROVIDER env var, then default 'claude'
 
     Args:
         model: Model shorthand or full model ID
 
     Returns:
-        Provider name string (e.g., "claude", "codex", "gemini", "ollama")
+        Provider name string (e.g., "claude", "codex", "gemini", "ollama",
+        "openai-compatible")
     """
     m = model.strip().lower()
 
     # Explicit prefix: "ollama:model-name"
     if m.startswith("ollama:"):
         return "ollama"
+
+    # Explicit prefix for OpenAI-compatible endpoints (LM Studio, vLLM,
+    # OpenRouter, Together, Groq, LocalAI, ...).  Connection details come
+    # from env vars OPENAI_COMPATIBLE_BASE_URL / OPENAI_COMPATIBLE_API_KEY
+    # or, in a later integration, from the user's saved llm_endpoints config.
+    if m.startswith("openai:") or m.startswith("openai-compatible:"):
+        return "openai-compatible"
 
     # Claude models: known shorthands or full claude-* IDs
     if m in MODEL_ID_MAP or m.startswith("claude-"):
@@ -534,8 +543,128 @@ def infer_provider_from_model(model: str) -> str:
 infer_qa_provider_from_model = infer_provider_from_model
 
 
+def strip_provider_prefix(model: str) -> str:
+    """Strip a leading ``ollama:``, ``openai:``, or ``openai-compatible:`` prefix.
+
+    The factory and providers expect a bare model name.  When a user picks
+    ``openai-compatible:gpt-4o-mini``, the provider only needs ``gpt-4o-mini``.
+    """
+    for prefix in ("openai-compatible:", "openai:", "ollama:"):
+        if model.lower().startswith(prefix):
+            return model[len(prefix):]
+    return model
+
+
+_LLM_ENDPOINTS_DB_PATH = Path.home() / ".magestic-ai" / "data.db"
+
+
+def _load_openai_endpoint_by_label(label: str) -> dict | None:
+    """Look up an llm_endpoint row by label.  Returns None if not found."""
+    import sqlite3
+    if not _LLM_ENDPOINTS_DB_PATH.exists():
+        return None
+    try:
+        conn = sqlite3.connect(str(_LLM_ENDPOINTS_DB_PATH))
+        row = conn.execute(
+            "SELECT base_url, api_key, default_model FROM llm_endpoints "
+            "WHERE label = ? LIMIT 1",
+            (label,),
+        ).fetchone()
+        conn.close()
+        if row:
+            return {"base_url": row[0], "api_key": row[1], "default_model": row[2]}
+    except sqlite3.Error:
+        pass
+    return None
+
+
+def _load_first_openai_endpoint() -> dict | None:
+    """Return the oldest configured llm_endpoint — for single-endpoint users."""
+    import sqlite3
+    if not _LLM_ENDPOINTS_DB_PATH.exists():
+        return None
+    try:
+        conn = sqlite3.connect(str(_LLM_ENDPOINTS_DB_PATH))
+        row = conn.execute(
+            "SELECT base_url, api_key, default_model FROM llm_endpoints "
+            "ORDER BY created_at ASC LIMIT 1"
+        ).fetchone()
+        conn.close()
+        if row:
+            return {"base_url": row[0], "api_key": row[1], "default_model": row[2]}
+    except sqlite3.Error:
+        pass
+    return None
+
+
+def get_provider_extra_kwargs(provider_name: str, model: str) -> dict:
+    """Return additional kwargs to pass to ``get_provider`` for non-trivial providers.
+
+    For ``openai-compatible`` the provider needs ``base_url`` and ``api_key``
+    on top of the model name.  Resolution order:
+
+    1. ``openai:<label>:<model>`` — look up endpoint by label, use that model
+       (or the endpoint's default_model if no model specified).
+    2. ``openai:<model>`` (single colon) — use the first/only configured
+       endpoint with the given model name.
+    3. No DB row at all — fall back to env vars
+       (``OPENAI_COMPATIBLE_BASE_URL`` / ``OPENAI_COMPATIBLE_API_KEY`` /
+       ``OPENAI_API_KEY``) for power users without the UI.
+
+    Args:
+        provider_name: Canonical provider name from ``infer_provider_from_model``.
+        model: The original (possibly prefixed) model string.
+
+    Returns:
+        Dict of extra kwargs to spread into the ``get_provider`` call.
+    """
+    if provider_name != "openai-compatible":
+        return {}
+
+    stripped = strip_provider_prefix(model).strip()
+
+    # 1) "<label>:<model>" — disambiguate among multiple endpoints
+    if ":" in stripped:
+        label_part, model_part = stripped.split(":", 1)
+        endpoint = _load_openai_endpoint_by_label(label_part.strip())
+        if endpoint:
+            return {
+                "model": model_part.strip() or endpoint["default_model"],
+                "base_url": endpoint["base_url"],
+                "api_key": endpoint["api_key"],
+            }
+
+    # 2) Just a model name — use the first/only saved endpoint
+    endpoint = _load_first_openai_endpoint()
+    if endpoint:
+        return {
+            "model": stripped if stripped and stripped != "default"
+                                else endpoint["default_model"],
+            "base_url": endpoint["base_url"],
+            "api_key": endpoint["api_key"],
+        }
+
+    # 3) No DB row at all — env-var fallback for power users / CLI usage
+    base_url = (
+        os.environ.get("OPENAI_COMPATIBLE_BASE_URL", "").strip()
+        or "https://api.openai.com"
+    )
+    api_key = (
+        os.environ.get("OPENAI_COMPATIBLE_API_KEY", "").strip()
+        or os.environ.get("OPENAI_API_KEY", "").strip()
+        or None
+    )
+    return {
+        "model": stripped or "gpt-4o-mini",
+        "base_url": base_url,
+        "api_key": api_key,
+    }
+
+
 # Provider capabilities: which providers support agentic phases (file ops, code execution)
-PROVIDER_AGENTIC_SUPPORT = {"claude", "codex", "gemini", "ollama"}
+PROVIDER_AGENTIC_SUPPORT = {
+    "claude", "codex", "gemini", "ollama", "openai-compatible",
+}
 
 
 def validate_phase_provider(phase: Phase, model: str) -> tuple[bool, str]:

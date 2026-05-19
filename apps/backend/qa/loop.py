@@ -14,6 +14,7 @@ from debug import debug, debug_error, debug_section, debug_success, debug_warnin
 from phase_config import (
     get_phase_model,
     get_phase_thinking_budget,
+    get_provider_extra_kwargs,
     infer_provider_from_model,
 )
 from phase_event import ExecutionPhase, emit_phase
@@ -97,6 +98,17 @@ def _create_qa_reviewer_provider(
 
     if normalised in {"gemini", "gemini-cli", "google"}:
         return get_qa_llm_provider(provider_name, model=model, working_dir=project_dir)
+
+    # openai-compatible needs base_url + api_key from the saved llm_endpoint row.
+    # get_provider_extra_kwargs returns {model, base_url, api_key} which we
+    # spread into the constructor.
+    if normalised in {
+        "openai-compatible", "openai", "openai-api", "oai",
+        "lm-studio", "lmstudio", "vllm", "openrouter", "together",
+        "together-ai", "groq", "localai", "anyscale",
+    }:
+        extra = get_provider_extra_kwargs("openai-compatible", model)
+        return get_qa_llm_provider(provider_name, **extra)
 
     # ollama / local / unknown — pass model through so the user's selection
     # is honoured (e.g., "llama3.2" after prefix stripping).
@@ -201,11 +213,15 @@ async def run_qa_validation_loop(
                 max_thinking_tokens=fixer_thinking_budget,
             )
         else:
+            fixer_kwargs = {
+                "model": qa_model,
+                "working_dir": project_dir,
+                **get_provider_extra_kwargs(fixer_provider, qa_model),
+            }
             fix_client = get_provider(
                 fixer_provider,
                 phase="qa_fixer",
-                model=qa_model,
-                working_dir=project_dir,
+                **fixer_kwargs,
             )
 
         async with fix_client:
@@ -429,11 +445,15 @@ async def run_qa_validation_loop(
                     max_thinking_tokens=fixer_thinking_budget,
                 )
             else:
+                fixer_kwargs = {
+                    "model": fixer_model,
+                    "working_dir": project_dir,
+                    **get_provider_extra_kwargs(fixer_provider_name, fixer_model),
+                }
                 fix_client = get_provider(
                     fixer_provider_name,
                     phase="qa_fixer",
-                    model=fixer_model,
-                    working_dir=project_dir,
+                    **fixer_kwargs,
                 )
 
             async with fix_client:
