@@ -82,9 +82,17 @@ class TokenAuthMiddleware(BaseHTTPMiddleware):
         # Initialize user state to None for every request
         request.state.user = None
 
-        # Skip all auth when disabled (development mode)
+        # Skip all auth when disabled (development mode).
+        # Populate request.state.user with the default user so that routes
+        # using ``Depends(get_current_user)`` work too — the engine creates
+        # the "default" user row on startup when DISABLE_AUTH is set.
         settings = get_settings()
         if settings.DISABLE_AUTH:
+            request.state.user = {
+                "id": "default",
+                "email": "default@localhost",
+                "role": "admin",
+            }
             return await call_next(request)
 
         # Skip auth for public paths
