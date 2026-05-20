@@ -1,0 +1,123 @@
+name: Release
+
+# Auto-tag + GitHub release when package.json version changes on main.
+#
+# Workflow:
+#   1. Bump version on a feature/release branch: `node scripts/bump-version.js <version>`
+#   2. Add a matching `## <version>` section to CHANGELOG.md
+#   3. PR to main, merge
+#   4. This workflow:
+#      - Detects the version change vs the previous main commit
+#      - Validates CHANGELOG.md has a `## <version>` entry
+#      - Creates an annotated git tag `v<version>`
+#      - Creates a GitHub release with notes extracted from CHANGELOG.md
+#
+# If the merge doesn't bump the version, the job exits early (no-op).
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Tag + GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with parent commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect version bump
+        id: detect
+        run: |
+          NEW=$(jq -r '.version' package.json)
+          OLD=$(git show HEAD~1:package.json 2>/dev/null | jq -r '.version' 2>/dev/null || echo "")
+
+          if [ -z "$NEW" ] || [ "$NEW" = "null" ]; then
+            echo "::error::package.json has no version field"
+            exit 1
+          fi
+
+          echo "new=$NEW" >> "$GITHUB_OUTPUT"
+          echo "old=$OLD" >> "$GITHUB_OUTPUT"
+
+          if [ "$NEW" = "$OLD" ]; then
+            echo "Version unchanged ($NEW) — skipping release."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version bumped: ${OLD:-<none>} -> $NEW"
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate CHANGELOG entry
+        if: steps.detect.outputs.should_release == 'true'
+        run: |
+          V="${{ steps.detect.outputs.new }}"
+          ESCAPED="${V//./\\.}"
+          if ! grep -qE "^## ${ESCAPED}([[:space:]]|-|$)" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md is missing an entry for version $V."
+            echo "::error::Add a heading matching: '## $V' or '## $V - <date>'"
+            exit 1
+          fi
+          echo "CHANGELOG entry for $V found."
+
+      - name: Check tag doesn't already exist
+        if: steps.detect.outputs.should_release == 'true'
+        run: |
+          V="${{ steps.detect.outputs.new }}"
+          if git ls-remote --exit-code --tags origin "v$V" >/dev/null 2>&1; then
+            echo "::error::Tag v$V already exists on origin."
+            echo "::error::Bump the version again or delete the tag with: git push origin :refs/tags/v$V"
+            exit 1
+          fi
+          echo "Tag v$V is available."
+
+      - name: Extract changelog section
+        if: steps.detect.outputs.should_release == 'true'
+        run: |
+          V="${{ steps.detect.outputs.new }}"
+          awk -v v="$V" '
+            $0 ~ "^## " v "([[:space:]]|-|$)" { capture=1; next }
+            capture && /^## / { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+
+          # Trim leading/trailing blank lines
+          sed -i -e '/./,$!d' -e :a -e '/^\n*$/{$d;N;ba' -e '}' release-notes.md
+
+          if [ ! -s release-notes.md ]; then
+            echo "::error::Extracted release notes are empty. Check the section between '## $V' and the next '## ' heading."
+            exit 1
+          fi
+
+          echo "---- release-notes.md ----"
+          cat release-notes.md
+          echo "--------------------------"
+
+      - name: Create + push tag
+        if: steps.detect.outputs.should_release == 'true'
+        run: |
+          V="${{ steps.detect.outputs.new }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$V" -m "Release v$V"
+          git push origin "v$V"
+
+      - name: Create GitHub release
+        if: steps.detect.outputs.should_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V="${{ steps.detect.outputs.new }}"
+          gh release create "v$V" \
+            --title "v$V" \
+            --notes-file release-notes.md \
+            --verify-tag
