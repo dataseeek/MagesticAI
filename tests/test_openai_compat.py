@@ -8,8 +8,6 @@ Verifies:
      when the remote server is unavailable
   3. POST /settings/openai-compat/test returns {success: false, error: ...}
      when the remote server is not reachable
-  4. AppSettings validates qaLlmProvider='openai_compat' without error
-  5. qaOpenaiCompatBaseUrl and qaOpenaiCompatModel fields exist and default to None
 """
 
 import sys
@@ -284,84 +282,3 @@ class TestOpenAICompatConnectionTest:
         assert data.get("success") is False
 
 
-# ---------------------------------------------------------------------------
-# 4 & 5. AppSettings model — qaLlmProvider and openai_compat fields
-# ---------------------------------------------------------------------------
-
-
-class TestAppSettingsOpenAICompatFields:
-    """Verify AppSettings model supports openai_compat provider configuration."""
-
-    def _get_app_settings(self):
-        """Return the AppSettings class from the settings module."""
-        from server.routes.settings import AppSettings
-        return AppSettings
-
-    def test_qa_llm_provider_accepts_openai_compat(self):
-        """AppSettings must accept qaLlmProvider='openai_compat' without error."""
-        AppSettings = self._get_app_settings()
-
-        # Should not raise any validation error
-        settings = AppSettings(qaLlmProvider="openai_compat")
-        assert settings.qaLlmProvider == "openai_compat"
-
-    def test_qa_openai_compat_base_url_field_exists(self):
-        """AppSettings must have qaOpenaiCompatBaseUrl field."""
-        AppSettings = self._get_app_settings()
-        fields = AppSettings.model_fields
-        assert "qaOpenaiCompatBaseUrl" in fields, (
-            "AppSettings is missing qaOpenaiCompatBaseUrl field"
-        )
-
-    def test_qa_openai_compat_model_field_exists(self):
-        """AppSettings must have qaOpenaiCompatModel field."""
-        AppSettings = self._get_app_settings()
-        fields = AppSettings.model_fields
-        assert "qaOpenaiCompatModel" in fields, (
-            "AppSettings is missing qaOpenaiCompatModel field"
-        )
-
-    def test_qa_openai_compat_base_url_defaults_to_none(self):
-        """qaOpenaiCompatBaseUrl must default to None when not provided."""
-        AppSettings = self._get_app_settings()
-        settings = AppSettings()
-        assert settings.qaOpenaiCompatBaseUrl is None, (
-            f"Expected qaOpenaiCompatBaseUrl to default to None, "
-            f"got {settings.qaOpenaiCompatBaseUrl!r}"
-        )
-
-    def test_qa_openai_compat_model_defaults_to_none(self):
-        """qaOpenaiCompatModel must default to None when not provided."""
-        AppSettings = self._get_app_settings()
-        settings = AppSettings()
-        assert settings.qaOpenaiCompatModel is None, (
-            f"Expected qaOpenaiCompatModel to default to None, "
-            f"got {settings.qaOpenaiCompatModel!r}"
-        )
-
-    def test_qa_openai_compat_fields_accept_string_values(self):
-        """Both openai_compat fields must accept string values without error."""
-        AppSettings = self._get_app_settings()
-        settings = AppSettings(
-            qaLlmProvider="openai_compat",
-            qaOpenaiCompatBaseUrl="http://localhost:1234",
-            qaOpenaiCompatModel="mistral-7b-instruct",
-        )
-        assert settings.qaOpenaiCompatBaseUrl == "http://localhost:1234"
-        assert settings.qaOpenaiCompatModel == "mistral-7b-instruct"
-
-    def test_qa_llm_provider_invalid_value_falls_back_to_claude(self):
-        """Unknown qaLlmProvider values should silently fall back to 'claude'."""
-        AppSettings = self._get_app_settings()
-        settings = AppSettings(qaLlmProvider="unknown_provider")
-        assert settings.qaLlmProvider == "claude"
-
-    def test_qa_llm_provider_all_valid_values_accepted(self):
-        """All five known qaLlmProvider values must be accepted."""
-        AppSettings = self._get_app_settings()
-        for provider in ("claude", "codex", "gemini", "ollama", "openai_compat"):
-            settings = AppSettings(qaLlmProvider=provider)
-            assert settings.qaLlmProvider == provider, (
-                f"qaLlmProvider='{provider}' was not preserved — "
-                f"got {settings.qaLlmProvider!r}"
-            )

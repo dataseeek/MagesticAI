@@ -27,23 +27,14 @@
     },
     "llmProvider": {
       "title": "Provedores LLM",
-      "description": "LLMs locais, contas Claude e chaves de API",
-      "localLlms": {
-        "title": "LLMs Locais",
-        "description": "Conecte-se a modelos locais via Ollama",
-        "detect": "Detectar Provedores",
-        "detecting": "Detectando...",
-        "detectAgain": "Detectar Novamente",
-        "detected": "Detectado",
-        "notDetected": "Não detectado",
-        "models": "{{count}} modelos",
-        "customUrl": "URL Personalizada",
-        "provider": "Provedor",
-        "noProvidersDetected": "Nenhum provedor LLM local detectado. Inicie um provedor como Ollama e tente novamente."
+      "description": "Agentes na nuvem e endpoints compatíveis com OpenAI",
+      "cloudAgents": {
+        "title": "Agentes na Nuvem",
+        "description": "Logins de CLI do Claude / Codex / Gemini"
       },
-      "accounts": {
-        "title": "Contas Claude Code",
-        "description": "Gerencie perfis Claude e alternância automática de conta"
+      "openaiCompatible": {
+        "title": "Endpoints Compatíveis com OpenAI",
+        "description": "LM Studio, vLLM, Together, Groq, Ollama em :11434/v1, etc."
       },
       "apiKeys": {
         "title": "Chaves de API",
@@ -69,33 +60,6 @@
           "label": "Chave de API OpenRouter",
           "description": "Usada para gateway multi-modelo OpenRouter"
         }
-      },
-      "ollama": {
-        "baseUrl": "URL Base do Ollama",
-        "model": "Modelo",
-        "refreshModels": "Atualizar Modelos",
-        "downloadModel": "Baixar Modelo"
-      },
-      "testConnection": "Testar Conexão",
-      "qaProvider": {
-        "title": "Provedor LLM para QA",
-        "description": "Selecione o modelo de IA usado para executar sessões de revisão de QA",
-        "providerLabel": "Provedor",
-        "providerDescription": "Escolha qual LLM conduz as revisões de garantia de qualidade após cada build. Claude é o padrão.",
-        "cliNote": "Certifique-se de que a ferramenta CLI selecionada está instalada e autenticada nesta máquina antes de executar revisões de QA.",
-        "providers": {
-          "claude": "Claude (Anthropic)",
-          "codex": "Codex CLI (OpenAI)",
-          "gemini": "Gemini CLI (Google)",
-          "ollama": "Ollama (Local)",
-          "openai_compat": "Compatível com OpenAI"
-        },
-        "openaiCompatBaseUrlLabel": "URL Base",
-        "openaiCompatBaseUrlDescription": "URL do seu servidor compatível com OpenAI (ex.: LM Studio, LocalAI, vLLM). Padrão: URL base do provedor LLM configurado.",
-        "openaiCompatModelLabel": "Modelo",
-        "openaiCompatModelPlaceholder": "Selecione um modelo...",
-        "openaiCompatNoModels": "Nenhum modelo encontrado — verifique a URL base e o status do servidor",
-        "refreshModels": "Atualizar Modelos"
       }
     },
     "integrations": {

@@ -25,7 +25,6 @@ import { Switch } from '../../ui/switch';
 import { cn } from '../../../lib/utils';
 import { loadClaudeProfiles as loadGlobalClaudeProfiles } from '../../../stores/claude-profile-store';
 import { CLIAccountCard } from './CLIAccountCard';
-import { OpenAIEndpointsSection } from './OpenAIEndpointsSection';
 import type { ClaudeProfile, ClaudeAutoSwitchSettings, CLIAccountsDetectionResult } from '../../../shared/types';
 
 interface LLMAccountsSettingsProps {
@@ -788,7 +787,6 @@ export function LLMAccountsSettings({ isOpen }: LLMAccountsSettingsProps) {
           />
         </div>
       </div>
-      <OpenAIEndpointsSection isOpen={isOpen} />
     </div>
   );
 }

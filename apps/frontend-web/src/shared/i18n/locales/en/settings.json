@@ -27,23 +27,14 @@
     },
     "llmProvider": {
       "title": "LLM Providers",
-      "description": "Local LLMs, Claude accounts, and API keys",
-      "localLlms": {
-        "title": "Local LLMs",
-        "description": "Connect to locally running models via Ollama",
-        "detect": "Detect Providers",
-        "detecting": "Detecting...",
-        "detectAgain": "Detect Again",
-        "detected": "Detected",
-        "notDetected": "Not detected",
-        "models": "{{count}} models",
-        "customUrl": "Custom URL",
-        "provider": "Provider",
-        "noProvidersDetected": "No local LLM providers detected. Start a provider like Ollama and try again."
+      "description": "Cloud agents and OpenAI-compatible endpoints",
+      "cloudAgents": {
+        "title": "Cloud Agents",
+        "description": "Claude / Codex / Gemini CLI logins"
       },
-      "accounts": {
-        "title": "Claude Code Accounts",
-        "description": "Manage Claude profiles and automatic account switching"
+      "openaiCompatible": {
+        "title": "OpenAI-Compatible Endpoints",
+        "description": "LM Studio, vLLM, Together, Groq, Ollama at :11434/v1, etc."
       },
       "apiKeys": {
         "title": "API Keys",
@@ -69,33 +60,6 @@
           "label": "OpenRouter API Key",
           "description": "Used for OpenRouter multi-model gateway"
         }
-      },
-      "ollama": {
-        "baseUrl": "Ollama Base URL",
-        "model": "Model",
-        "refreshModels": "Refresh Models",
-        "downloadModel": "Download Model"
-      },
-      "testConnection": "Test Connection",
-      "qaProvider": {
-        "title": "QA LLM Provider",
-        "description": "Select the AI model used to run QA review sessions",
-        "providerLabel": "Provider",
-        "providerDescription": "Choose which LLM drives quality-assurance reviews after each build. Claude is the default.",
-        "cliNote": "Ensure the selected CLI tool is installed and authenticated on this machine before running QA reviews.",
-        "providers": {
-          "claude": "Claude (Anthropic)",
-          "codex": "Codex CLI (OpenAI)",
-          "gemini": "Gemini CLI (Google)",
-          "ollama": "Ollama (Local)",
-          "openai_compat": "OpenAI Compatible"
-        },
-        "openaiCompatBaseUrlLabel": "Base URL",
-        "openaiCompatBaseUrlDescription": "URL of your OpenAI-compatible server (e.g., LM Studio, LocalAI, vLLM). Defaults to your configured LLM provider base URL.",
-        "openaiCompatModelLabel": "Model",
-        "openaiCompatModelPlaceholder": "Select a model...",
-        "openaiCompatNoModels": "No models found — check base URL and server status",
-        "refreshModels": "Refresh Models"
       }
     },
     "integrations": {

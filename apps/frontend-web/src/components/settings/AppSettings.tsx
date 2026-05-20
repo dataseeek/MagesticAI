@@ -160,7 +160,7 @@ export function AppSettingsDialog({ open, onOpenChange, initialSection, initialP
       case 'agent':
         return <GeneralSettings settings={settings} onSettingsChange={setSettings} section="agent" />;
       case 'llmProvider':
-        return <LLMProvidersPage settings={settings} onSettingsChange={setSettings} isOpen={open} />;
+        return <LLMProvidersPage isOpen={open} />;
       case 'integrations':
         return <IntegrationSettings settings={settings} onSettingsChange={setSettings} />;
       case 'notifications':
