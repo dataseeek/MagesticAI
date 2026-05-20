@@ -11,7 +11,7 @@ import { apiRequest } from '../../lib/api-client';
 // ============================================
 
 export const AVAILABLE_MODELS = [
-  { value: 'opus', label: 'Claude Opus 4.6' },
+  { value: 'opus', label: 'Claude Opus 4.7' },
   { value: 'sonnet', label: 'Claude Sonnet 4.6' },
   { value: 'haiku', label: 'Claude Haiku 4.5' }
 ] as const;
@@ -20,18 +20,18 @@ export const AVAILABLE_MODELS = [
 // The provider is inferred from the model ID on the backend, so no separate
 // provider setting is needed per phase.
 export const ALL_AVAILABLE_MODELS = [
-  { value: 'opus', label: 'Claude Opus 4.6' },
+  { value: 'opus', label: 'Claude Opus 4.7' },
   { value: 'sonnet', label: 'Claude Sonnet 4.6' },
   { value: 'haiku', label: 'Claude Haiku 4.5' },
+  { value: 'gpt-5.5', label: 'GPT-5.5' },
   { value: 'gpt-5.4', label: 'GPT-5.4' },
   { value: 'gpt-5.4-mini', label: 'GPT-5.4 Mini' },
+  { value: 'gpt-5.4-nano', label: 'GPT-5.4 Nano' },
   { value: 'gpt-5.3-codex', label: 'Codex — GPT-5.3' },
-  { value: 'gpt-5.2-codex', label: 'Codex — GPT-5.2' },
-  { value: 'gpt-5.1-codex-max', label: 'Codex — GPT-5.1 Max' },
-  { value: 'gpt-5.1-codex-mini', label: 'Codex — GPT-5.1 Mini' },
   { value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
-  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
   { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { value: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
+  { value: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
   { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
 ] as const;
 
@@ -114,7 +114,7 @@ export async function fetchOpenAICompatibleModels(baseUrl?: string): Promise<{ v
 
 // Maps model shorthand to actual Claude model IDs
 export const MODEL_ID_MAP: Record<string, string> = {
-  opus: 'claude-opus-4-6',
+  opus: 'claude-opus-4-7',
   sonnet: 'claude-sonnet-4-6',
   haiku: 'claude-haiku-4-5-20251001'
 } as const;
@@ -256,23 +256,23 @@ import type { InsightsProvider } from '../types/insights';
 
 export const PROVIDER_MODELS: Record<string, { id: string; label: string }[]> = {
   claude: [
-    { id: 'opus', label: 'Claude Opus 4.6' },
+    { id: 'opus', label: 'Claude Opus 4.7' },
     { id: 'sonnet', label: 'Claude Sonnet 4.6' },
     { id: 'haiku', label: 'Claude Haiku 4.5' },
   ],
   codex: [
+    { id: 'gpt-5.5', label: 'GPT-5.5' },
     { id: 'gpt-5.4', label: 'GPT-5.4' },
     { id: 'gpt-5.4-mini', label: 'GPT-5.4 Mini' },
+    { id: 'gpt-5.4-nano', label: 'GPT-5.4 Nano' },
     { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
-    { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
-    { id: 'gpt-5.1-codex-max', label: 'GPT-5.1 Codex Max' },
-    { id: 'gpt-5.1-codex-mini', label: 'GPT-5.1 Codex Mini' },
   ],
   gemini: [
     { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (Preview)' },
-    { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (Preview)' },
-    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
     { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+    { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
+    { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
+    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
   ],
   ollama: [],         // Dynamic — populated from detection
   lmstudio: [],       // Dynamic
