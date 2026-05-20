@@ -11,6 +11,7 @@ from .models import (
     AuditLog,
     Base,
     EmailAccount,
+    LLMEndpoint,
     Organization,
     OrgMember,
     Project,
@@ -32,4 +33,5 @@ __all__ = [
     "ApiKey",
     "AuditLog",
     "EmailAccount",
+    "LLMEndpoint",
 ]

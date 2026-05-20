@@ -12,6 +12,7 @@ from core.client import create_client
 from phase_config import (
     get_phase_model,
     get_phase_thinking_budget,
+    get_provider_extra_kwargs,
     infer_provider_from_model,
 )
 from phase_event import ExecutionPhase, emit_phase
@@ -109,11 +110,15 @@ async def run_followup_planner(
             max_thinking_tokens=planning_thinking_budget,
         )
     else:
+        provider_kwargs = {
+            "model": planning_model,
+            "working_dir": project_dir,
+            **get_provider_extra_kwargs(provider_name, planning_model),
+        }
         client = get_provider(
             provider_name,
             phase="planning",
-            model=planning_model,
-            working_dir=project_dir,
+            **provider_kwargs,
         )
 
     # Generate follow-up planner prompt

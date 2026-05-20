@@ -65,6 +65,23 @@ _A quick walkthrough of the Kanban board, task creation flow, and agent executio
 
 ---
 
+## How does it compare?
+
+MagesticAI sits next to two open-source projects with overlapping goals but very different shapes:
+
+|  | [Spec Kit](https://github.com/github/spec-kit) | [Compozy](https://github.com/compozy/compozy) | **MagesticAI** |
+|---|---|---|---|
+| **Primary interface** | CLI (`specify`) | CLI / single Go binary | Browser UI |
+| **Generates specs** | Yes — its core purpose | Partial — workflow artifacts | Yes — multi-agent spec authoring (3–8 stages, auto-scaled by complexity) |
+| **Executes the spec** | No — hands off to your external agent (Copilot / Claude Code / Cursor) | Orchestrates external agents via the ACP protocol | Yes — built-in Planner / Coder / QA Reviewer / QA Fixer |
+| **Task isolation** | None | Workflow state in a daemon | Git worktree per task |
+| **LLM provider model** | Inherited from whatever agent you hand off to | Inherited from the agent it orchestrates | Direct multi-provider: Claude, Codex CLI, Gemini, Ollama, any OpenAI-compatible endpoint |
+| **License** | MIT | MIT | AGPL-3.0 |
+
+**The short version:** Spec Kit is great for authoring specs you'll execute with an existing agent. Compozy is great if you want a terminal-first multi-agent runner driving external agents. MagesticAI is the one to pick if you want the full spec → plan → code → QA loop in one self-hosted browser app, with first-class support for local and OpenAI-compatible LLMs.
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -313,6 +330,58 @@ VITE_API_BASE_URL=/api
 VITE_WS_BASE_URL=ws://localhost:3101
 ```
 
+### OpenAI-Compatible Endpoints
+
+MagesticAI can talk to any service that implements the OpenAI
+`POST /v1/chat/completions` protocol: **LM Studio, vLLM, OpenRouter,
+Together AI, Groq, LocalAI**, and OpenAI itself.
+
+**1. Add the endpoint in the UI**
+Open Settings → LLM Accounts → "OpenAI-Compatible Endpoints" → "Add endpoint".
+Fill in:
+- *Label* (e.g. `LM Studio local`)
+- *Base URL* (e.g. `http://localhost:1234` — without the `/v1` suffix)
+- *API key* (leave blank for local servers like LM Studio that don't need one)
+- *Default model* (e.g. `qwen2.5-coder-32b-instruct`)
+
+Use the "Test" button to confirm the server is reachable.
+
+**2. Select it for a task**
+Prefix the model name with `openai:` or `openai-compatible:`:
+
+| Model string                                  | What happens                                    |
+|-----------------------------------------------|--------------------------------------------------|
+| `openai:`                                     | Use the first saved endpoint + its default model |
+| `openai:qwen/qwen3-14b`                       | Use the first saved endpoint with this model     |
+| `openai-compatible:LM studio .11:qwen3-14b`   | Use the endpoint labelled "LM studio .11"        |
+
+The backend reads ``base_url`` and ``api_key`` directly from the
+``llm_endpoints`` table in ``~/.magestic-ai/data.db`` — same row the
+Settings UI writes when you click Create.
+
+For power users without the UI, the env vars
+``OPENAI_COMPATIBLE_BASE_URL`` and ``OPENAI_COMPATIBLE_API_KEY`` (or
+``OPENAI_API_KEY``) act as a fallback when no DB row exists.
+
+**Model size matters.** Smaller local models (under ~30B parameters)
+can call tools and write files, but they sometimes drift from the
+exact JSON schemas MagesticAI expects (`spec.md`,
+`implementation_plan.json`, `qa_report.md`, etc.). When that happens
+the build pipeline has a built-in retry loop that feeds the
+validation error back to the model and asks it to fix the file —
+but small models don't always recover, and a corrupted spec can fail
+the whole task. For reliable end-to-end runs, prefer one of:
+
+- **Larger local models**: `qwen2.5-coder-32b-instruct`,
+  `llama-3.3-70b-instruct`, `deepseek-coder-v2:33b`
+- **Hosted endpoints via OpenRouter / Together / Groq**: any
+  GPT-4-class or Claude-class model
+- **Test small models on a throwaway task first** before committing
+  to a multi-hour build
+
+Tool-call protocol support also varies — make sure your chosen model
+is one LM Studio / vLLM advertises as supporting OpenAI tool calling.
+
 ---
 
 ## API Endpoints
@@ -425,3 +494,13 @@ MagesticAI is a fork of [Aperant](https://github.com/AndyMik90/Aperant) (formerl
 ---
 
 **Made with AI by DataSeek Team**
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=dataseeek%2FMagesticAI&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=dataseeek/MagesticAI&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=dataseeek/MagesticAI&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=dataseeek/MagesticAI&type=date&legend=top-left" />
+ </picture>
+</a>

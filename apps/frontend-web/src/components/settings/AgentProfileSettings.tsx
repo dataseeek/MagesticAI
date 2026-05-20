@@ -8,7 +8,8 @@ import {
   THINKING_LEVELS,
   DEFAULT_PHASE_MODELS,
   DEFAULT_PHASE_THINKING,
-  fetchOllamaModels
+  fetchOllamaModels,
+  fetchOpenAIEndpointModels
 } from '../../shared/constants';
 import { useSettingsStore, saveSettings } from '../../stores/settings-store';
 import { SettingsSection } from './SettingsSection';
@@ -46,9 +47,11 @@ export function AgentProfileSettings() {
   const selectedProfileId = settings.selectedAgentProfile || 'auto';
   const [showPhaseConfig, setShowPhaseConfig] = useState(selectedProfileId === 'auto');
   const [ollamaModels, setOllamaModels] = useState<{ value: string; label: string }[]>([]);
+  const [openaiEndpointModels, setOpenaiEndpointModels] = useState<{ value: string; label: string }[]>([]);
 
   useEffect(() => {
     fetchOllamaModels().then(setOllamaModels);
+    fetchOpenAIEndpointModels().then(setOpenaiEndpointModels);
   }, []);
 
   // Get current phase config from settings or defaults
@@ -258,7 +261,7 @@ export function AgentProfileSettings() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {[...ALL_AVAILABLE_MODELS, ...ollamaModels].map((m) => (
+                              {[...ALL_AVAILABLE_MODELS, ...ollamaModels, ...openaiEndpointModels].map((m) => (
                                 <SelectItem key={m.value} value={m.value}>
                                   {m.label}
                                 </SelectItem>

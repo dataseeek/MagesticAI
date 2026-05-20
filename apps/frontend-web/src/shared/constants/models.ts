@@ -52,6 +52,48 @@ export async function fetchOllamaModels(): Promise<{ value: string; label: strin
   return [];
 }
 
+// Fetch the user's saved OpenAI-compatible endpoints (LM Studio, vLLM, etc.)
+// and surface each endpoint's default_model as a picker entry.
+// Embedding models are skipped — they can't drive generative/code tasks.
+const EMBEDDING_PATTERNS = [
+  /embed/i,
+  /^text-embedding/i,
+  /-embedding(-|$)/i,
+  /nomic-embed/i,
+  /bge-/i,
+  /e5-/i,
+  /gte-/i,
+];
+
+export function isEmbeddingModel(modelName: string): boolean {
+  return EMBEDDING_PATTERNS.some((re) => re.test(modelName));
+}
+
+interface OpenAIEndpointSummary {
+  id: string;
+  label: string;
+  default_model: string;
+}
+
+export async function fetchOpenAIEndpointModels(): Promise<
+  { value: string; label: string }[]
+> {
+  try {
+    const result = await apiRequest<OpenAIEndpointSummary[]>('/llm-endpoints');
+    if (result.success && result.data) {
+      return result.data
+        .filter((e) => e.default_model && !isEmbeddingModel(e.default_model))
+        .map((e) => ({
+          // Backend reads "openai-compatible:<label>:<model>" — see
+          // apps/backend/phase_config.get_provider_extra_kwargs().
+          value: `openai-compatible:${e.label}:${e.default_model}`,
+          label: `${e.label} — ${e.default_model}`,
+        }));
+    }
+  } catch { /* No endpoints configured */ }
+  return [];
+}
+
 // Backward compatibility alias
 export const fetchOllamaQAModels = fetchOllamaModels;
 

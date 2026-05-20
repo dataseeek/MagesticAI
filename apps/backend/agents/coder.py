@@ -14,6 +14,7 @@ from core.client import create_client
 from phase_config import (
     get_phase_model,
     get_phase_thinking_budget,
+    get_provider_extra_kwargs,
     infer_provider_from_model,
 )
 from phase_event import ExecutionPhase, emit_phase
@@ -251,11 +252,15 @@ async def run_autonomous_agent(
             )
         else:
             # Use agentic provider for non-Claude models
+            provider_kwargs = {
+                "model": phase_model,
+                "working_dir": project_dir,
+                **get_provider_extra_kwargs(provider_name, phase_model),
+            }
             client = get_provider(
                 provider_name,
                 phase=current_phase,
-                model=phase_model,
-                working_dir=project_dir,
+                **provider_kwargs,
             )
 
         # Generate appropriate prompt

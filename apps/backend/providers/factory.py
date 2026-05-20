@@ -50,17 +50,19 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _AGENTIC_REGISTRY: dict[str, tuple[str, str]] = {
-    "claude":  ("providers.claude",          "ClaudeProvider"),
-    "codex":   ("providers.codex_agentic",   "CodexAgenticProvider"),
-    "gemini":  ("providers.gemini_agentic",  "GeminiAgenticProvider"),
-    "ollama":  ("providers.ollama_agentic",  "OllamaAgenticProvider"),
+    "claude":             ("providers.claude",                       "ClaudeProvider"),
+    "codex":              ("providers.codex_agentic",                "CodexAgenticProvider"),
+    "gemini":             ("providers.gemini_agentic",               "GeminiAgenticProvider"),
+    "ollama":             ("providers.ollama_agentic",               "OllamaAgenticProvider"),
+    "openai-compatible":  ("providers.openai_compatible_agentic",    "OpenAICompatibleAgenticProvider"),
 }
 
 _TEXT_REGISTRY: dict[str, tuple[str, str]] = {
-    "claude":  ("providers.claude",    "ClaudeProvider"),
-    "codex":   ("providers.codex",     "CodexCLIProvider"),
-    "gemini":  ("providers.gemini",    "GeminiCLIProvider"),
-    "ollama":  ("providers.ollama",    "OllamaProvider"),
+    "claude":             ("providers.claude",               "ClaudeProvider"),
+    "codex":              ("providers.codex",                "CodexCLIProvider"),
+    "gemini":             ("providers.gemini",               "GeminiCLIProvider"),
+    "ollama":             ("providers.ollama",               "OllamaProvider"),
+    "openai-compatible":  ("providers.openai_compatible",    "OpenAICompatibleProvider"),
 }
 
 # Phases that need agentic capability (file ops, code execution)
@@ -82,6 +84,20 @@ _PROVIDER_ALIASES: dict[str, str] = {
     "ollama": "ollama",
     "local": "ollama",
     "local-ollama": "ollama",
+    # OpenAI-compatible endpoints (LM Studio, vLLM, OpenRouter, Together, Groq, ...)
+    "openai": "openai-compatible",
+    "openai-api": "openai-compatible",
+    "openai-compatible": "openai-compatible",
+    "oai": "openai-compatible",
+    "lm-studio": "openai-compatible",
+    "lmstudio": "openai-compatible",
+    "vllm": "openai-compatible",
+    "openrouter": "openai-compatible",
+    "together": "openai-compatible",
+    "together-ai": "openai-compatible",
+    "groq": "openai-compatible",
+    "localai": "openai-compatible",
+    "anyscale": "openai-compatible",
 }
 
 

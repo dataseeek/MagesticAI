@@ -337,10 +337,11 @@ class TestListProviders:
         providers = list_providers()
         assert providers == sorted(providers)
 
-    def test_has_four_providers(self):
-        """There are exactly four canonical providers."""
-        assert len(list_providers()) == 4
-        assert set(list_providers()) == {"claude", "codex", "gemini", "ollama"}
+    def test_has_expected_providers(self):
+        """All canonical providers are registered."""
+        assert set(list_providers()) == {
+            "claude", "codex", "gemini", "ollama", "openai-compatible",
+        }
 
 
 class TestListProviderAliases:

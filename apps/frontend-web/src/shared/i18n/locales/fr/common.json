@@ -287,5 +287,6 @@
     "done": "Terminé",
     "failedLabel": "Échoué",
     "starting": "Démarrage..."
-  }
+  },
+  "lastChecked": "Dernière vérification"
 }

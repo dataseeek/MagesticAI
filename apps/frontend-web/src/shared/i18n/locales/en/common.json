@@ -287,5 +287,6 @@
     "done": "Done",
     "failedLabel": "Failed",
     "starting": "Starting..."
-  }
+  },
+  "lastChecked": "Last checked"
 }

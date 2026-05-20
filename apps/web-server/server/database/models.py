@@ -356,6 +356,47 @@ class EmailAccount(Base):
 
 
 # ---------------------------------------------------------------------------
+# LLM Endpoints (OpenAI-compatible user-defined endpoints)
+# ---------------------------------------------------------------------------
+
+
+class LLMEndpoint(Base):
+    """User-defined OpenAI-compatible LLM endpoint (LM Studio, vLLM, OpenRouter, etc.)."""
+
+    __tablename__ = "llm_endpoints"
+    __table_args__ = (
+        UniqueConstraint("user_id", "label", name="uq_llm_endpoints_user_label"),
+        Index("ix_llm_endpoints_user_id", "user_id"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=_generate_uuid
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=False
+    )
+    label: Mapped[str] = mapped_column(String(255), nullable=False)
+    base_url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    api_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    default_model: Mapped[str] = mapped_column(String(255), nullable=False)
+    headers_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+
+    def __repr__(self) -> str:
+        return (
+            f"<LLMEndpoint id={self.id!r} label={self.label!r} "
+            f"base_url={self.base_url!r}>"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Audit Logs
 # ---------------------------------------------------------------------------
 

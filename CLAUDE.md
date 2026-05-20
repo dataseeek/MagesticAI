@@ -11,7 +11,15 @@ MagesticAI is a web-based AI task management and agent orchestration platform th
 **Author:** DataSeek Team
 **License:** AGPL-3.0
 
-**CRITICAL: All AI interactions use the Claude Agent SDK (`claude-agent-sdk` package), NOT the Anthropic API directly.**
+**LLM provider abstraction:** MagesticAI uses the Claude Agent SDK
+(`claude-agent-sdk`) as its primary provider, but also supports Codex CLI,
+Gemini CLI, Ollama, and any OpenAI-compatible endpoint (LM Studio, vLLM,
+OpenRouter, Together, Groq, LocalAI) via the provider factory in
+`apps/backend/providers/`. Provider selection is driven by the model string —
+see `phase_config.infer_provider_from_model()`. Never call
+`anthropic.Anthropic()` directly; route Claude interactions through
+`core.client.create_client()` and other providers through
+`providers.factory.get_provider()`.
 
 ## Project Structure
 
@@ -264,16 +272,22 @@ main (user's branch)
 
 ### Contributing
 
+**Branching model:** `dev` is the working branch — that's where feature
+work and PRs go. `main` is a release branch that only receives
+promotion merges from `dev` (the `release:` commits you see on `main`).
+Do NOT branch new feature work from `main` — always branch from
+`origin/dev`.
+
 **Workflow for contributions:**
-1. Create feature branch from develop: `git checkout -b fix/my-fix develop`
-2. Make changes and commit with sign-off: `git commit -s -m "fix: description"`
-3. Push to your branch: `git push origin fix/my-fix`
-4. Create PR targeting `develop`: `gh pr create --base develop`
+1. Fetch and branch from `dev`: `git fetch origin && git checkout -b feat/my-feature origin/dev`
+2. Make changes and commit with sign-off: `git commit -s -m "feat: description"`
+3. Push to your branch: `git push -u origin feat/my-feature`
+4. Create PR targeting `dev`: `gh pr create --base dev`
 
 **Verify before PR:**
 ```bash
 # Ensure only your commits are included
-git log --oneline origin/develop..HEAD
+git log --oneline origin/dev..HEAD
 ```
 
 ### Security Model

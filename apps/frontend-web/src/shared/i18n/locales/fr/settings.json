@@ -42,7 +42,7 @@
         "noProvidersDetected": "Aucun fournisseur LLM local détecté. Démarrez un fournisseur comme Ollama et réessayez."
       },
       "accounts": {
-        "title": "Comptes LLM",
+        "title": "Comptes Claude Code",
         "description": "Gérer les profils Claude et le basculement automatique de compte"
       },
       "apiKeys": {
@@ -558,5 +558,31 @@
       "devops": "DevOps",
       "communication": "Communication"
     }
+  },
+  "openaiEndpoints": {
+    "title": "Points d'accès compatibles OpenAI",
+    "description": "Connectez-vous à LM Studio, vLLM, OpenRouter, Together, Groq ou tout autre service implémentant le protocole OpenAI /v1/chat/completions.",
+    "add": "Ajouter un point d'accès",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "save": "Enregistrer",
+    "create": "Créer",
+    "cancel": "Annuler",
+    "test": "Tester",
+    "label": "Libellé",
+    "baseUrl": "URL de base",
+    "baseUrlHint": "Sans le suffixe /v1 — nous l'ajoutons automatiquement.",
+    "apiKey": "Clé API",
+    "apiKeyOptional": "(facultatif)",
+    "apiKeyEditPlaceholder": "Laisser vide pour conserver la clé existante",
+    "defaultModel": "Modèle par défaut",
+    "loading": "Chargement des points d'accès…",
+    "empty": "Aucun point d'accès pour l'instant. Cliquez sur « Ajouter un point d'accès » pour en connecter un.",
+    "confirmDelete": "Supprimer ce point d'accès ?",
+    "testSuccess": "Connexion réussie",
+    "testFailed": "Échec de la connexion",
+    "modelsFound": "{{count}} modèles",
+    "modelsHint": "{{count}} modèles détectés — cliquez sur le champ ou commencez à taper pour en choisir un.",
+    "unprobed": "Pas encore testé"
   }
 }
