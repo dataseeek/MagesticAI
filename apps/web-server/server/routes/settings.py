@@ -38,6 +38,7 @@ QaLlmProviderType = Literal["claude", "codex", "gemini", "ollama"]
 from ..config import get_settings
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 # --------------------------------------------------------------------------
