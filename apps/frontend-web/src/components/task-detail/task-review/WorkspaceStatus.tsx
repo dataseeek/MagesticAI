@@ -520,7 +520,7 @@ export function WorkspaceStatus({
                 <span className="text-xs font-medium text-foreground">
                   {mergeStep === 'resolving_uncommitted' && 'Resolving uncommitted conflicts...'}
                   {mergeStep === 'resolving_git_conflicts' && 'Resolving git merge conflicts...'}
-                  {mergeStep === 'merging' && 'Merging to main...'}
+                  {mergeStep === 'merging' && `Merging to ${worktreeStatus.baseBranch || 'main'}...`}
                 </span>
                 {workspaceError && onAbortMerge && (
                   <Button
@@ -590,7 +590,7 @@ export function WorkspaceStatus({
                   <GitMerge className="mr-2 h-4 w-4" />
                   {hasGitConflicts || isBranchBehind || hasPathMappedMerges
                     ? (stageOnly ? 'Stage with AI Merge' : 'Merge with AI')
-                    : (stageOnly ? 'Stage Changes' : 'Merge to Main')}
+                    : (stageOnly ? 'Stage Changes' : `Merge to ${worktreeStatus.baseBranch || 'main'}`)}
                 </>
               )}
             </Button>
