@@ -239,7 +239,7 @@ See [RELEASE.md](RELEASE.md) for detailed release process documentation.
 
 ### Spec Directory Structure
 
-Each spec in `.auto-claude/specs/XXX-name/` contains:
+Each spec in `.magestic-ai/specs/XXX-name/` contains:
 - `spec.md` - Feature specification
 - `requirements.json` - Structured user requirements
 - `context.json` - Discovered codebase context
@@ -297,7 +297,7 @@ Three-layer defense:
 2. **Filesystem Permissions** - Operations restricted to project directory
 3. **Command Allowlist** - Dynamic allowlist from project analysis (security.py + project_analyzer.py)
 
-Security profile cached in `.auto-claude-security.json`.
+Security profile cached in `.magestic-ai-security.json`.
 
 ### Claude Agent SDK Integration
 
@@ -366,7 +366,7 @@ MagesticAI uses Graphiti as its primary memory system with embedded LadybugDB (n
 **Configuration:**
 - Set provider credentials in `apps/backend/.env` (see `.env.example`)
 - Required env vars: `GRAPHITI_ENABLED=true`, `ANTHROPIC_API_KEY` or other provider keys
-- Memory data stored in `.auto-claude/specs/XXX/graphiti/`
+- Memory data stored in `.magestic-ai/specs/XXX/graphiti/`
 
 **Usage in agents:**
 ```python
@@ -562,7 +562,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python -m server.main
-# Note: Token is printed to console and saved to ~/.auto-claude-web/.token
+# Note: Token is printed to console and saved to ~/.magestic-ai/.token
 
 # Terminal 2: Start the frontend dev server
 cd apps/frontend-web
@@ -613,7 +613,7 @@ See `apps/web-server/README.md` and `apps/frontend-web/README.md` for detailed d
 | "Claude Code not installed" | Hard refresh browser (`Ctrl+Shift+R`) |
 | UI blocked/frozen | Check browser console for errors, restart servers |
 | Can't add projects | Use project discovery dropdown or enter custom path |
-| API errors | Verify token in `~/.auto-claude-web/.token` |
+| API errors | Verify token in `~/.magestic-ai/.token` |
 | Git Repository Required keeps appearing | Click "Skip for now" or initialize git; state persists in localStorage |
 | Usage shows NaN | Backend reads stats from `~/.claude/stats-cache.json` |
 | New Task button not working | Ensure TaskCreationWizard is imported in App.tsx |
@@ -668,8 +668,8 @@ See `apps/web-server/README.md` and `apps/frontend-web/README.md` for detailed d
 - Cache loaded children in component state to avoid refetching
 
 **Worktree File Synchronization:**
-- Agent writes files to worktree: `.auto-claude/worktrees/tasks/{spec-id}/.auto-claude/specs/{spec-id}/`
-- Frontend reads from main spec: `.auto-claude/specs/{spec-id}/`
+- Agent writes files to worktree: `.magestic-ai/worktrees/tasks/{spec-id}/.magestic-ai/specs/{spec-id}/`
+- Frontend reads from main spec: `.magestic-ai/specs/{spec-id}/`
 - `agent_service.py` syncs files every 3 seconds during task execution (`_sync_worktree_files()` method)
 - Synced files: `implementation_plan.json`, `build-progress.txt`, `context.json`, `qa_report.md`, `spec.md`, `requirements.json`
 - Final sync occurs when task completes
@@ -719,5 +719,5 @@ cd apps/frontend-web && npm run dev
 ```
 
 **Project data storage:**
-- `.auto-claude/specs/` - Per-project data (specs, plans, QA reports, memory) - gitignored
-- `~/.auto-claude-web/` - Web interface data (projects, settings, token) - for web UI only
+- `.magestic-ai/specs/` - Per-project data (specs, plans, QA reports, memory) - gitignored
+- `~/.magestic-ai/` - Web interface data (projects, settings, token) - for web UI only
