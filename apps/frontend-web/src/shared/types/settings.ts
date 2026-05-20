@@ -184,11 +184,12 @@ export interface PhaseThinkingConfig {
 }
 
 // Feature-specific model configuration (for non-pipeline features)
+// Uses string to support any provider-prefixed model ID (Claude shorthands, Ollama, OpenAI-compat, etc.)
 export interface FeatureModelConfig {
-  insights: ModelTypeShort;    // Insights chat feature
-  githubIssues: ModelTypeShort; // GitHub Issues automation
-  githubPrs: ModelTypeShort;    // GitHub PR review automation
-  utility: ModelTypeShort;      // Utility agents (commit message, merge resolver)
+  insights: string;    // Insights chat feature
+  githubIssues: string; // GitHub Issues automation
+  githubPrs: string;    // GitHub PR review automation
+  utility: string;      // Utility agents (commit message, merge resolver)
 }
 
 // Feature-specific thinking level configuration
@@ -204,13 +205,15 @@ export interface AgentProfile {
   id: string;
   name: string;
   description: string;
-  model: ModelTypeShort;
+  model: string;  // Any provider-prefixed model ID (e.g. 'opus', 'gpt-5.4', 'ollama:llama3', 'openai_compat:my-model')
   thinkingLevel: ThinkingLevel;
   icon?: string;  // Lucide icon name
   // Auto profile specific - per-phase configuration
   isAutoProfile?: boolean;
   phaseModels?: PhaseModelConfig;
   phaseThinking?: PhaseThinkingConfig;
+  // Custom profile specific - user selects their own model
+  isCustomProfile?: boolean;
 }
 
 export interface AppSettings {
@@ -249,7 +252,9 @@ export interface AppSettings {
   llmOpenaiModel?: string;
   llmOpenaiBaseUrl?: string;
   // QA LLM Provider (which LLM drives QA review sessions)
-  qaLlmProvider?: 'claude' | 'codex' | 'gemini' | 'ollama';
+  qaLlmProvider?: 'claude' | 'codex' | 'gemini' | 'ollama' | 'openai_compat';
+  qaOpenaiCompatBaseUrl?: string;
+  qaOpenaiCompatModel?: string;
   // Onboarding wizard completion state
   onboardingCompleted?: boolean;
   // Selected agent profile for preset model/thinking configurations

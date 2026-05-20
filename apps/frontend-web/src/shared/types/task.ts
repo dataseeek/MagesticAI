@@ -168,7 +168,8 @@ export type TaskImpact = 'low' | 'medium' | 'high' | 'critical';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 // Re-export ThinkingLevel (defined in settings.ts) for convenience
 export type { ThinkingLevel };
-export type ModelType = 'haiku' | 'sonnet' | 'opus';
+// Broadened to string to support provider-prefixed model IDs (e.g. 'ollama:llama3', 'openai_compat:mistral-7b')
+export type ModelType = string;
 export type TaskCategory =
   | 'feature'
   | 'bug_fix'
@@ -223,7 +224,7 @@ export interface TaskMetadata {
   requireReviewBeforeCoding?: boolean;  // Require human review of spec/plan before coding starts
 
   // Agent configuration (from agent profile or manual selection)
-  model?: ModelType;  // Claude model to use (haiku, sonnet, opus) - used when not auto profile
+  model?: ModelType;  // Model to use (e.g. 'opus', 'ollama:llama3', 'openai_compat:mistral-7b') - used when not auto profile
   thinkingLevel?: ThinkingLevel;  // Thinking budget level (none, low, medium, high, max)
   // Auto profile - per-phase model configuration
   isAutoProfile?: boolean;  // True when using Auto (Optimized) profile

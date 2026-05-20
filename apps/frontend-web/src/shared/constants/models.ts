@@ -97,6 +97,21 @@ export async function fetchOpenAIEndpointModels(): Promise<
 // Backward compatibility alias
 export const fetchOllamaQAModels = fetchOllamaModels;
 
+// Dynamically fetch models from any OpenAI-compatible server (LM Studio, vLLM, LocalAI, etc.)
+export async function fetchOpenAICompatibleModels(baseUrl?: string): Promise<{ value: string; label: string }[]> {
+  try {
+    const query = baseUrl ? `?baseUrl=${encodeURIComponent(baseUrl)}` : '';
+    const result = await apiRequest<{ models: { name: string }[] }>(`/settings/openai-compat/models${query}`);
+    if (result.success && result.data?.models) {
+      return result.data.models.map(m => ({
+        value: `openai_compat:${m.name}`,
+        label: `OpenAI Compat — ${m.name}`,
+      }));
+    }
+  } catch { /* OpenAI-compatible server not running — no models */ }
+  return [];
+}
+
 // Maps model shorthand to actual Claude model IDs
 export const MODEL_ID_MAP: Record<string, string> = {
   opus: 'claude-opus-4-6',
@@ -130,10 +145,10 @@ export const THINKING_LEVELS = [
 // ============================================
 
 // Default phase model configuration for Auto profile
-// Uses Opus across all phases for maximum quality
+// Uses a high-capability model across all phases for maximum quality
 export const DEFAULT_PHASE_MODELS: PhaseModelConfig = {
   spec: 'opus',       // Best quality for spec creation
-  planning: 'opus',   // Complex architecture decisions benefit from Opus
+  planning: 'opus',   // Complex architecture decisions benefit from highest-capability model
   coding: 'opus',     // Highest quality implementation
   qa: 'opus',         // Thorough QA review
   qa_fixer: 'sonnet'  // Efficient QA fixing
@@ -181,7 +196,7 @@ export const DEFAULT_AGENT_PROFILES: AgentProfile[] = [
   {
     id: 'auto',
     name: 'Auto (Optimized)',
-    description: 'Uses Opus across all phases with optimized thinking levels',
+    description: 'Optimized phase-by-phase model selection with extended thinking',
     model: 'opus',  // Fallback/default model
     thinkingLevel: 'high',
     icon: 'Sparkles',
@@ -212,6 +227,15 @@ export const DEFAULT_AGENT_PROFILES: AgentProfile[] = [
     model: 'haiku',
     thinkingLevel: 'low',
     icon: 'Zap'
+  },
+  {
+    id: 'custom',
+    name: 'Custom',
+    description: 'Choose your own model from any provider and configure settings manually',
+    model: 'sonnet',  // Default — user overrides this
+    thinkingLevel: 'medium',
+    icon: 'Settings',
+    isCustomProfile: true
   }
 ];
 
@@ -250,11 +274,12 @@ export const PROVIDER_MODELS: Record<string, { id: string; label: string }[]> = 
     { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
     { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
   ],
-  ollama: [],    // Dynamic — populated from detection
-  lmstudio: [],  // Dynamic
-  localai: [],   // Dynamic
-  vllm: [],      // Dynamic
-  jan: [],       // Dynamic
+  ollama: [],         // Dynamic — populated from detection
+  lmstudio: [],       // Dynamic
+  localai: [],        // Dynamic
+  vllm: [],           // Dynamic
+  jan: [],            // Dynamic
+  openai_compat: [],  // Dynamic — populated from any OpenAI-compatible server
 };
 
 export const PROVIDER_INFO: Record<InsightsProvider, { displayName: string; icon: string }> = {
@@ -266,4 +291,5 @@ export const PROVIDER_INFO: Record<InsightsProvider, { displayName: string; icon
   localai: { displayName: 'LocalAI', icon: 'localai' },
   vllm: { displayName: 'vLLM', icon: 'vllm' },
   jan: { displayName: 'Jan', icon: 'jan' },
+  openai_compat: { displayName: 'OpenAI Compatible', icon: 'openai_compat' },
 };

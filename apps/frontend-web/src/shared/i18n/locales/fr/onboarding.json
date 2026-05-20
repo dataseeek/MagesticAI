@@ -72,8 +72,26 @@
     "success": "Identifiants importés avec succès ! Continuation...",
     "error": "Échec de l'importation des identifiants. Vous pouvez configurer l'authentification manuellement."
   },
+  "providerChoice": {
+    "title": "Choisissez votre fournisseur IA",
+    "subtitle": "Sélectionnez comment vous souhaitez alimenter MagesticAI. Vous pouvez modifier cela plus tard dans les Paramètres.",
+    "claude": {
+      "title": "Claude",
+      "description": "Connectez-vous avec votre compte Anthropic ou un token OAuth"
+    },
+    "openaiCompat": {
+      "title": "Compatible OpenAI",
+      "description": "Utilisez n'importe quel serveur compatible OpenAI (LM Studio, Ollama, vLLM, etc.)"
+    },
+    "skip": {
+      "title": "Passer",
+      "description": "Configurer plus tard dans les Paramètres"
+    }
+  },
   "steps": {
     "welcome": "Bienvenue",
+    "providerChoice": "Fournisseur",
+    "openaiCompatSetup": "Config OpenAI",
     "importCredentials": "Import",
     "authChoice": "Méthode d'auth",
     "auth": "Auth",
@@ -134,6 +152,24 @@
     "noToolsDetected": "Aucun outil supplémentaire détecté (VS Code et le terminal système seront utilisés)",
     "custom": "Personnalisé...",
     "saveAndContinue": "Enregistrer et continuer"
+  },
+  "openaiCompatSetup": {
+    "title": "Serveur Compatible OpenAI",
+    "subtitle": "Connectez-vous à n'importe quel serveur compatible OpenAI comme LM Studio, Ollama, vLLM ou LocalAI.",
+    "baseUrlLabel": "URL de base du serveur",
+    "baseUrlHint": "L'URL de base de votre serveur compatible OpenAI (ex. LM Studio, LocalAI, vLLM).",
+    "apiKeyLabel": "Clé API",
+    "apiKeyPlaceholder": "Entrez la clé API si requise",
+    "testButton": "Tester la connexion",
+    "testing": "Test en cours...",
+    "testSuccess": "Connexion réussie !",
+    "testSuccessModels": "{{count}} modèle(s) disponible(s) trouvé(s).",
+    "testFailed": "Connexion échouée",
+    "testError": "Échec du test de connexion. Vérifiez l'URL du serveur et réessayez.",
+    "success": "Connexion réussie ! Le serveur est accessible.",
+    "failed": "Connexion échouée. Veuillez vérifier l'URL et la clé API.",
+    "continueButton": "Continuer",
+    "skip": "Passer pour l'instant"
   },
   "ollama": {
     "notInstalled": {

@@ -82,6 +82,7 @@ MagesticAI sits next to two open-source projects with overlapping goals but very
 
 ---
 
+
 ## Quick Start
 
 ### Prerequisites

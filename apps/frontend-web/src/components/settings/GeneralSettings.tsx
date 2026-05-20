@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../ui/collapsible';
@@ -8,17 +8,18 @@ import { Switch } from '../ui/switch';
 import { SettingsSection } from './SettingsSection';
 import { AgentProfileSettings } from './AgentProfileSettings';
 import {
-  AVAILABLE_MODELS,
+  ALL_AVAILABLE_MODELS,
   THINKING_LEVELS,
   DEFAULT_FEATURE_MODELS,
   DEFAULT_FEATURE_THINKING,
-  FEATURE_LABELS
+  FEATURE_LABELS,
+  fetchOllamaModels,
+  fetchOpenAICompatibleModels
 } from '../../shared/constants';
 import type {
   AppSettings,
   FeatureModelConfig,
   FeatureThinkingConfig,
-  ModelTypeShort,
   ThinkingLevel
 } from '../../shared/types';
 
@@ -34,6 +35,15 @@ interface GeneralSettingsProps {
 export function GeneralSettings({ settings, onSettingsChange }: GeneralSettingsProps) {
   const { t } = useTranslation('settings');
   const [featureModelOpen, setFeatureModelOpen] = useState(false);
+  const [ollamaModels, setOllamaModels] = useState<{ value: string; label: string }[]>([]);
+  const [openAICompatModels, setOpenAICompatModels] = useState<{ value: string; label: string }[]>([]);
+
+  const llmOpenaiBaseUrl = settings.llmOpenaiBaseUrl;
+
+  useEffect(() => {
+    fetchOllamaModels().then(setOllamaModels);
+    fetchOpenAICompatibleModels(llmOpenaiBaseUrl).then(setOpenAICompatModels);
+  }, [llmOpenaiBaseUrl]);
 
   return (
     <div className="space-y-8">
@@ -135,7 +145,7 @@ export function GeneralSettings({ settings, onSettingsChange }: GeneralSettingsP
                             <Select
                               value={featureModels[feature]}
                               onValueChange={(value) => {
-                                const newFeatureModels = { ...featureModels, [feature]: value as ModelTypeShort };
+                                const newFeatureModels: FeatureModelConfig = { ...featureModels, [feature]: value };
                                 onSettingsChange({ ...settings, featureModels: newFeatureModels });
                               }}
                             >
@@ -143,7 +153,7 @@ export function GeneralSettings({ settings, onSettingsChange }: GeneralSettingsP
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {AVAILABLE_MODELS.map((m) => (
+                                {[...ALL_AVAILABLE_MODELS, ...ollamaModels, ...openAICompatModels].map((m) => (
                                   <SelectItem key={m.value} value={m.value}>
                                     {m.label}
                                   </SelectItem>

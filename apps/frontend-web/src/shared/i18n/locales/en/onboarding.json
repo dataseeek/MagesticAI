@@ -72,8 +72,26 @@
     "success": "Credentials imported successfully! Continuing...",
     "error": "Failed to import credentials. You can set up authentication manually."
   },
+  "providerChoice": {
+    "title": "Choose Your AI Provider",
+    "subtitle": "Select how you want to power MagesticAI. You can change this later in Settings.",
+    "claude": {
+      "title": "Claude",
+      "description": "Sign in with your Anthropic account or OAuth token"
+    },
+    "openaiCompat": {
+      "title": "OpenAI Compatible",
+      "description": "Use any OpenAI-compatible server (LM Studio, Ollama, vLLM, etc.)"
+    },
+    "skip": {
+      "title": "Skip",
+      "description": "Set up later in Settings"
+    }
+  },
   "steps": {
     "welcome": "Welcome",
+    "providerChoice": "Provider",
+    "openaiCompatSetup": "OpenAI Setup",
     "importCredentials": "Import",
     "authChoice": "Auth Method",
     "auth": "Auth",
@@ -134,6 +152,24 @@
     "noToolsDetected": "No additional tools detected (VS Code and system terminal will be used)",
     "custom": "Custom...",
     "saveAndContinue": "Save & Continue"
+  },
+  "openaiCompatSetup": {
+    "title": "OpenAI Compatible Server",
+    "subtitle": "Connect to any OpenAI-compatible server such as LM Studio, Ollama, vLLM, or LocalAI.",
+    "baseUrlLabel": "Server Base URL",
+    "baseUrlHint": "The base URL of your OpenAI-compatible server (e.g. LM Studio, LocalAI, vLLM).",
+    "apiKeyLabel": "API Key",
+    "apiKeyPlaceholder": "Enter API key if required",
+    "testButton": "Test Connection",
+    "testing": "Testing...",
+    "testSuccess": "Connection successful!",
+    "testSuccessModels": "Found {{count}} available models.",
+    "testFailed": "Connection failed",
+    "testError": "Failed to test connection. Check the server URL and try again.",
+    "success": "Connection successful! Server is reachable.",
+    "failed": "Connection failed. Please check the URL and API key.",
+    "continueButton": "Continue",
+    "skip": "Skip for now"
   },
   "ollama": {
     "notInstalled": {

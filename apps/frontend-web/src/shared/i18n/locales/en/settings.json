@@ -87,8 +87,15 @@
           "claude": "Claude (Anthropic)",
           "codex": "Codex CLI (OpenAI)",
           "gemini": "Gemini CLI (Google)",
-          "ollama": "Ollama (Local)"
-        }
+          "ollama": "Ollama (Local)",
+          "openai_compat": "OpenAI Compatible"
+        },
+        "openaiCompatBaseUrlLabel": "Base URL",
+        "openaiCompatBaseUrlDescription": "URL of your OpenAI-compatible server (e.g., LM Studio, LocalAI, vLLM). Defaults to your configured LLM provider base URL.",
+        "openaiCompatModelLabel": "Model",
+        "openaiCompatModelPlaceholder": "Select a model...",
+        "openaiCompatNoModels": "No models found — check base URL and server status",
+        "refreshModels": "Refresh Models"
       }
     },
     "integrations": {

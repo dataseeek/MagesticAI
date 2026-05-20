@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Wand2 } from 'lucide-react';
 import {
@@ -12,6 +12,8 @@ import {
 import { ScrollArea } from '../ui/scroll-area';
 import { WizardProgress, WizardStep } from './WizardProgress';
 import { WelcomeStep } from './WelcomeStep';
+import { ProviderChoiceStep } from './ProviderChoiceStep';
+import { OpenAICompatSetupStep } from './OpenAICompatSetupStep';
 import { ImportCredentialsStep } from './ImportCredentialsStep';
 import { ClaudeCodeStep } from './ClaudeCodeStep';
 import { OAuthStep } from './OAuthStep';
@@ -26,27 +28,64 @@ interface OnboardingWizardProps {
 }
 
 // Wizard step identifiers
-type WizardStepId = 'welcome' | 'import-credentials' | 'claude-code' | 'oauth' | 'completion';
+type WizardStepId =
+  | 'welcome'
+  | 'provider-choice'
+  | 'import-credentials'
+  | 'claude-code'
+  | 'oauth'
+  | 'openai-compat-setup'
+  | 'completion';
 
-// Step configuration with translation keys
-const WIZARD_STEPS: { id: WizardStepId; labelKey: string }[] = [
-  { id: 'welcome', labelKey: 'steps.welcome' },
-  { id: 'import-credentials', labelKey: 'steps.importCredentials' },
-  { id: 'claude-code', labelKey: 'steps.claudeCode' },
-  { id: 'oauth', labelKey: 'steps.auth' },
-  { id: 'completion', labelKey: 'steps.done' }
-];
+// Chosen provider type
+type ChosenProvider = 'claude' | 'openai_compat' | 'skip' | null;
+
+// Build the wizard steps array dynamically based on the chosen provider
+function getWizardSteps(provider: ChosenProvider): { id: WizardStepId; labelKey: string }[] {
+  const base: { id: WizardStepId; labelKey: string }[] = [
+    { id: 'welcome', labelKey: 'steps.welcome' },
+    { id: 'provider-choice', labelKey: 'steps.providerChoice' },
+  ];
+
+  if (provider === 'claude') {
+    return [
+      ...base,
+      { id: 'import-credentials', labelKey: 'steps.importCredentials' },
+      { id: 'claude-code', labelKey: 'steps.claudeCode' },
+      { id: 'oauth', labelKey: 'steps.auth' },
+      { id: 'completion', labelKey: 'steps.done' },
+    ];
+  }
+
+  if (provider === 'openai_compat') {
+    return [
+      ...base,
+      { id: 'openai-compat-setup', labelKey: 'steps.openaiCompatSetup' },
+      { id: 'completion', labelKey: 'steps.done' },
+    ];
+  }
+
+  if (provider === 'skip') {
+    return [
+      ...base,
+      { id: 'completion', labelKey: 'steps.done' },
+    ];
+  }
+
+  // No provider chosen yet — show only the first two steps
+  return base;
+}
 
 /**
  * Main onboarding wizard component.
- * Provides a full-screen, multi-step wizard experience for new users
- * to connect their Claude account.
+ * Provides a full-screen, multi-step wizard experience for new users.
  *
- * Simplified flow:
+ * Flow:
  * 1. Welcome — Brief intro to MagesticAI
- * 2. Import Credentials (conditional) — Auto-import from ~/.claude/.credentials.json
- * 3. OAuth — Manual token setup
- * 4. Completion — Done
+ * 2. Provider Choice — Claude / OpenAI Compatible / Skip
+ *    a. Claude path:  Import Credentials → Claude Code CLI → OAuth → Done
+ *    b. OpenAI path:  OpenAI Compat Setup → Done
+ *    c. Skip path:    Done (immediately)
  */
 export function OnboardingWizard({
   open,
@@ -56,50 +95,78 @@ export function OnboardingWizard({
 }: OnboardingWizardProps) {
   const { t } = useTranslation('onboarding');
   const { updateSettings } = useSettingsStore();
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+  const [currentStepId, setCurrentStepId] = useState<WizardStepId>('welcome');
+  const [chosenProvider, setChosenProvider] = useState<ChosenProvider>(null);
   const [completedSteps, setCompletedSteps] = useState<Set<WizardStepId>>(new Set());
 
-  // Get current step ID
-  const currentStepId = WIZARD_STEPS[currentStepIndex].id;
+  // Dynamic step list derived from the chosen provider
+  const wizardSteps = useMemo(() => getWizardSteps(chosenProvider), [chosenProvider]);
 
-  // Build step data for progress indicator
-  const steps: WizardStep[] = WIZARD_STEPS.map((step, index) => ({
-    id: step.id,
-    label: t(step.labelKey),
-    completed: completedSteps.has(step.id) || index < currentStepIndex
-  }));
+  // Current index inside the active step list
+  const currentStepIndex = useMemo(
+    () => wizardSteps.findIndex(s => s.id === currentStepId),
+    [wizardSteps, currentStepId]
+  );
 
-  // Navigation handlers
+  // Build step data for the progress indicator
+  const steps: WizardStep[] = useMemo(
+    () =>
+      wizardSteps.map((step, index) => ({
+        id: step.id,
+        label: t(step.labelKey),
+        completed: completedSteps.has(step.id) || index < currentStepIndex,
+      })),
+    [wizardSteps, completedSteps, currentStepIndex, t]
+  );
+
+  // Navigate to the next step in the current wizard step list
   const goToNextStep = useCallback(() => {
     setCompletedSteps(prev => new Set(prev).add(currentStepId));
-    if (currentStepIndex < WIZARD_STEPS.length - 1) {
-      setCurrentStepIndex(prev => prev + 1);
+    const nextIndex = currentStepIndex + 1;
+    if (nextIndex < wizardSteps.length) {
+      setCurrentStepId(wizardSteps[nextIndex].id);
     }
-  }, [currentStepIndex, currentStepId]);
+  }, [currentStepId, currentStepIndex, wizardSteps]);
 
+  // Navigate to the previous step
   const goToPreviousStep = useCallback(() => {
     if (currentStepIndex > 0) {
-      setCurrentStepIndex(prev => prev - 1);
+      setCurrentStepId(wizardSteps[currentStepIndex - 1].id);
     }
-  }, [currentStepIndex]);
+  }, [currentStepIndex, wizardSteps]);
+
+  // Handle provider selection from the provider-choice step
+  const handleProviderChosen = useCallback((provider: 'claude' | 'openai_compat' | 'skip') => {
+    setCompletedSteps(prev => new Set(prev).add('provider-choice'));
+    setChosenProvider(provider);
+
+    if (provider === 'claude') {
+      setCurrentStepId('import-credentials');
+    } else if (provider === 'openai_compat') {
+      setCurrentStepId('openai-compat-setup');
+    } else {
+      // skip → go directly to completion
+      setCurrentStepId('completion');
+    }
+  }, []);
 
   // Skip directly to completion (used when credentials are imported)
   const goToCompletion = useCallback(() => {
     setCompletedSteps(prev => {
       const next = new Set(prev);
-      next.add('welcome');
-      next.add('import-credentials');
-      next.add('claude-code');
-      next.add('oauth');
+      wizardSteps.forEach(s => {
+        if (s.id !== 'completion') next.add(s.id);
+      });
       return next;
     });
-    const completionIndex = WIZARD_STEPS.findIndex(s => s.id === 'completion');
-    setCurrentStepIndex(completionIndex);
-  }, []);
+    setCurrentStepId('completion');
+  }, [wizardSteps]);
 
   // Reset wizard state
   const resetWizard = useCallback(() => {
-    setCurrentStepIndex(0);
+    setCurrentStepId('welcome');
+    setChosenProvider(null);
     setCompletedSteps(new Set());
   }, []);
 
@@ -115,7 +182,6 @@ export function OnboardingWizard({
     updateSettings({ onboardingCompleted: true });
     onOpenChange(false);
     resetWizard();
-    // Trigger immediate refresh of Claude Code status badge
     window.dispatchEvent(new Event('claude-code-refresh'));
   }, [updateSettings, onOpenChange, resetWizard]);
 
@@ -131,7 +197,6 @@ export function OnboardingWizard({
     updateSettings({ onboardingCompleted: true });
     onOpenChange(false);
     resetWizard();
-    // Trigger immediate refresh of Claude Code status badge
     window.dispatchEvent(new Event('claude-code-refresh'));
   }, [updateSettings, onOpenChange, resetWizard]);
 
@@ -149,7 +214,6 @@ export function OnboardingWizard({
     }
   }, [onOpenSettings, finishWizard]);
 
-
   // Render current step content
   const renderStepContent = () => {
     switch (currentStepId) {
@@ -158,6 +222,20 @@ export function OnboardingWizard({
           <WelcomeStep
             onGetStarted={goToNextStep}
             onSkip={skipWizard}
+          />
+        );
+      case 'provider-choice':
+        return (
+          <ProviderChoiceStep
+            onChoose={handleProviderChosen}
+            onBack={goToPreviousStep}
+          />
+        );
+      case 'openai-compat-setup':
+        return (
+          <OpenAICompatSetupStep
+            onNext={goToNextStep}
+            onBack={goToPreviousStep}
           />
         );
       case 'import-credentials':
@@ -207,6 +285,11 @@ export function OnboardingWizard({
     }
   }, [skipWizard, onOpenChange]);
 
+  // Show progress bar for all steps except welcome and completion
+  const showProgress =
+    currentStepId !== 'welcome' &&
+    currentStepId !== 'completion';
+
   return (
     <FullScreenDialog open={open} onOpenChange={handleOpenChange}>
       <FullScreenDialogContent>
@@ -219,8 +302,8 @@ export function OnboardingWizard({
             {t('wizard.description')}
           </FullScreenDialogDescription>
 
-          {/* Progress indicator - show for auth steps */}
-          {currentStepId !== 'welcome' && currentStepId !== 'completion' && (
+          {/* Progress indicator — shown for all intermediate steps */}
+          {showProgress && (
             <div className="mt-6">
               <WizardProgress currentStep={currentStepIndex} steps={steps} />
             </div>
