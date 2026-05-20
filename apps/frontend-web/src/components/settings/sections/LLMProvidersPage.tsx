@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, Server } from 'lucide-react';
-import { AnthropicIcon } from '../../icons/AnthropicIcon';
+import { ChevronDown, Cloud, Server } from 'lucide-react';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../ui/collapsible';
 import { SettingsSection } from '../SettingsSection';
 import { LLMAccountsSettings } from './LLMAccountsSettings';
@@ -56,7 +55,7 @@ export function LLMProvidersPage({ isOpen }: LLMProvidersPageProps) {
     >
       <div className="space-y-3">
         <Panel
-          icon={<AnthropicIcon className="h-4 w-4" />}
+          icon={<Cloud className="h-4 w-4" />}
           title={t('sections.llmProvider.cloudAgents.title')}
           description={t('sections.llmProvider.cloudAgents.description')}
           defaultOpen
