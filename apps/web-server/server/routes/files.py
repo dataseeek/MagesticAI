@@ -141,14 +141,20 @@ LANGUAGE_MAP = {
 
 
 def _is_app_internal_path(resolved_path: Path) -> bool:
-    """Block access to the MagesticAI application directory itself."""
+    """Block access to the MagesticAI application directory itself.
+
+    Exception: .magestic-ai/ subtrees (specs, worktrees) are user data and
+    must stay reachable when the target project IS MagesticAI (dogfooding).
+    """
     settings = get_settings()
     app_root = Path(settings.BACKEND_PATH).resolve().parent.parent  # MagesticAI root
     try:
-        resolved_path.resolve().relative_to(app_root)
-        return True
+        rel = resolved_path.resolve().relative_to(app_root)
     except ValueError:
         return False
+    if rel.parts and rel.parts[0] == ".magestic-ai":
+        return False
+    return True
 
 
 def detect_language(path: str) -> str | None:

@@ -12,7 +12,7 @@ import type { ThinkingLevel } from './settings';
 
 // Supported LLM providers
 export type InsightsProvider = 'claude' | 'codex' | 'gemini' | 'ollama'
-  | 'lmstudio' | 'localai' | 'vllm' | 'jan';
+  | 'lmstudio' | 'localai' | 'vllm' | 'jan' | 'openai_compat';
 
 // Model configuration for insights sessions
 export interface InsightsModelConfig {

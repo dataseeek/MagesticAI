@@ -20,9 +20,10 @@ logger = logging.getLogger(__name__)
 # Gemini models (static fallback list)
 GEMINI_MODELS = [
     ProviderModel(id="gemini-3.1-pro-preview", label="Gemini 3.1 Pro (Preview)"),
-    ProviderModel(id="gemini-3-flash-preview", label="Gemini 3 Flash (Preview)"),
-    ProviderModel(id="gemini-2.5-flash", label="Gemini 2.5 Flash"),
     ProviderModel(id="gemini-2.5-pro", label="Gemini 2.5 Pro"),
+    ProviderModel(id="gemini-3.5-flash", label="Gemini 3.5 Flash"),
+    ProviderModel(id="gemini-3.1-flash-lite", label="Gemini 3.1 Flash-Lite"),
+    ProviderModel(id="gemini-2.5-flash", label="Gemini 2.5 Flash"),
 ]
 
 

@@ -32,12 +32,10 @@ MemoryEmbeddingProviderType = Literal[
     "openai", "voyage", "azure_openai", "ollama", "google", "openrouter"
 ]
 
-# QA LLM provider — which backend drives the QA reviewer agent
-QaLlmProviderType = Literal["claude", "codex", "gemini", "ollama"]
-
 from ..config import get_settings
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 # --------------------------------------------------------------------------
@@ -121,24 +119,6 @@ class AppSettings(BaseModel):
         alias="auto_qa",
         description="Automatically run QA after implementation",
     )
-    qaLlmProvider: QaLlmProviderType = Field(
-        "claude",
-        alias="qa_llm_provider",
-        description="LLM provider used for QA reviewer (claude/codex/gemini/ollama)",
-    )
-
-    @field_validator("qaLlmProvider", mode="before")
-    @classmethod
-    def validate_qa_llm_provider(cls, v: Any) -> str:
-        """Validate QA LLM provider for backward compatibility."""
-        if v is None:
-            return "claude"
-        if isinstance(v, str):
-            v = v.lower().strip()
-            if v in ["claude", "codex", "gemini", "ollama"]:
-                return v
-        return "claude"  # Fallback to default
-
     # Terminal - using camelCase with snake_case aliases
     defaultShell: str = Field("/bin/bash", alias="default_shell", description="Default shell for terminals")
     terminalFontSize: int = Field(14, alias="terminal_font_size", description="Terminal font size")
@@ -249,6 +229,42 @@ class AppSettings(BaseModel):
                 return v
         return "ollama"  # Fallback
 
+    # Phase-specific model overrides — supports provider-prefixed IDs like
+    # 'ollama:llama3', 'openai_compat:mistral-7b', or plain shorthand 'opus'
+    phaseModels: dict | None = Field(
+        None,
+        description=(
+            "Per-phase model overrides, e.g. {spec: 'opus', coding: 'ollama:llama3'}. "
+            "Valid keys: spec, planning, coding, qa, qa_fixer. "
+            "Values may be any non-empty string (provider-prefixed or plain shorthand)."
+        ),
+    )
+
+    @field_validator("phaseModels", mode="before")
+    @classmethod
+    def validate_phase_models(cls, v: Any) -> dict | None:
+        """Validate phaseModels keys and values.
+
+        Accepted keys: spec, planning, coding, qa, qa_fixer.
+        Values must be non-empty strings (any provider-prefixed model ID is allowed).
+        Unknown keys and None/empty values are silently dropped for backward compatibility.
+        """
+        if v is None:
+            return None
+        if not isinstance(v, dict):
+            return None
+        valid_keys = {"spec", "planning", "coding", "qa", "qa_fixer"}
+        cleaned: dict = {}
+        for key, value in v.items():
+            if key not in valid_keys:
+                # Skip unknown keys rather than raising, for forward compatibility
+                continue
+            if not isinstance(value, str) or not value.strip():
+                # Skip non-string or empty values
+                continue
+            cleaned[key] = value
+        return cleaned if cleaned else None
+
 
 class SettingsUpdate(BaseModel):
     """Model for partial settings update."""
@@ -268,7 +284,6 @@ class SettingsUpdate(BaseModel):
     selectedAgentProfile: str | None = None
     autoContinue: bool | None = Field(None, alias="auto_continue")
     autoQa: bool | None = Field(None, alias="auto_qa")
-    qaLlmProvider: str | None = Field(None, alias="qa_llm_provider")
     defaultShell: str | None = Field(None, alias="default_shell")
     terminalFontSize: int | None = Field(None, alias="terminal_font_size")
     autoNameTerminals: bool | None = None
@@ -296,6 +311,7 @@ class SettingsUpdate(BaseModel):
     llmAnthropicModel: str | None = None
     llmOpenaiModel: str | None = None
     llmOpenaiBaseUrl: str | None = None
+    phaseModels: dict | None = None
 
 
 class UpdateApiKeyRequest(BaseModel):
@@ -762,6 +778,93 @@ async def list_ollama_models(ollamaBaseUrl: str = Query(default="http://localhos
             return {"models": models}
     except Exception as e:
         logger.warning(f"Failed to list Ollama models: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/openai-compat/models")
+async def list_openai_compat_models(
+    baseUrl: str = Query(default="http://localhost:8080"),
+    apiKey: str | None = Query(default=None),
+):
+    """List available models from an OpenAI-compatible server.
+
+    Calls ``GET {baseUrl}/v1/models``, filters out embedding/reranker models,
+    and returns ``{models: [{name: str}]}`` — the same envelope shape used by
+    the Ollama models endpoint so callers can treat both identically.
+    """
+    try:
+        import httpx
+
+        headers: dict[str, str] = {}
+        if apiKey:
+            headers["Authorization"] = f"Bearer {apiKey}"
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{baseUrl}/v1/models", headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+        # OpenAI-compatible /v1/models returns {"data": [{"id": "...", ...}, ...]}
+        raw_models = data.get("data", [])
+
+        # Filter out embedding / reranker models by common name keywords
+        _embed_kw = {"embed", "embedding", "minilm", "bge", "gte", "e5", "rerank"}
+        models = []
+        for model in raw_models:
+            model_id: str = model.get("id", "")
+            name_lower = model_id.lower()
+            if any(kw in name_lower for kw in _embed_kw):
+                continue
+            models.append({"name": model_id})
+
+        return {"models": models}
+    except Exception as e:
+        logger.warning(f"Failed to list OpenAI-compatible models from {baseUrl}: {e}")
+        return {"success": False, "error": str(e)}
+
+
+class OpenAICompatTestRequest(BaseModel):
+    """Request model for testing an OpenAI-compatible server connection."""
+    baseUrl: str = Field(..., description="Base URL of the OpenAI-compatible server")
+    apiKey: str | None = Field(None, description="Optional API key for authentication")
+
+
+@router.post("/openai-compat/test")
+async def test_openai_compat_connection(request: OpenAICompatTestRequest):
+    """Test connectivity to an OpenAI-compatible server.
+
+    Sends ``GET {baseUrl}/v1/models`` with a 5-second timeout. Returns the
+    number of (non-embedding) models available so the caller can confirm the
+    server is reachable and serving models.
+    """
+    try:
+        import httpx
+
+        headers: dict[str, str] = {}
+        if request.apiKey:
+            headers["Authorization"] = f"Bearer {request.apiKey}"
+
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{request.baseUrl}/v1/models", headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+        raw_models = data.get("data", [])
+
+        # Filter out embedding / reranker models (same keywords as the list endpoint)
+        _embed_kw = {"embed", "embedding", "minilm", "bge", "gte", "e5", "rerank"}
+        model_count = sum(
+            1 for m in raw_models
+            if not any(kw in m.get("id", "").lower() for kw in _embed_kw)
+        )
+
+        return {
+            "success": True,
+            "modelCount": model_count,
+            "message": f"Connected successfully. {model_count} model(s) available.",
+        }
+    except Exception as e:
+        logger.warning(f"OpenAI-compatible connection test failed for {request.baseUrl}: {e}")
         return {"success": False, "error": str(e)}
 
 

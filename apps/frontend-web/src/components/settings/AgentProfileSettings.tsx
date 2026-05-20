@@ -45,6 +45,7 @@ export function AgentProfileSettings() {
   const { t } = useTranslation('settings');
   const settings = useSettingsStore((state) => state.settings);
   const selectedProfileId = settings.selectedAgentProfile || 'auto';
+  const llmOpenaiBaseUrl = settings.llmOpenaiBaseUrl;
   const [showPhaseConfig, setShowPhaseConfig] = useState(selectedProfileId === 'auto');
   const [ollamaModels, setOllamaModels] = useState<{ value: string; label: string }[]>([]);
   const [openaiEndpointModels, setOpenaiEndpointModels] = useState<{ value: string; label: string }[]>([]);
@@ -93,7 +94,8 @@ export function AgentProfileSettings() {
    */
   const getModelLabel = (modelValue: string): string => {
     const model = ALL_AVAILABLE_MODELS.find((m) => m.value === modelValue)
-      || ollamaModels.find((m) => m.value === modelValue);
+      || ollamaModels.find((m) => m.value === modelValue)
+      || openaiEndpointModels.find((m) => m.value === modelValue);
     return model?.label || modelValue;
   };
 

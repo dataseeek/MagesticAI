@@ -1,17 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown } from 'lucide-react';
-import { AnthropicIcon } from '../../icons/AnthropicIcon';
-import { OllamaIcon } from '../../icons/OllamaIcon';
+import { ChevronDown, Cloud, Server } from 'lucide-react';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../ui/collapsible';
 import { SettingsSection } from '../SettingsSection';
-import { LocalLLMSettings } from './LocalLLMSettings';
 import { LLMAccountsSettings } from './LLMAccountsSettings';
-import type { AppSettings } from '../../../shared/types/settings';
-
+import { OpenAIEndpointsSection } from './OpenAIEndpointsSection';
 interface LLMProvidersPageProps {
-  settings: AppSettings;
-  onSettingsChange: (settings: AppSettings) => void;
   isOpen: boolean;
 }
 
@@ -51,7 +45,7 @@ function Panel({ icon, title, description, defaultOpen = false, children }: Pane
   );
 }
 
-export function LLMProvidersPage({ settings, onSettingsChange, isOpen }: LLMProvidersPageProps) {
+export function LLMProvidersPage({ isOpen }: LLMProvidersPageProps) {
   const { t } = useTranslation('settings');
 
   return (
@@ -61,20 +55,20 @@ export function LLMProvidersPage({ settings, onSettingsChange, isOpen }: LLMProv
     >
       <div className="space-y-3">
         <Panel
-          icon={<AnthropicIcon className="h-4 w-4" />}
-          title={t('sections.llmProvider.accounts.title')}
-          description={t('sections.llmProvider.accounts.description')}
+          icon={<Cloud className="h-4 w-4" />}
+          title={t('sections.llmProvider.cloudAgents.title')}
+          description={t('sections.llmProvider.cloudAgents.description')}
           defaultOpen
         >
           <LLMAccountsSettings isOpen={isOpen} />
         </Panel>
 
         <Panel
-          icon={<OllamaIcon className="h-4 w-4" />}
-          title={t('sections.llmProvider.localLlms.title')}
-          description={t('sections.llmProvider.localLlms.description')}
+          icon={<Server className="h-4 w-4" />}
+          title={t('sections.llmProvider.openaiCompatible.title')}
+          description={t('sections.llmProvider.openaiCompatible.description')}
         >
-          <LocalLLMSettings settings={settings} onSettingsChange={onSettingsChange} />
+          <OpenAIEndpointsSection isOpen={isOpen} />
         </Panel>
       </div>
     </SettingsSection>

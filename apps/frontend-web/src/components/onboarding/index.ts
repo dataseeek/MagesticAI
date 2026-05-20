@@ -14,5 +14,9 @@ export { FirstSpecStep } from './FirstSpecStep';
 export { CompletionStep } from './CompletionStep';
 export { WizardProgress, type WizardStep } from './WizardProgress';
 
+// OpenAI-compatible provider onboarding steps
+export { ProviderChoiceStep } from './ProviderChoiceStep';
+export { OpenAICompatSetupStep } from './OpenAICompatSetupStep';
+
 // Legacy export for backward compatibility
 export { GraphitiStep } from './GraphitiStep';

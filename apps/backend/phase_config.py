@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 # Model shorthand to full model ID mapping
 MODEL_ID_MAP: dict[str, str] = {
-    "opus": "claude-opus-4-6",
-    "opus-1m": "claude-opus-4-6",
+    "opus": "claude-opus-4-7",
+    "opus-1m": "claude-opus-4-6",  # legacy alias — kept for users who pinned 4.6 + 1M beta
     "opus-4.5": "claude-opus-4-5-20251101",
     "sonnet": "claude-sonnet-4-6",
     "haiku": "claude-haiku-4-5-20251001",
@@ -48,7 +48,7 @@ EFFORT_LEVEL_MAP: dict[str, str] = {
 
 # Models that support adaptive thinking via effort level (env var)
 # These models get both max_thinking_tokens AND effort_level
-ADAPTIVE_THINKING_MODELS: set[str] = {"claude-opus-4-6", "claude-sonnet-4-6"}
+ADAPTIVE_THINKING_MODELS: set[str] = {"claude-opus-4-7", "claude-opus-4-6", "claude-sonnet-4-6"}
 
 # Spec runner phase-specific thinking levels
 # Heavy phases use max for deep analysis

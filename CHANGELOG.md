@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.2.0 - 2026-05-20
+
+### ✨ Added
+- **OpenAI-Compatible LLM Endpoints (#42, closes #39)**: First-class support for any OpenAI-compatible server (LM Studio, vLLM, OpenRouter, Together, Groq, LocalAI, Anyscale, and Ollama at `:11434/v1`). New `GET /settings/openai-compat/models` and `POST /settings/openai-compat/test` endpoints. Provider-choice + OpenAI-compat steps in onboarding. `openai_compat` available across the settings model, agent profiles, and every provider dropdown.
+- **Up-to-date cloud-provider model lists (#45)**: Refreshed Claude / Codex / Gemini catalogs to current generation — Opus 4.7, GPT-5.5, GPT-5.3-Codex, Gemini 3.5 Flash stable, Gemini 3.1 Flash-Lite. Dropped superseded entries (GPT-5.2-Codex, GPT-5.1-Codex-Max/Mini, Gemini 3 Flash preview).
+- **Auto-release workflow (#48)**: New `.github/workflows/release.yml` auto-creates the git tag and GitHub release whenever `package.json#version` changes on a push to `main`. Validates `CHANGELOG.md` has a matching section, extracts release notes, and skips out cleanly on non-release merges.
+
+### 🛠️ Fixed
+- **NameError crash in settings routes (#41)**: Added the missing module-level `logger` in `settings.py`, fixing crashes in Ollama / OAuth error paths.
+- **Files tab in self-host mode (#40)**: `.magestic-ai/` subtrees are now reachable when the target project IS MagesticAI itself (dogfooding) — the `_is_app_internal_path` guard previously blocked legitimate spec data.
+- **"Merge to Main" button label (#43)**: Footer button and progress indicator now show the actual target branch (e.g. "Merge to dev") instead of a hardcoded "main".
+
+### 🔧 Changed
+- **Simplified LLM Providers settings page (#46)**: Restructured from three confusing panels to two — **Cloud Agents** (Claude / Codex / Gemini CLI logins) and **OpenAI-Compatible Endpoints** (covers LM Studio, vLLM, Together, Groq, and Ollama at `:11434/v1`). Removed the QA Provider panel (dead UI — actual QA execution reads the model from Agent Settings phase config, not the dropped `qaLlmProvider` setting). Removed the Local LLMs panel and the top-header Ollama status badge (Ollama now consumed via OpenAI-compat). Anthropic icon replaced with a neutral Cloud icon on the multi-vendor Cloud Agents panel.
+
+### 📦 Updated
+- **CLAUDE.md path references (#44)**: Updated documentation from legacy `.auto-claude/` to the canonical `.magestic-ai/` everywhere — the code has been using the new paths for a while.
+
+
 ## 2.1.0 — 2026-05-20
 
 ### ✨ Added
