@@ -69,6 +69,7 @@ class TestModuleLevelLogger:
     def test_logger_is_logging_logger(self):
         """The module-level logger should be a standard logging.Logger instance."""
         import logging
+
         import server.routes.settings as settings_module
 
         assert isinstance(settings_module.logger, logging.Logger), (

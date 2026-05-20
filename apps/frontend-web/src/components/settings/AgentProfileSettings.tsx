@@ -95,7 +95,7 @@ export function AgentProfileSettings() {
   const getModelLabel = (modelValue: string): string => {
     const model = ALL_AVAILABLE_MODELS.find((m) => m.value === modelValue)
       || ollamaModels.find((m) => m.value === modelValue)
-      || openAICompatModels.find((m) => m.value === modelValue);
+      || openaiEndpointModels.find((m) => m.value === modelValue);
     return model?.label || modelValue;
   };
 
