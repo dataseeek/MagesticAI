@@ -203,7 +203,7 @@ See [RELEASE.md](RELEASE.md) for detailed release process documentation.
 **Workspace & Security:**
 - **cli/worktree.py** - Git worktree isolation for safe feature development
 - **context/project_analyzer.py** - Project stack detection for dynamic tooling
-- **auto_claude_tools.py** - Custom MCP tools integration
+- **magestic_ai_tools.py** - Custom MCP tools integration
 
 **BMad Method Integration:**
 - **integrations/bmad/** - BMad Method scale-adaptive intelligence
@@ -253,20 +253,20 @@ MagesticAI uses git worktrees for isolated builds. All branches stay LOCAL until
 
 ```
 main (user's branch)
-└── auto-claude/{spec-name}  ← spec branch (isolated worktree)
+└── magestic-ai/{spec-name}  ← spec branch (isolated worktree)
 ```
 
 **Key principles:**
-- ONE branch per spec (`auto-claude/{spec-name}`)
+- ONE branch per spec (`magestic-ai/{spec-name}`)
 - Parallel work uses subagents (agent decides when to spawn)
 - NO automatic pushes to GitHub - user controls when to push
-- User reviews in spec worktree (`.worktrees/{spec-name}/`)
+- User reviews in spec worktree (`.magestic-ai/worktrees/tasks/{spec-name}/`)
 - Final merge: spec branch → main (after user approval)
 
 **Workflow:**
 1. Build runs in isolated worktree on spec branch
 2. Agent implements subtasks (can spawn subagents for parallel work)
-3. User tests feature in `.worktrees/{spec-name}/`
+3. User tests feature in `.magestic-ai/worktrees/tasks/{spec-name}/`
 4. User runs `--merge` to add to their project
 5. User pushes to remote when ready
 
@@ -625,7 +625,7 @@ See `apps/web-server/README.md` and `apps/frontend-web/README.md` for detailed d
 | Task start 404 | Mount execution.router at `/api/tasks` prefix (not `/api/execution`) in main.py |
 | Task start 422 | Frontend must send `{}` body even when options are undefined (Pydantic needs JSON body for defaults) |
 | Terminal resize 422 | Backend endpoint must use Pydantic model for `{ cols, rows }` body, not query params |
-| Task stuck with "Stream closed" | Ensure `permission_mode="bypassPermissions"` is set in all `ClaudeAgentOptions` AND auto-claude MCP tools are in permissions allow list (see `APP_TOOLS` in `models.py`) |
+| Task stuck with "Stream closed" | Ensure `permission_mode="bypassPermissions"` is set in all `ClaudeAgentOptions` AND magestic-ai MCP tools are in permissions allow list (see `APP_TOOLS` in `models.py`) |
 | Frontend shows task "stuck" but agent is working | File sync issue - worktree files not syncing to main spec dir. Fixed in agent_service.py with periodic sync every 3 seconds |
 | Roadmap/Changelog 500 error | FastAPI `Path` shadowing `pathlib.Path` - use `from pathlib import Path as FilePath` at top of route files |
 | Roadmap progress stuck at 0% | Roadmap generation was not implemented - see `roadmap_service.py` for the service pattern |
