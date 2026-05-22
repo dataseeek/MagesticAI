@@ -438,12 +438,17 @@ export async function loadGitData(projectId: string): Promise<void> {
     if (tagsResult.success && tagsResult.data) {
       store.setTags(tagsResult.data);
 
-      // Auto-set tag range if tags exist
+      // Auto-set tag range if tags exist. Backend returns tags newest-first
+      // (`git tag --sort=-v:refname`), so tags[0] is the latest. For a typical
+      // changelog entry we want `previous..latest` — fromTag = tags[1] (previous
+      // release), toTag = tags[0] (latest). If only one tag exists, use it as
+      // fromTag and leave toTag empty (= HEAD).
       if (tagsResult.data.length > 0 && !store.gitHistoryFromTag) {
-        store.setGitHistoryFromTag(tagsResult.data[0].name);
+        const fromIndex = tagsResult.data.length > 1 ? 1 : 0;
+        store.setGitHistoryFromTag(tagsResult.data[fromIndex].name);
       }
       if (tagsResult.data.length > 1 && !store.gitHistoryToTag) {
-        store.setGitHistoryToTag(tagsResult.data[1].name);
+        store.setGitHistoryToTag(tagsResult.data[0].name);
       }
 
       // If we have a gitHistorySinceVersion set (e.g., from existing changelog),
