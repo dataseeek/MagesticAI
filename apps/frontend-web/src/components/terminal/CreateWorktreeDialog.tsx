@@ -78,14 +78,25 @@ export function CreateWorktreeDialog({
             setBranches(result.data);
           }
 
-          // Use project settings mainBranch if available, otherwise auto-detect
+          // Priority: settings.mainBranch > envConfig.defaultBranch > auto-detect
           if (project?.settings?.mainBranch) {
             setProjectDefaultBranch(project.settings.mainBranch);
           } else {
-            // Fallback to auto-detect if no project setting
-            const defaultResult = await window.API.detectMainBranch(projectPath);
-            if (defaultResult.success && defaultResult.data) {
-              setProjectDefaultBranch(defaultResult.data);
+            let resolved: string | undefined;
+            if (project?.id) {
+              const envResult = await window.API.getProjectEnv(project.id);
+              if (envResult.success && envResult.data?.defaultBranch) {
+                resolved = envResult.data.defaultBranch;
+              }
+            }
+            if (!resolved) {
+              const defaultResult = await window.API.detectMainBranch(projectPath);
+              if (defaultResult.success && defaultResult.data) {
+                resolved = defaultResult.data;
+              }
+            }
+            if (resolved) {
+              setProjectDefaultBranch(resolved);
             }
           }
         } catch (err) {

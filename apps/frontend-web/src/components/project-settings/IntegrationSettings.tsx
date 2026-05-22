@@ -74,11 +74,15 @@ export function IntegrationSettings({
       const result = await window.API.getGitBranches(project.path);
       if (result.success && result.data) {
         setBranches(result.data);
-        // Auto-detect main branch if not set
+        // Priority: settings.mainBranch > envConfig.defaultBranch > auto-detect
         if (!settings.mainBranch) {
-          const detectResult = await window.API.detectMainBranch(project.path);
-          if (detectResult.success && detectResult.data) {
-            setSettings(prev => ({ ...prev, mainBranch: detectResult.data! }));
+          if (envConfig?.defaultBranch) {
+            setSettings(prev => ({ ...prev, mainBranch: envConfig.defaultBranch }));
+          } else {
+            const detectResult = await window.API.detectMainBranch(project.path);
+            if (detectResult.success && detectResult.data) {
+              setSettings(prev => ({ ...prev, mainBranch: detectResult.data! }));
+            }
           }
         }
       }
