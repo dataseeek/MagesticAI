@@ -7,6 +7,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, Query
@@ -195,15 +196,33 @@ async def clone_git_repo(request: CloneGitRequest):
     if not target.exists() or not target.is_dir():
         return {"success": False, "error": "Target folder does not exist"}
 
-    if any(target.iterdir()):
+    # The folder counts as empty when it contains nothing except `.magestic-ai/`,
+    # which the app itself creates when registering the project.
+    extra = [p for p in target.iterdir() if p.name != ".magestic-ai"]
+    if extra:
         return {"success": False, "error": "Target folder must be empty to clone into"}
 
-    # `git clone <url> .` clones into the current directory when it's empty.
-    result = run_git_command(["clone", url, "."], path, timeout=300)
-    if not result["success"]:
-        return {"success": False, "error": result.get("error") or "git clone failed"}
+    # Move `.magestic-ai/` aside so `git clone <url> .` sees a fresh dir, then restore.
+    magestic_dir = target / ".magestic-ai"
+    backup: Path | None = None
+    if magestic_dir.exists():
+        temp_root = Path(tempfile.mkdtemp(prefix="magestic-clone-"))
+        backup = temp_root / ".magestic-ai"
+        shutil.move(str(magestic_dir), str(backup))
 
-    return {"success": True}
+    try:
+        result = run_git_command(["clone", url, "."], path, timeout=300)
+        if not result["success"]:
+            return {"success": False, "error": result.get("error") or "git clone failed"}
+        return {"success": True}
+    finally:
+        if backup and backup.exists():
+            dest = target / ".magestic-ai"
+            if not dest.exists():
+                shutil.move(str(backup), str(dest))
+            # Clean up the temp parent dir if empty
+            if backup.parent.exists() and not any(backup.parent.iterdir()):
+                backup.parent.rmdir()
 
 
 # ============================================
