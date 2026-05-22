@@ -1,6 +1,6 @@
 {
   "name": "magesticai-web",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "type": "module",
   "description": "Web UI for MagesticAI autonomous coding framework",
   "scripts": {

@@ -25,7 +25,18 @@
     "settingUp": "Setting up Git",
     "initializingRepo": "Initializing git repository and creating initial commit...",
     "success": "Git Initialized",
-    "readyToUse": "Your project is now ready to use with MagesticAI!"
+    "readyToUse": "Your project is now ready to use with MagesticAI!",
+    "tabInit": "Initialize",
+    "tabClone": "Clone from GitHub",
+    "cloneTitle": "Clone a public GitHub repo",
+    "cloneDescription": "Paste a GitHub repository URL. The target folder must be empty.",
+    "cloneUrlLabel": "Repository URL",
+    "cloneUrlPlaceholder": "https://github.com/owner/repo",
+    "cloneButton": "Clone",
+    "cloning": "Cloning repository...",
+    "cloneSuccess": "Repository cloned",
+    "cloneErrorEmpty": "Target folder must be empty",
+    "cloneErrorInvalidUrl": "Enter a valid https://github.com/owner/repo URL"
   },
   "githubSetup": {
     "connectTitle": "Connect to GitHub",

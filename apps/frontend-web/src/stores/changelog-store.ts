@@ -17,6 +17,7 @@ import type {
 import { useTaskStore } from './task-store';
 import { useSettingsStore } from './settings-store';
 import { saveSettings } from './settings-store';
+import { useProjectStore } from './project-store';
 
 interface ChangelogState {
   // Data
@@ -393,24 +394,61 @@ export async function loadGitData(projectId: string): Promise<void> {
         }
       }
 
-      // Try to determine default branch (main or master)
-      const defaultBranch = branchesResult.data.find(
-        (b) => b.name === 'main' || b.name === 'master'
-      );
-      if (defaultBranch) {
-        store.setDefaultBranch(defaultBranch.name);
+      // Determine default branch with proper priority:
+      //   1. project.settings.mainBranch (user-configured, project-level)
+      //   2. envConfig.defaultBranch (CLI backward-compat)
+      //   3. detectMainBranch (autodetect from git)
+      //   4. Last resort: string-match 'main'/'master' in branches list
+      const project = useProjectStore.getState().projects.find((p) => p.id === projectId);
+      let configuredDefault: string | undefined = project?.settings?.mainBranch;
+
+      if (!configuredDefault) {
+        try {
+          const envResult = await window.API.getProjectEnv(projectId);
+          if (envResult.success && envResult.data?.defaultBranch) {
+            configuredDefault = envResult.data.defaultBranch;
+          }
+        } catch {
+          // ignore — fall through to autodetect
+        }
+      }
+
+      if (!configuredDefault && project?.path) {
+        try {
+          const detect = await window.API.detectMainBranch(project.path);
+          if (detect.success && detect.data) {
+            configuredDefault = detect.data;
+          }
+        } catch {
+          // ignore — fall through to string match
+        }
+      }
+
+      const matching = configuredDefault
+        ? branchesResult.data.find((b) => b.name === configuredDefault)
+        : undefined;
+      const fallback = matching
+        ?? branchesResult.data.find((b) => b.name === 'main' || b.name === 'master');
+
+      if (fallback) {
+        store.setDefaultBranch(fallback.name);
       }
     }
 
     if (tagsResult.success && tagsResult.data) {
       store.setTags(tagsResult.data);
 
-      // Auto-set tag range if tags exist
+      // Auto-set tag range if tags exist. Backend returns tags newest-first
+      // (`git tag --sort=-v:refname`), so tags[0] is the latest. For a typical
+      // changelog entry we want `previous..latest` — fromTag = tags[1] (previous
+      // release), toTag = tags[0] (latest). If only one tag exists, use it as
+      // fromTag and leave toTag empty (= HEAD).
       if (tagsResult.data.length > 0 && !store.gitHistoryFromTag) {
-        store.setGitHistoryFromTag(tagsResult.data[0].name);
+        const fromIndex = tagsResult.data.length > 1 ? 1 : 0;
+        store.setGitHistoryFromTag(tagsResult.data[fromIndex].name);
       }
       if (tagsResult.data.length > 1 && !store.gitHistoryToTag) {
-        store.setGitHistoryToTag(tagsResult.data[1].name);
+        store.setGitHistoryToTag(tagsResult.data[0].name);
       }
 
       // If we have a gitHistorySinceVersion set (e.g., from existing changelog),

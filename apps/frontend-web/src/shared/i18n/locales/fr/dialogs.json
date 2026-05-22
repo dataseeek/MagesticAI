@@ -25,7 +25,18 @@
     "settingUp": "Configuration de Git",
     "initializingRepo": "Initialisation du dépôt git et création du commit initial...",
     "success": "Git initialisé",
-    "readyToUse": "Votre projet est maintenant prêt à être utilisé avec MagesticAI !"
+    "readyToUse": "Votre projet est maintenant prêt à être utilisé avec MagesticAI !",
+    "tabInit": "Initialiser",
+    "tabClone": "Cloner depuis GitHub",
+    "cloneTitle": "Cloner un dépôt GitHub public",
+    "cloneDescription": "Collez l'URL d'un dépôt GitHub. Le dossier cible doit être vide.",
+    "cloneUrlLabel": "URL du dépôt",
+    "cloneUrlPlaceholder": "https://github.com/owner/repo",
+    "cloneButton": "Cloner",
+    "cloning": "Clonage du dépôt...",
+    "cloneSuccess": "Dépôt cloné",
+    "cloneErrorEmpty": "Le dossier cible doit être vide",
+    "cloneErrorInvalidUrl": "Entrez une URL valide https://github.com/owner/repo"
   },
   "githubSetup": {
     "connectTitle": "Connecter à GitHub",

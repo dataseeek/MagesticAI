@@ -23,8 +23,7 @@ MagesticAI is a browser-based platform for managing AI-powered coding tasks thro
 - **Monaco Code Editor** - VS Code-like editing experience
 - **Git Worktree Isolation** - Safe, isolated builds per task
 - **AI-Powered QA** - Automated code review and validation
-- **Local LLM Agentic Mode** - Ollama models with native tool calling (Read, Write, Edit, Bash, Glob, Grep) — no API fallback needed
-- **Multi-Provider Support** - Claude, Codex, Gemini, and Ollama with automatic agentic/text-only routing per phase
+- **Multi-Provider Support** - Claude, Codex, Gemini, and any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, OpenRouter, Together, Groq, LocalAI…) with native agentic tool calling (Read, Write, Edit, Bash, Glob, Grep) — no API fallback needed
 - **Graphiti Memory** - Cross-session learning and knowledge retention
 - **Multi-Project Support** - Manage multiple repositories
 - **Internationalization** - English, French, Portuguese (Brazil)
@@ -75,12 +74,13 @@ MagesticAI sits next to two open-source projects with overlapping goals but very
 | **Generates specs** | Yes — its core purpose | Partial — workflow artifacts | Yes — multi-agent spec authoring (3–8 stages, auto-scaled by complexity) |
 | **Executes the spec** | No — hands off to your external agent (Copilot / Claude Code / Cursor) | Orchestrates external agents via the ACP protocol | Yes — built-in Planner / Coder / QA Reviewer / QA Fixer |
 | **Task isolation** | None | Workflow state in a daemon | Git worktree per task |
-| **LLM provider model** | Inherited from whatever agent you hand off to | Inherited from the agent it orchestrates | Direct multi-provider: Claude, Codex CLI, Gemini, Ollama, any OpenAI-compatible endpoint |
+| **LLM provider model** | Inherited from whatever agent you hand off to | Inherited from the agent it orchestrates | Direct multi-provider: Claude, Codex CLI, Gemini, any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, OpenRouter, Together, Groq, LocalAI…) |
 | **License** | MIT | MIT | AGPL-3.0 |
 
 **The short version:** Spec Kit is great for authoring specs you'll execute with an existing agent. Compozy is great if you want a terminal-first multi-agent runner driving external agents. MagesticAI is the one to pick if you want the full spec → plan → code → QA loop in one self-hosted browser app, with first-class support for local and OpenAI-compatible LLMs.
 
 ---
+
 
 ## Quick Start
 
@@ -173,8 +173,8 @@ See [ContainerAPP.md](ContainerAPP.md) for detailed Docker deployment instructio
 │                                                                  │
 │   Backend Agents (Python)                                        │
 │   ├── Claude Agent SDK Integration                               │
-│   ├── Multi-Provider Engine (Claude/Codex/Gemini/Ollama)         │
-│   ├── Local LLM Tool Calling (Read/Write/Edit/Bash/Glob/Grep)   │
+│   ├── Multi-Provider Engine (Claude/Codex/Gemini/OpenAI-compat)  │
+│   ├── Local LLM Tool Calling (Read/Write/Edit/Bash/Glob/Grep)    │
 │   ├── Planner Agent (creates implementation plans)               │
 │   ├── Coder Agent (implements subtasks)                          │
 │   ├── QA Reviewer (validates code)                               │
@@ -220,7 +220,7 @@ See [ContainerAPP.md](ContainerAPP.md) for detailed Docker deployment instructio
 |------------|---------|---------|
 | Python | 3.12+ | Runtime |
 | Claude Agent SDK | Latest | AI Agent Framework |
-| Ollama | Local | Local LLM with native tool calling |
+| OpenAI-compatible | Local / Hosted | Ollama, LM Studio, vLLM, LocalAI, OpenRouter, Together, Groq — with native tool calling |
 | Graphiti | Latest | Knowledge Graph Memory |
 | LadybugDB | Embedded | Graph Database (no Docker) |
 
@@ -249,7 +249,7 @@ MagesticAI/
 │   │
 │   ├── backend/             # Python agent system
 │   │   ├── agents/          # Planner, Coder agents
-│   │   ├── providers/       # Multi-LLM adapters (Claude, Codex, Gemini, Ollama)
+│   │   ├── providers/       # Multi-LLM adapters (Claude, Codex, Gemini, OpenAI-compatible inc. Ollama)
 │   │   ├── tools/           # Reusable tool executor (Read, Write, Edit, Bash, Glob, Grep)
 │   │   ├── qa/              # QA Reviewer, Fixer
 │   │   ├── spec/            # Spec creation pipeline
@@ -333,16 +333,16 @@ VITE_WS_BASE_URL=ws://localhost:3101
 ### OpenAI-Compatible Endpoints
 
 MagesticAI can talk to any service that implements the OpenAI
-`POST /v1/chat/completions` protocol: **LM Studio, vLLM, OpenRouter,
-Together AI, Groq, LocalAI**, and OpenAI itself.
+`POST /v1/chat/completions` protocol: **Ollama** (at `http://localhost:11434/v1`),
+**LM Studio, vLLM, OpenRouter, Together AI, Groq, LocalAI**, and OpenAI itself.
 
 **1. Add the endpoint in the UI**
 Open Settings → LLM Accounts → "OpenAI-Compatible Endpoints" → "Add endpoint".
 Fill in:
-- *Label* (e.g. `LM Studio local`)
-- *Base URL* (e.g. `http://localhost:1234` — without the `/v1` suffix)
-- *API key* (leave blank for local servers like LM Studio that don't need one)
-- *Default model* (e.g. `qwen2.5-coder-32b-instruct`)
+- *Label* (e.g. `LM Studio local`, `Ollama local`)
+- *Base URL* (e.g. `http://localhost:1234` for LM Studio, `http://localhost:11434/v1` for Ollama — Ollama needs the `/v1` suffix; LM Studio / vLLM do not)
+- *API key* (leave blank for local servers like LM Studio / Ollama that don't need one)
+- *Default model* (e.g. `qwen2.5-coder-32b-instruct`, `qwen2.5-coder:32b` for Ollama)
 
 Use the "Test" button to confirm the server is reachable.
 
