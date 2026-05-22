@@ -3,6 +3,7 @@ Git, Ollama, MCP, and utility routes.
 """
 
 import json
+import re
 import shlex
 import shutil
 import subprocess
@@ -18,7 +19,7 @@ router = APIRouter()
 # Git Routes
 # ============================================
 
-def run_git_command(args: list[str], cwd: str) -> dict:
+def run_git_command(args: list[str], cwd: str, timeout: int = 30) -> dict:
     """Run a git command and return result."""
     try:
         result = subprocess.run(
@@ -26,7 +27,7 @@ def run_git_command(args: list[str], cwd: str) -> dict:
             capture_output=True,
             text=True,
             cwd=cwd,
-            timeout=30
+            timeout=timeout
         )
         if result.returncode != 0:
             return {"success": False, "error": result.stderr.strip()}
@@ -158,6 +159,49 @@ async def initialize_git(request: InitGitRequest):
         ["commit", "-m", "Initial commit", "--allow-empty"],
         path
     )
+
+    return {"success": True}
+
+
+class CloneGitRequest(BaseModel):
+    path: str
+    url: str
+
+
+# Strict github.com/<owner>/<repo>[.git] HTTPS URL.
+# Owner: GitHub login rules — alnum + dashes, no leading/trailing dash, <=39 chars.
+# Repo: alnum + dash/underscore/dot, <=100 chars.
+_GITHUB_HTTPS_URL = re.compile(
+    r"^https://github\.com/"
+    r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,38}[A-Za-z0-9])?/"
+    r"[A-Za-z0-9._-]{1,100}"
+    r"(?:\.git)?/?$"
+)
+
+
+@router.post("/clone")
+async def clone_git_repo(request: CloneGitRequest):
+    """Clone a public GitHub repository into an empty target folder."""
+    url = (request.url or "").strip()
+    path = (request.path or "").strip()
+
+    if not _GITHUB_HTTPS_URL.match(url):
+        return {
+            "success": False,
+            "error": "Enter a valid https://github.com/owner/repo URL"
+        }
+
+    target = Path(path)
+    if not target.exists() or not target.is_dir():
+        return {"success": False, "error": "Target folder does not exist"}
+
+    if any(target.iterdir()):
+        return {"success": False, "error": "Target folder must be empty to clone into"}
+
+    # `git clone <url> .` clones into the current directory when it's empty.
+    result = run_git_command(["clone", url, "."], path, timeout=300)
+    if not result["success"]:
+        return {"success": False, "error": result.get("error") or "git clone failed"}
 
     return {"success": True}
 

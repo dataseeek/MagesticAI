@@ -556,6 +556,7 @@ export interface API {
   detectMainBranch: (projectPath: string) => Promise<IPCResult<string | null>>;
   checkGitStatus: (projectPath: string) => Promise<IPCResult<GitStatus>>;
   initializeGit: (projectPath: string) => Promise<IPCResult<InitializationResult>>;
+  cloneGitRepo: (projectPath: string, url: string) => Promise<IPCResult<InitializationResult>>;
 
   // Ollama model detection operations
   checkOllamaStatus: (baseUrl?: string) => Promise<IPCResult<{

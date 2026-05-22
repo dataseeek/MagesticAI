@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { GitBranch, Terminal, CheckCircle2, AlertCircle, Loader2, FolderGit2 } from 'lucide-react';
+import { GitBranch, Github, Terminal, CheckCircle2, AlertCircle, Loader2, FolderGit2 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -10,7 +10,11 @@ import {
   DialogHeader,
   DialogTitle
 } from './ui/dialog';
+import { Input } from './ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import type { Project, GitStatus } from '../shared/types';
+
+const GITHUB_HTTPS_URL = /^https:\/\/github\.com\/[A-Za-z0-9](?:[A-Za-z0-9-]{0,38}[A-Za-z0-9])?\/[A-Za-z0-9._-]{1,100}(?:\.git)?\/?$/;
 
 interface GitSetupModalProps {
   open: boolean;
@@ -33,13 +37,19 @@ export function GitSetupModal({
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'info' | 'initializing' | 'success'>('info');
+  const [activeOp, setActiveOp] = useState<'init' | 'clone'>('init');
+  const [cloneUrl, setCloneUrl] = useState('');
+  const [isCloning, setIsCloning] = useState(false);
+  const [cloneError, setCloneError] = useState<string | null>(null);
 
   const needsGitInit = gitStatus && !gitStatus.isGitRepo;
-  const _needsCommit = gitStatus && gitStatus.isGitRepo && !gitStatus.hasCommits;
+  const needsCommit = gitStatus && gitStatus.isGitRepo && !gitStatus.hasCommits;
+  const cloneUrlValid = GITHUB_HTTPS_URL.test(cloneUrl.trim());
 
   const handleInitializeGit = async () => {
     if (!project) return;
 
+    setActiveOp('init');
     setIsInitializing(true);
     setError(null);
     setStep('initializing');
@@ -68,23 +78,49 @@ export function GitSetupModal({
     }
   };
 
+  const handleCloneRepo = async () => {
+    if (!project) return;
+    const trimmed = cloneUrl.trim();
+    if (!GITHUB_HTTPS_URL.test(trimmed)) {
+      setCloneError(t('gitSetup.cloneErrorInvalidUrl'));
+      return;
+    }
+
+    setActiveOp('clone');
+    setIsCloning(true);
+    setCloneError(null);
+    setStep('initializing');
+
+    try {
+      const result = await window.API.cloneGitRepo(project.path, trimmed);
+
+      if (result.success) {
+        setStep('success');
+        setTimeout(() => {
+          onGitInitialized();
+          onOpenChange(false);
+          setStep('info');
+          setCloneUrl('');
+        }, 1500);
+      } else {
+        setCloneError(result.error || 'Failed to clone repository');
+        setStep('info');
+      }
+    } catch (err) {
+      setCloneError(err instanceof Error ? err.message : 'Failed to clone repository');
+      setStep('info');
+    } finally {
+      setIsCloning(false);
+    }
+  };
+
   const handleSkip = () => {
     onSkip?.();
     onOpenChange(false);
   };
 
-  const renderInfoStep = () => (
+  const renderInitTabBody = () => (
     <>
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          <FolderGit2 className="h-5 w-5 text-primary" />
-          {t('gitSetup.title')}
-        </DialogTitle>
-        <DialogDescription>
-          {t('gitSetup.description')}
-        </DialogDescription>
-      </DialogHeader>
-
       <div className="py-4 space-y-4">
         {/* Status indicator */}
         <div className="rounded-lg bg-muted p-4">
@@ -154,6 +190,85 @@ export function GitSetupModal({
     </>
   );
 
+  const renderCloneTabBody = () => (
+    <>
+      <div className="py-4 space-y-4">
+        <div className="rounded-lg border border-border p-4 space-y-3">
+          <div>
+            <p className="font-medium text-sm">{t('gitSetup.cloneTitle')}</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {t('gitSetup.cloneDescription')}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="clone-url" className="text-xs font-medium text-muted-foreground">
+              {t('gitSetup.cloneUrlLabel')}
+            </label>
+            <Input
+              id="clone-url"
+              type="url"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={t('gitSetup.cloneUrlPlaceholder')}
+              value={cloneUrl}
+              onChange={(e) => {
+                setCloneUrl(e.target.value);
+                if (cloneError) setCloneError(null);
+              }}
+              disabled={isCloning}
+            />
+          </div>
+        </div>
+
+        {cloneError && (
+          <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
+            {cloneError}
+          </div>
+        )}
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={handleSkip}>
+          Skip for now
+        </Button>
+        <Button
+          onClick={handleCloneRepo}
+          disabled={!cloneUrlValid || isCloning}
+        >
+          <Github className="mr-2 h-4 w-4" />
+          {t('gitSetup.cloneButton')}
+        </Button>
+      </DialogFooter>
+    </>
+  );
+
+  const renderInfoStep = () => (
+    <>
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <FolderGit2 className="h-5 w-5 text-primary" />
+          {t('gitSetup.title')}
+        </DialogTitle>
+        <DialogDescription>
+          {t('gitSetup.description')}
+        </DialogDescription>
+      </DialogHeader>
+
+      {needsCommit ? (
+        renderInitTabBody()
+      ) : (
+        <Tabs value={activeOp} onValueChange={(v) => setActiveOp(v as 'init' | 'clone')}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="init">{t('gitSetup.tabInit')}</TabsTrigger>
+            <TabsTrigger value="clone">{t('gitSetup.tabClone')}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="init">{renderInitTabBody()}</TabsContent>
+          <TabsContent value="clone">{renderCloneTabBody()}</TabsContent>
+        </Tabs>
+      )}
+    </>
+  );
+
   const renderInitializingStep = () => (
     <>
       <DialogHeader>
@@ -167,7 +282,9 @@ export function GitSetupModal({
         <div className="space-y-3 text-center">
           <Terminal className="h-12 w-12 text-muted-foreground mx-auto" />
           <p className="text-sm text-muted-foreground">
-            {t('gitSetup.initializingRepo')}
+            {activeOp === 'clone'
+              ? t('gitSetup.cloning')
+              : t('gitSetup.initializingRepo')}
           </p>
         </div>
       </div>
@@ -179,7 +296,7 @@ export function GitSetupModal({
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <CheckCircle2 className="h-5 w-5 text-success" />
-          {t('gitSetup.success')}
+          {activeOp === 'clone' ? t('gitSetup.cloneSuccess') : t('gitSetup.success')}
         </DialogTitle>
       </DialogHeader>
 

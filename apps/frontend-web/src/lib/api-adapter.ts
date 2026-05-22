@@ -843,6 +843,8 @@ export const webAPI: API & { _isWebMode: boolean } = {
     get(`/git/status?path=${encodeURIComponent(projectPath)}`),
   initializeGit: (projectPath: string) =>
     post('/git/init', { path: projectPath }),
+  cloneGitRepo: (projectPath: string, url: string) =>
+    post('/git/clone', { path: projectPath, url }),
 
   // ========== Ollama Operations ==========
   checkOllamaStatus: (baseUrl) =>
