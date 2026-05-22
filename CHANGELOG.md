@@ -1,3 +1,24 @@
+## 2.3.0 - 2026-05-22
+
+### ✨ Added
+- **Clone from GitHub** (#50): The "Git Repository Required" dialog now offers a second action — clone a public GitHub repo over HTTPS — alongside Initialize Git. Strict URL validation (`github.com/<owner>/<repo>` only) and an empty-folder guard, with the app's own `.magestic-ai/` directory automatically moved aside and restored during the clone.
+- **OpenAI-compatible endpoint enhancements** (#42): Improved support for LM Studio, vLLM, OpenRouter, Together, Groq, LocalAI, and other OpenAI-compatible providers.
+- **Auto-tag + GitHub release workflow** (#48): Merging a version bump to `main` now automatically creates the tag, builds binaries, and publishes a GitHub release with changelog notes.
+
+### 🛠️ Fixed
+- **Default branch setting honored across the app** (#51): The Changelog Generator's Branch Comparison, Create Worktree dialog, and Project Settings now respect the user-configured default branch (`settings.mainBranch` → `envConfig.defaultBranch` → autodetect), instead of hardcoding `main`/`master`. Also fixes the Changelog tag-range default to `previous..latest` instead of the backwards `latest..previous`.
+- **Merge button shows the actual target branch** (#43), not the hardcoded `main`.
+- **NameError in settings routes** (#41) — added the missing module-level logger.
+- **Dogfooding the app on its own repo** (#40): file routes now allow the `.magestic-ai/` subtree when the project path is the app's own root.
+
+### 🔧 Changed
+- **LLM Providers panel simplified** (#46) to two panels.
+- **Cloud-provider model lists refreshed** (#45) — latest models surfaced, previous-generation entries dropped.
+- **Documentation refresh** (#44, #49, plus README touch-ups): `.auto-claude/` paths replaced with `.magestic-ai/`, stale Auto-Claude references removed from CLAUDE.md, and Ollama is now documented via the OpenAI-compatible endpoint path.
+
+
+## 2.2.0 - 2026-05-20
+
 ### ✨ Added
 - **GitHub PR Review Integration**: End-to-end support for PR reviews including listing, fetching, posting reviews, checking new commits, and viewing logs via dedicated API endpoints.
 - **PR Review WebSocket Events**: Real-time progress, completion, and error events via WebSocket for live feedback during PR reviews.
